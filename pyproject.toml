@@ -1,0 +1,34 @@
+[tool.poetry]
+name = "tree-detection"
+version = "0.1.0"
+description = ""
+authors = ["Andres Camilo Zuniga-Gonzalez"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+torch = "^2.2.2"
+torchvision = "^0.17.2"
+torchaudio = "^2.2.2"
+segment-geospatial = "^0.10.2"
+geopandas = "^0.14.3"
+transformers = "^4.39.1"
+xarray = "^2024.2.0"
+rioxarray = "^0.15.1"
+geemap = "^0.32.0"
+jupyterlab = "^4.1.5"
+cartopy = "^0.22.0"
+folium = "^0.16.0"
+fiona = "^1.9.6"
+wheel = "^0.43.0"
+gdal = {version = "3.8.4", extras = ["numpy"]}
+groundingdino-py = "^0.4.0"
+segment-anything = "^1.0"
+python-dotenv = "^1.0.1"
+geocube = "^0.5.1"
+tqdm = "^4.66.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
