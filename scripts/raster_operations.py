@@ -4,6 +4,8 @@ from osgeo import gdal
 import rasterio
 import numpy as np
 import geopandas as gpd
+import rioxarray as rxr
+from geocube.vector import vectorize
 from rasterio.mask import mask
 
 def merge_rasters(input_rasters, output_raster):
@@ -122,3 +124,20 @@ def clip_and_mask_raster(raster_path, vector_path, output_path, min_val, max_val
     # Write the clipped and masked raster to a new file
     with rasterio.open(output_path, "w", **out_meta) as dest:
         dest.write(out_image)
+
+def vectorise_raster(raster_path, vector_path, field_name, mask_and_scale=True, dissolve=True):
+
+    raster = rxr.open_rasterio(raster_path, mask_and_scale=mask_and_scale).squeeze()
+    raster.name = field_name
+    vectorised_raster = vectorize(raster)
+
+    res = vectorised_raster
+
+    if dissolve:
+        dissolved_raster = vectorised_raster.dissolve()
+
+        res = dissolved_raster
+
+    res.to_file(vector_path)
+
+    return res
