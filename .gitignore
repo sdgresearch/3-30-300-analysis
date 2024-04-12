@@ -1,5 +1,10 @@
 .DS_Store
 .env
 .venv
+.Renviron
+*.Rhistory
+*.Rproj
 *.tif
 scripts/__pycache__
+data/
+.Rproj.user
