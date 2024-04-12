@@ -20,10 +20,10 @@ def merge_rasters(input_rasters, output_raster):
     out_ds = None  # Close the dataset
     print(f"Merged raster saved as {output_raster}")
 
-def create_vrt(input_rasters, output_vrt, output_raster=None):
+def create_vrt(input_rasters, output_vrt, output_raster=None, band_number=1):
 
     # Create VRT
-    vrt_options = gdal.BuildVRTOptions(resampleAlg='nearest', addAlpha=True)
+    vrt_options = gdal.BuildVRTOptions(resampleAlg='nearest', addAlpha=True, bandList=[band_number] * len(input_rasters))
     vrt = gdal.BuildVRT(output_vrt, input_rasters, options=vrt_options)
     vrt = None  # Close the VRT
     if output_raster:
@@ -80,7 +80,7 @@ def getFeatures(gdf):
     return [json.loads(gdf.to_json())['features'][0]['geometry']]
 
 
-def clip_and_mask_raster(raster_path, vector_path, output_path, min_val, max_val):
+def clip_and_mask_raster(raster_path, vector_mask, output_path, min_val, max_val):
     """
     Clips a raster with a vector mask, masks out values outside the specified range, 
     and saves the output to a new file.
@@ -92,8 +92,6 @@ def clip_and_mask_raster(raster_path, vector_path, output_path, min_val, max_val
         min_val (float): Minimum value to keep.
         max_val (float): Maximum value to keep.
     """
-    # Load the vector mask
-    vector_mask = gpd.read_file(vector_path)
     
     with rasterio.open(raster_path) as src:
         # Ensure the vector mask is in the same CRS as the raster
