@@ -5,6 +5,8 @@ import rasterio
 import numpy as np
 import geopandas as gpd
 import rioxarray as rxr
+from rasterio.features import shapes
+from shapely.geometry import box, shape
 from geocube.vector import vectorize
 from rasterio.mask import mask
 
@@ -123,19 +125,46 @@ def clip_and_mask_raster(raster_path, vector_mask, output_path, min_val, max_val
     with rasterio.open(output_path, "w", **out_meta) as dest:
         dest.write(out_image)
 
-def vectorise_raster(raster_path, vector_path, field_name, mask_and_scale=True, dissolve=True):
+# def vectorise_raster(raster_path, vector_path, field_name, mask_and_scale=True, dissolve=True):
 
-    raster = rxr.open_rasterio(raster_path, mask_and_scale=mask_and_scale).squeeze()
-    raster.name = field_name
-    vectorised_raster = vectorize(raster)
+#     raster = rxr.open_rasterio(raster_path, mask_and_scale=mask_and_scale).squeeze()
+#     raster.name = field_name
+#     vectorised_raster = vectorize(raster)
 
-    res = vectorised_raster
+#     res = vectorised_raster
 
-    if dissolve:
-        dissolved_raster = vectorised_raster.dissolve()
+#     if dissolve:
+#         dissolved_raster = vectorised_raster.dissolve()
 
-        res = dissolved_raster
+#         res = dissolved_raster
 
-    res.to_file(vector_path)
+#     res.to_file(vector_path)
 
-    return res
+#     return res
+
+def vectorise_raster(raster_data, transform, field_name, crs, dissolve=True):
+    # Generate vector shapes from raster
+    mask = raster_data != raster_data.min()  # Mask to exclude the background/nodata values
+    vector_shapes = shapes(raster_data, mask=mask, transform=transform)
+
+    # Convert the shapes and values to a GeoDataFrame
+    records = []
+    for geom, value in vector_shapes:
+        records.append({
+            'geometry': shape(geom),
+            field_name: value
+        })
+
+    # Convert the shapes and values to a GeoDataFrame
+    if records:  # Check if there are any records to avoid creating an empty GeoDataFrame
+        gdf = gpd.GeoDataFrame(records, crs=crs)
+        gdf.set_geometry('geometry', inplace=True)  # Ensure 'geometry' is the geometry column
+        gdf = gdf  # Assign CRS after confirming geometry presence
+
+        # Optional dissolve step
+        if dissolve:
+            gdf = gdf.dissolve(by=field_name, as_index=False)
+
+        return gdf
+    else:
+        return None  # Return None if no vector shapes were created
