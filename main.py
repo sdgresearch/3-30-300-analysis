@@ -1,32 +1,41 @@
 import os
-from scripts.constants import *
 from pathlib import Path
 from tqdm import tqdm
+import pandas as pd
+
+from shapely.geometry import box
+
+from scripts.constants import *
+from scripts.utils import *
 from scripts.raster_operations import *
 from scripts.vector_operations import *
 
 if __name__ == "__main__":
     pass
 
-    ## Process the building height data
-    ## Dissolve adjacent polygons per tile in the grid and summarize their statistics
-    # MASK_DIR = DATA_DIR / "vector"
-    # uk_building_height_dir = MASK_DIR / "UK_building_height/gdb/"
+    # IN paths
+    bua_path = BUA_IN_DIR / "OS_Open_Built_Up_Areas.gpkg"
+    pch_vrt_path = PCH_IN_DIR / "ps_PSScene4Band_2019.vrt"
+    pch_paths = list(sorted(PCH_IN_DIR.glob('*.tif')))
+    gbg_5km_path = GBG_IN_DIR / "5km_grid_region.shp"
+    bhf_paths = list(sorted(BHF_IN_DIR.rglob('*9.gdbtable')))
+    ogs_path = OGS_IN_DIR / "GB_GreenspaceSite.shp"
 
-    # input_vector_dirs = [dir for dir in uk_building_height_dir.glob('*/') if dir.is_dir]
+    # OUT paths
+    bua_dissolved_path = BUA_OUT_DIR / "bua_dissolved.geojson"
+    pch_masked_dir = PCH_OUT_DIR / "pch_bua_masked"
+    pch_masked_dir.mkdir(parents=True, exist_ok=True)
+    pch_masked_vrt_path = pch_masked_dir / "ps_PSScene4Band_2019_masked.vrt"
+    pch_masked_tile_dir = PCH_OUT_DIR / "pch_bua_masked_gbg_tile"
+    pch_masked_r_tile_dir = pch_masked_tile_dir / "raster_tile"
+    pch_masked_r_tile_dir.mkdir(parents=True, exist_ok=True)
+    pch_masked_v_tile_dir = pch_masked_tile_dir / "vector_tile"
+    pch_masked_v_tile_dir.mkdir(parents=True, exist_ok=True)
+    bhf_dissolved_tile_dir = BHF_OUT_DIR / "bhf_dissolved_tile"
+    bhf_dissolved_tile_dir.mkdir(parents=True, exist_ok=True)
+    bhf_distance_tile_dir = BHF_OUT_DIR / "bhf_distance_tile"
+    bhf_distance_tile_dir.mkdir(parents=True, exist_ok=True)
 
-    # for tile_dir in tqdm(input_vector_dirs, desc='UK'):
-    #     # print(tile_dir.stem)
-    #     tile_ouput_dir_name = MASK_DIR / "UK_building_height_dissolved" / tile_dir.stem
-    #     tile_ouput_dir_name.mkdir(parents=True)
-
-    #     tiles_dirs = [dir for dir in tile_dir.glob('*/') if dir.is_dir]
-
-    #     for small_tile in tqdm(tiles_dirs, desc='Tile'):
-    #         # print(small_tile.stem)
-
-    #         out_name = tile_ouput_dir_name / f'{small_tile.stem}_dissolved.gpkg'
-
-    #         geodatatable_path = [x for x in small_tile.glob("*9.gdbtable")][0]
-
-    #         dissolve_adjacent(geodatatable_path, out_name)
+    pch_masked_paths = list(sorted(pch_masked_dir.glob('*.tif')))
+    print(pch_masked_paths)
+    create_vrt(pch_masked_paths, pch_masked_vrt_path)
