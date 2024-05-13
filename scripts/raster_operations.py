@@ -25,18 +25,14 @@ def merge_rasters(input_rasters, output_raster):
 def create_vrt(input_rasters, output_vrt, output_raster=None, band_number=1):
 
     # Create VRT
-    vrt_options = gdal.BuildVRTOptions(resampleAlg='nearest', addAlpha=True, bandList=[band_number] * len(input_rasters))
+    vrt_options = gdal.BuildVRTOptions(resampleAlg='nearest', addAlpha=False)#True, bandList=[band_number] * len(input_rasters))
     vrt = gdal.BuildVRT(output_vrt, input_rasters, options=vrt_options)
     vrt = None  # Close the VRT
     if output_raster:
         # Optionally, convert VRT to a physical file if needed
         gdal.Translate(output_raster, output_vrt, format='GTiff')
 
-def filter_vrt(input_vrt_path, output_vrt_path, temp_raster_path):
-
-    # Define your value range
-    min_val = 10
-    max_val = 200
+def binarize_vrt(input_vrt_path, output_vrt_path, min_val, max_val):
 
     # Open the input raster using Rasterio
     with rasterio.open(input_vrt_path) as src:
@@ -45,21 +41,11 @@ def filter_vrt(input_vrt_path, output_vrt_path, temp_raster_path):
 
         # Set pixels outside the range to np.nan (or another no-data value defined in your profile)
         data[(data < min_val) | (data > max_val)] = np.nan
-
-        # Update the profile to ensure it's saved as a TIF
-        profile.update(driver='GTiff', dtype=rasterio.float32)
-
-        # Write the modified data to a temporary file
-        with rasterio.open(temp_raster_path, 'w', **profile) as dst:
-            dst.write(data, 1)
+        data[(data > min_val) & (data < max_val)] = 1
 
     # Use GDAL to create a VRT that references the modified raster
-    vrt_options = gdal.BuildVRTOptions(outputType=gdal.GDT_Float32)
-    gdal.BuildVRT(output_vrt_path, temp_raster_path, options=vrt_options)
-
-    # Optionally, remove the temporary file if you no longer need it
-    os.remove(temp_raster_path)
-
+    vrt_options = gdal.BuildVRTOptions(outputType=gdal.GDT_Int16)
+    gdal.BuildVRT(output_vrt_path, output_vrt_path, options=vrt_options)
 
 def clip_by_mask(input_vrt_path, mask_layer_path, output_vrt_path):
 
