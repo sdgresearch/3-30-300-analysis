@@ -9,3 +9,5 @@ scripts/__pycache__
 data/
 .Rproj.user
 *.qgz
+*.out
+*.sh
