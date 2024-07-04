@@ -14,6 +14,7 @@ library(spatialreg)
 log_threshold(DEBUG)
 
 # Paths -------------------------------------------------------------------
+log_info(paste("Creating path variables"))
 
 DATA_DIR <- Sys.getenv("DATA_DIR")
 INPUT_DIR <- paste0(DATA_DIR, "/input")
@@ -36,7 +37,8 @@ wards_geometries <- paste0(VECTOR_INPUT_DIR,
                            "/gbg_boundaries/Wards_December_2019_FCB_GB_2022_-8436552284962077830/Wards_December_2019_FCB_GB.shp")
 
 # Data Processing ---------------------------------------------------------
-                           
+
+log_info(paste("Running Data Processing"))                           
 imd_distance_df <- read_sf(imd_distance_path)
 
 diabetes_df <- read_csv(diabetes_path) |> 
