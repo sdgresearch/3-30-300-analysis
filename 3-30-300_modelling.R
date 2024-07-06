@@ -83,33 +83,33 @@ model_df <- diabetes_imd_green_sf |>
 
 # EDA - Diabetes ----------------------------------------------------------
 
-model_df |> 
-    ggplot(aes(x = canopy_cover, y = diabetes_prev, colour = as.factor(LA_decile))) +
-    geom_point(alpha = .5) +
-    geom_smooth() +
-    scale_color_brewer(palette = 'RdYlBu') +
-    theme_minimal()
+# model_df |> 
+#     ggplot(aes(x = canopy_cover, y = diabetes_prev, colour = as.factor(LA_decile))) +
+#     geom_point(alpha = .5) +
+#     geom_smooth() +
+#     scale_color_brewer(palette = 'RdYlBu') +
+#     theme_minimal()
 
-model_df |> 
-    ggplot(aes(x = d_pch, y = diabetes_prev, colour = as.factor(LA_decile))) +
-    geom_point(alpha = .5) +
-    geom_smooth() +
-    scale_color_brewer(palette = 'RdYlBu') +
-    theme_minimal()
+# model_df |> 
+#     ggplot(aes(x = d_pch, y = diabetes_prev, colour = as.factor(LA_decile))) +
+#     geom_point(alpha = .5) +
+#     geom_smooth() +
+#     scale_color_brewer(palette = 'RdYlBu') +
+#     theme_minimal()
 
-model_df |> 
-    ggplot(aes(x = d_ogs, y = diabetes_prev, colour = as.factor(LA_decile))) +
-    geom_point(alpha = .5) +
-    geom_smooth() +
-    scale_color_brewer(palette = 'RdYlBu') +
-    theme_minimal()
+# model_df |> 
+#     ggplot(aes(x = d_ogs, y = diabetes_prev, colour = as.factor(LA_decile))) +
+#     geom_point(alpha = .5) +
+#     geom_smooth() +
+#     scale_color_brewer(palette = 'RdYlBu') +
+#     theme_minimal()
 
-model_df |> 
-    ggplot(aes(x = as.factor(LA_decile), y = diabetes_prev, fill = as.factor(LA_decile))) +
-    geom_boxplot() +
-    geom_smooth() +
-    scale_fill_brewer(palette = 'RdYlBu') +
-    theme_minimal()
+# model_df |> 
+#     ggplot(aes(x = as.factor(LA_decile), y = diabetes_prev, fill = as.factor(LA_decile))) +
+#     geom_boxplot() +
+#     geom_smooth() +
+#     scale_fill_brewer(palette = 'RdYlBu') +
+#     theme_minimal()
 
 # SDG Presentation --------------------------------------------------------
 
@@ -127,28 +127,34 @@ ols_model <- lm(formula, data = model_df)
 summary(ols_model)
 write_rds(ols_model, paste0(SERIALISED_OUTPUT_DIR, "/ols_model.rds"))
 
+log_info(paste("Running Bandwith"))
+# Define the bandwidth for GWR
+model_df_bw <- model_df |>
+    select(lsoa, diabetes_prev, d_pch, d_ogs, canopy_cover, LA_pct, geometry) |>
+    as_Spatial(IDs = 'lsoa')
+
+# gwr_bandwidth <- gwr.sel(formula, data = model_df_bw, coords = coords, adapt = T)    
+gwr_bandwidth <- bw.gwr(diabetes_prev ~ d_pch + d_ogs + canopy_cover + LA_pct, data = model_df_bw, adapt = T, parallel.method = 'cluster')
+
+write_rds(gwr_bandwidth, paste0(SERIALISED_OUTPUT_DIR, "/gwr_bandwith.rds"))
+
+log_info(paste("Running GWR Model"))
+# GWR Model
+gwr_model <- gwr(formula, data = model_df_bw, coords = coords, adapt = gwr_bandwidth, hatmatrix=T)
+summary(gwr_model)
+write_rds(gwr_model, paste0(SERIALISED_OUTPUT_DIR, "/gwr_model.rds"))
+
 log_info(paste("Running SLM Model"))
 # Spatial Lag Model (SLM)
 slm_model <- lagsarlm(formula, data = model_df, listw = lw, zero.policy = T)
 summary(slm_model)
-write_rds(ols_model, paste0(SERIALISED_OUTPUT_DIR, "/slm_model.rds"))
+write_rds(slm_model, paste0(SERIALISED_OUTPUT_DIR, "/slm_model.rds"))
 
 log_info(paste("Running SEM Model"))
 # Spatial Error Model (SEM)
 sem_model <- errorsarlm(formula, data = model_df, listw = lw, zero.policy = T)
 summary(sem_model)
-write_rds(ols_model, paste0(SERIALISED_OUTPUT_DIR, "/sem_model.rds"))
-
-log_info(paste("Running Bandwith"))
-# Define the bandwidth for GWR
-gwr_bandwidth <- gwr.sel(formula, data = model_df, coords = coords, adapt = T)
-write_rds(ols_model, paste0(SERIALISED_OUTPUT_DIR, "/gwr_bandwith.rds"))
-
-log_info(paste("Running GWR Model"))
-# GWR Model
-gwr_model <- gwr(formula, data = model_df, coords = coords, adapt = gwr_bandwidth, hatmatrix=T)
-summary(gwr_model)
-write_rds(ols_model, paste0(SERIALISED_OUTPUT_DIR, "/gwr_model.rds"))
+write_rds(sem_model, paste0(SERIALISED_OUTPUT_DIR, "/sem_model.rds"))
 
 # Check for spatial autocorrelation in residuals
 moran.test(residuals(ols_model), lw)
