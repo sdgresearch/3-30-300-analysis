@@ -102,36 +102,41 @@ model_df <- diabetes_imd_green_sf |>
     drop_na() |> 
     st_make_valid()
 
-
 # EDA - Diabetes ----------------------------------------------------------
 
-# model_df |> 
-#     ggplot(aes(x = canopy_cover, y = diabetes_prev, colour = as.factor(LA_decile))) +
-#     geom_point(alpha = .5) +
-#     geom_smooth() +
-#     scale_color_brewer(palette = 'RdYlBu') +
-#     theme_minimal()
+model_df |>
+    ggplot(aes(x = as.factor(IMD_Decile), y = diabetes_prev, fill = as.factor(IMD_Decile))) +
+    geom_violin() +
+    geom_smooth() +
+    scale_fill_brewer(palette = 'RdYlBu') +
+    theme_minimal()
 
-# model_df |> 
-#     ggplot(aes(x = d_pch, y = diabetes_prev, colour = as.factor(LA_decile))) +
-#     geom_point(alpha = .5) +
-#     geom_smooth() +
-#     scale_color_brewer(palette = 'RdYlBu') +
-#     theme_minimal()
+model_df |>
+    ggplot(aes(x = d_pch, y = diabetes_prev, colour = as.factor(IMD_Decile))) +
+    geom_point(alpha = .5) +
+    geom_smooth() +
+    scale_color_brewer(palette = 'RdYlBu') +
+    theme_minimal()
 
-# model_df |> 
-#     ggplot(aes(x = d_ogs, y = diabetes_prev, colour = as.factor(LA_decile))) +
-#     geom_point(alpha = .5) +
-#     geom_smooth() +
-#     scale_color_brewer(palette = 'RdYlBu') +
-#     theme_minimal()
+model_df |>
+    ggplot(aes(x = canopy_cover, y = diabetes_prev, colour = as.factor(IMD_Decile))) +
+    geom_point(alpha = .5) +
+    geom_smooth() +
+    scale_color_brewer(palette = 'RdYlBu') +
+    theme_minimal()
 
-# model_df |> 
-#     ggplot(aes(x = as.factor(LA_decile), y = diabetes_prev, fill = as.factor(LA_decile))) +
-#     geom_boxplot() +
-#     geom_smooth() +
-#     scale_fill_brewer(palette = 'RdYlBu') +
-#     theme_minimal()
+model_df |>
+    ggplot(aes(x = d_ogs, y = diabetes_prev, colour = as.factor(IMD_Decile))) +
+    geom_point(alpha = .5) +
+    geom_smooth() +
+    scale_color_brewer(palette = 'RdYlBu') +
+    theme_minimal()
+
+model_df |> 
+    ggplot(aes(x = IMDScore, y = diabetes_prev)) +
+    geom_point() +
+    geom_smooth() +
+    theme_minimal()
 
 # SDG Presentation --------------------------------------------------------
 
@@ -144,7 +149,7 @@ lw <- nb2listw(nb, style = "W", zero.policy = T)
 base_formula <- diabetes_prev ~ IMDScore
 
 # Expanded Base Formula
-expanded_base_formula <- diabetes_prev ~ IncScore + EmpScore + EduScore + HDDScore + CriScore + 
+base_expanded_formula <- diabetes_prev ~ IncScore + EmpScore + EduScore + HDDScore + CriScore + 
     BHSScore + EnvScore + IDCScore + IDOScore + CYPScore + 
     ASScore + GBScore +  WBScore +  IndScore + OutScore
 
@@ -163,22 +168,23 @@ hypothesis_expanded_formula <- diabetes_prev ~ IMDScore + d_pch + d_ogs + canopy
 log_info(paste("Running OLS Model"))
 
 base_ols_model <- lm(base_formula, data = model_df)
-expanded_base_ols_model <- lm(expanded_base_formula, data = model_df)
+base_expanded_ols_model <- lm(base_expanded_formula, data = model_df)
 hypothesis_ols_model <- lm(hypothesis_base_formula, data = model_df)
 hypothesis_expanded_ols_model <- lm(hypothesis_expanded_formula, data = model_df)
 
 summary(base_ols_model)
-summary(expanded_base_ols_model)
+summary(base_expanded_ols_model)
 summary(hypothesis_ols_model)
 summary(hypothesis_expanded_ols_model)
 
 write_rds(hypothesis_expanded_ols_model, paste0(SERIALISED_OUTPUT_DIR, "/ols_model.rds"))
 
 # Check for spatial autocorrelation in residuals
-moran.test(residuals(ols_model), lw)
+moran.test(residuals(hypothesis_ols_model), lw)
 
-log_info(paste("Running Bandwith"))
 # Define the bandwidth for GWR
+log_info(paste("Running Bandwith"))
+
 model_df_bw <- model_df |>
     select(lsoa, diabetes_prev, d_pch, d_ogs, canopy_cover, LA_pct, geometry) |>
     as_Spatial(IDs = 'lsoa')
@@ -188,22 +194,25 @@ gwr_bandwidth <- bw.gwr(diabetes_prev ~ d_pch + d_ogs + canopy_cover + LA_pct, d
 
 write_rds(gwr_bandwidth, paste0(SERIALISED_OUTPUT_DIR, "/gwr_bandwith.rds"))
 
-log_info(paste("Running GWR Model"))
 # GWR Model
-gwr_model <- gwr(diabetes_prev ~ d_pch + d_ogs + canopy_cover + LA_pct,
+log_info(paste("Running GWR Model"))
+
+gwr_model <- gwr(hypothesis_base_formula,
                  data = model_df_bw, coords = coords, adapt = gwr_bandwidth, hatmatrix = T)
 summary(gwr_model)
 write_rds(gwr_model, paste0(SERIALISED_OUTPUT_DIR, "/gwr_model.rds"))
 
-log_info(paste("Running SLM Model"))
 # Spatial Lag Model (SLM)
-slm_model <- lagsarlm(formula, data = model_df, listw = lw, zero.policy = T)
+log_info(paste("Running SLM Model"))
+
+slm_model <- lagsarlm(base_formula, data = model_df, listw = lw, zero.policy = T)
 summary(slm_model)
 write_rds(slm_model, paste0(SERIALISED_OUTPUT_DIR, "/slm_model.rds"))
 
-log_info(paste("Running SEM Model"))
 # Spatial Error Model (SEM)
-sem_model <- errorsarlm(formula, data = model_df, listw = lw, zero.policy = T)
+log_info(paste("Running SEM Model"))
+
+sem_model <- errorsarlm(base_formula, data = model_df, listw = lw, zero.policy = T)
 summary(sem_model)
 write_rds(sem_model, paste0(SERIALISED_OUTPUT_DIR, "/sem_model.rds"))
 
@@ -243,43 +252,3 @@ summary(res)
 # 
 # # Select the optimal bandwidth
 # bandwidth <- gwr.sel(formula, data = sp_points)
-
-# Odds Ratio (RR) ---------------------------------------------------------
-
-# # Create a contingency table (diabetes v. canopy_cover)
-# table <- table(model_df$diabetes_prev_bin, model_df$canopy_cover_bin)
-# 
-# # Calculate probabilities
-# p_high <- table[2, "High"] / sum(table[, "High"])
-# p_low <- table[2, "Low"] / sum(table[, "Low"])
-# 
-# # Calculate relative risk
-# relative_risk <- p_high / p_low
-# relative_risk
-# 
-# # Logistic regression model
-# logistic_model <- glm(diabetes_prev_bin ~ d_pch + d_ogs + canopy_cover_bin, data = model_df, family = binomial)
-# 
-# # Summary of the model
-# summary(logistic_model)
-# 
-# # Extract odds ratios
-# odds_ratios <- exp(coef(logistic_model))
-# odds_ratios
-# 
-# # Create a contingency table (diabetes v. LA decil)
-# table <- table(model_df$diabetes_prev_bin, model_df$LA_decile)
-# 
-# # Calculate probabilities
-# p_high <- table[2, "High"] / sum(table[, "High"])
-# p_low <- table[2, "Low"] / sum(table[, "Low"])
-# 
-# # Calculate relative risk
-# relative_risk <- p_high / p_low
-# relative_risk
-# 
-# # Logistic regression model
-# logistic_model <- glm(diabetes_prev_bin ~ d_pch + d_ogs + canopy_cover + LA_decile, data = model_df, family = binomial)
-# 
-# # Summary of the model
-# summary(logistic_model)
