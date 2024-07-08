@@ -10,6 +10,8 @@ library(lwgeom)
 library(spgwr)
 library(spdep)
 library(spatialreg)
+library(fmesher)
+library(INLA)
 
 log_threshold(DEBUG)
 
@@ -36,16 +38,27 @@ ons_geometries_path <- paste0(VECTOR_INPUT_DIR,
 wards_geometries <- paste0(VECTOR_INPUT_DIR, 
                            "/gbg_boundaries/Wards_December_2019_FCB_GB_2022_-8436552284962077830/Wards_December_2019_FCB_GB.shp")
 
+population_lsoa_path <- paste0(TABULAR_INPUT_DIR, "/population/2017_lsoa_population_total.csv")
+population_ward_path <- paste0(TABULAR_INPUT_DIR, "/population/2017_ward_population_total.csv")
+
 # Data Processing ---------------------------------------------------------
 
 log_info(paste("Running Data Processing"))                           
 imd_distance_df <- read_sf(imd_distance_path)
 
+population_lsoa_df <- read_csv(population_lsoa_path)
+population_ward_df <- read_csv(population_ward_path)
+
 diabetes_df <- read_csv(diabetes_path) |> 
     mutate(`Estimated Diabetes Prevalence` = str_replace_all(`Estimated Diabetes Prevalence`, "[^0-9.]", "") |> 
                as.numeric(),
            `Patient Coverage` = str_replace_all(`Patient Coverage`, "[^0-9.]", "") |> 
-               as.numeric())
+               as.numeric()) |> 
+    inner_join(population_ward_df, by = join_by(`ONS Code` == `Ward Code 1`)) |> 
+    mutate(adult_pop = rowSums(across(`17`:`90+`)),
+           diabetes_expected = adult_pop * 0.067, # 6.7% Prevalence in England
+           diabetes_SIR = `Estimated QOF Diabetes Register (17+)` / diabetes_expected) |> 
+    select(-`Ward Name 1`:-`90+`)
 
 ons_codes_df <- read_sf(ons_codes_path)
 ons_geometries <- read_sf(ons_geometries_path)
@@ -57,7 +70,7 @@ wards_sf <- read_sf(wards_geometries)
 diabetes_lsoa_df <- diabetes_df |> 
     left_join(ons_codes_df, by = join_by(`ONS Code` == WD19CD)) |> 
     group_by(LSOA11CD) |> 
-    summarize(across(`Estimated Diabetes Prevalence`:`Patient Coverage`, mean, na.rm = TRUE))
+    summarize(across(`Estimated Diabetes Prevalence`:diabetes_SIR, mean, na.rm = TRUE))
 
 diabetes_imd_green_sf <- imd_distance_df |> 
     inner_join(diabetes_lsoa_df, join_by(LSOA == LSOA11CD))
@@ -77,9 +90,11 @@ model_df <- diabetes_imd_green_sf |>
            diabetes_prev = normalize(`Estimated Diabetes Prevalence`),
            diabetes_qof = `Estimated QOF Diabetes Register (17+)`) |> 
     select(lsoa, d_pch, d_ogs, canopy_cover, LA_decile, LA_pct, SOA_decile,
-           SOA_pct, diabetes_prev, diabetes_qof, ends_with('_bin')) |> 
+           SOA_pct, diabetes_prev, diabetes_qof, diabetes_expected, diabetes_SIR, 
+           ends_with('_bin')) |> 
     drop_na() |> 
     st_make_valid()
+
 
 # EDA - Diabetes ----------------------------------------------------------
 
@@ -127,6 +142,9 @@ ols_model <- lm(formula, data = model_df)
 summary(ols_model)
 write_rds(ols_model, paste0(SERIALISED_OUTPUT_DIR, "/ols_model.rds"))
 
+# Check for spatial autocorrelation in residuals
+moran.test(residuals(ols_model), lw)
+
 log_info(paste("Running Bandwith"))
 # Define the bandwidth for GWR
 model_df_bw <- model_df |>
@@ -140,7 +158,8 @@ write_rds(gwr_bandwidth, paste0(SERIALISED_OUTPUT_DIR, "/gwr_bandwith.rds"))
 
 log_info(paste("Running GWR Model"))
 # GWR Model
-gwr_model <- gwr(formula, data = model_df_bw, coords = coords, adapt = gwr_bandwidth, hatmatrix=T)
+gwr_model <- gwr(diabetes_prev ~ d_pch + d_ogs + canopy_cover + LA_pct,
+                 data = model_df_bw, coords = coords, adapt = gwr_bandwidth, hatmatrix = T)
 summary(gwr_model)
 write_rds(gwr_model, paste0(SERIALISED_OUTPUT_DIR, "/gwr_model.rds"))
 
@@ -156,8 +175,26 @@ sem_model <- errorsarlm(formula, data = model_df, listw = lw, zero.policy = T)
 summary(sem_model)
 write_rds(sem_model, paste0(SERIALISED_OUTPUT_DIR, "/sem_model.rds"))
 
-# Check for spatial autocorrelation in residuals
-moran.test(residuals(ols_model), lw)
+
+# Relative Risk Analysis --------------------------------------------------
+
+nb2INLA(paste0(SERIALISED_OUTPUT_DIR, "/n_matrix.rds"), nb)
+g <- inla.read.graph(filename = paste0(SERIALISED_OUTPUT_DIR, "/n_matrix.rds"))
+
+model_df$idareau <- 1:nrow(model_df)
+model_df$idareav <- 1:nrow(model_df)
+
+formula <- diabetes_qof ~ canopy_cover * as.factor(SOA_decile) +
+    f(idareau, model = "besag", graph = g, scale.model = TRUE) +
+    f(idareav, model = "iid")
+
+res <- inla(formula,
+            family = "poisson", data = model_df, E = diabetes_expected,
+            control.predictor = list(compute = TRUE),
+            control.compute = list(return.marginals.predictor = TRUE)
+)
+
+summary(res)
 
 # # Check for validity
 # validity <- st_is_valid(model_df)
