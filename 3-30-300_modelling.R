@@ -149,7 +149,7 @@ lw <- nb2listw(nb, style = "W", zero.policy = T)
 base_formula <- diabetes_prev ~ IMDScore
 
 # Expanded Base Formula
-base_expanded_formula <- diabetes_prev ~ IncScore + EmpScore + EduScore + HDDScore + CriScore + 
+expanded_base_formula <- diabetes_prev ~ IncScore + EmpScore + EduScore + HDDScore + CriScore + 
     BHSScore + EnvScore + IDCScore + IDOScore + CYPScore + 
     ASScore + GBScore +  WBScore +  IndScore + OutScore
 
@@ -159,7 +159,7 @@ base_expanded_formula <- diabetes_prev ~ IncScore + EmpScore + EduScore + HDDSco
 # 300: Accessibility
 hypothesis_base_formula <- diabetes_prev ~ IMDScore + d_pch + d_ogs + canopy_cover
 
-hypothesis_expanded_formula <- diabetes_prev ~ IMDScore + d_pch + d_ogs + canopy_cover +
+expanded_hypothesis_formula <- diabetes_prev ~ IMDScore + d_pch + d_ogs + canopy_cover +
     IncScore + EmpScore + EduScore + HDDScore + CriScore + 
     BHSScore + EnvScore + IDCScore + IDOScore + CYPScore + 
     ASScore + GBScore +  WBScore +  IndScore + OutScore
@@ -168,16 +168,16 @@ hypothesis_expanded_formula <- diabetes_prev ~ IMDScore + d_pch + d_ogs + canopy
 log_info(paste("Running OLS Model"))
 
 base_ols_model <- lm(base_formula, data = model_df)
-base_expanded_ols_model <- lm(base_expanded_formula, data = model_df)
+expanded_base_ols_model <- lm(expanded_base_formula, data = model_df)
 hypothesis_ols_model <- lm(hypothesis_base_formula, data = model_df)
-hypothesis_expanded_ols_model <- lm(hypothesis_expanded_formula, data = model_df)
+expanded_hypothesis_ols_model <- lm(expanded_hypothesis_formula, data = model_df)
 
 summary(base_ols_model)
-summary(base_expanded_ols_model)
+summary(expanded_base_ols_model)
 summary(hypothesis_ols_model)
-summary(hypothesis_expanded_ols_model)
+summary(expanded_hypothesis_ols_model)
 
-write_rds(hypothesis_expanded_ols_model, paste0(SERIALISED_OUTPUT_DIR, "/ols_model.rds"))
+write_rds(expanded_hypothesis_ols_model, paste0(SERIALISED_OUTPUT_DIR, "/ols_model.rds"))
 
 # Check for spatial autocorrelation in residuals
 moran.test(residuals(hypothesis_ols_model), lw)
@@ -205,17 +205,38 @@ write_rds(gwr_model, paste0(SERIALISED_OUTPUT_DIR, "/gwr_model.rds"))
 # Spatial Lag Model (SLM)
 log_info(paste("Running SLM Model"))
 
-slm_model <- lagsarlm(base_formula, data = model_df, listw = lw, zero.policy = T)
-summary(slm_model)
-write_rds(slm_model, paste0(SERIALISED_OUTPUT_DIR, "/slm_model.rds"))
+base_slm_model <- lagsarlm(base_formula, data = model_df, listw = lw, zero.policy = T)
+expanded_base_slm_model <- lagsarlm(expanded_base_formula, data = model_df, listw = lw, zero.policy = T)
+hypothesis_slm_model <- lagsarlm(hypothesis_base_formula, data = model_df, listw = lw, zero.policy = T)
+expanded_hypothesis_slm_model <- lagsarlm(expanded_hypothesis_formula, data = model_df, listw = lw, zero.policy = T)
+
+summary(base_slm_model)
+summary(expanded_base_slm_model)
+summary(hypothesis_slm_model)
+summary(expanded_hypothesis_slm_model)
+
+write_rds(base_slm_model, paste0(SERIALISED_OUTPUT_DIR, "/base_slm_model.rds"))
+write_rds(expanded_base_slm_model, paste0(SERIALISED_OUTPUT_DIR, "/expanded_base_slm_model.rds"))
+write_rds(hypothesis_slm_model, paste0(SERIALISED_OUTPUT_DIR, "/hypothesis_slm_model.rds"))
+write_rds(expanded_hypothesis_slm_model, paste0(SERIALISED_OUTPUT_DIR, "/expanded_hypothesis_slm_model.rds"))
 
 # Spatial Error Model (SEM)
 log_info(paste("Running SEM Model"))
 
-sem_model <- errorsarlm(base_formula, data = model_df, listw = lw, zero.policy = T)
-summary(sem_model)
-write_rds(sem_model, paste0(SERIALISED_OUTPUT_DIR, "/sem_model.rds"))
+base_sem_model <- errorsarlm(base_formula, data = model_df, listw = lw, zero.policy = T)
+expanded_base_sem_model <- errorsarlm(expanded_base_formula, data = model_df, listw = lw, zero.policy = T)
+hypothesis_sem_model <- errorsarlm(hypothesis_base_formula, data = model_df, listw = lw, zero.policy = T)
+expanded_hypothesis_sem_model <- errorsarlm(expanded_hypothesis_formula, data = model_df, listw = lw, zero.policy = T)
 
+summary(base_sem_model)
+summary(expanded_base_sem_model)
+summary(hypothesis_sem_model)
+summary(expanded_hypothesis_sem_model)
+
+write_rds(base_sem_model, paste0(SERIALISED_OUTPUT_DIR, "/base_sem_model.rds"))
+write_rds(expanded_base_sem_model, paste0(SERIALISED_OUTPUT_DIR, "/expanded_base_sem_model.rds"))
+write_rds(hypothesis_sem_model, paste0(SERIALISED_OUTPUT_DIR, "/hypothesis_sem_model.rds"))
+write_rds(expanded_hypothesis_sem_model, paste0(SERIALISED_OUTPUT_DIR, "/expanded_hypothesis_sem_model.rds"))
 
 # Relative Risk Analysis --------------------------------------------------
 
