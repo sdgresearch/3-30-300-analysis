@@ -246,17 +246,61 @@ g <- inla.read.graph(filename = paste0(SERIALISED_OUTPUT_DIR, "/n_matrix.rds"))
 model_df$idareau <- 1:nrow(model_df)
 model_df$idareav <- 1:nrow(model_df)
 
-formula <- diabetes_qof ~ canopy_cover * as.factor(SOA_decile) +
+# Base formula
+qof_base_formula <- diabetes_qof ~ IMDScore +
     f(idareau, model = "besag", graph = g, scale.model = TRUE) +
     f(idareav, model = "iid")
 
-res <- inla(formula,
+# Expanded Base Formula
+qof_expanded_base_formula <- diabetes_qof ~ IncScore + EmpScore + EduScore + HDDScore + CriScore + 
+    BHSScore + EnvScore + IDCScore + IDOScore + CYPScore + 
+    ASScore + GBScore +  WBScore +  IndScore + OutScore +
+    f(idareau, model = "besag", graph = g, scale.model = TRUE) +
+    f(idareav, model = "iid")
+
+# (Green) Hypothesis Formulas
+# 3: Visibility
+# 30: Availability
+# 300: Accessibility
+qof_hypothesis_base_formula <- diabetes_qof ~ IMDScore + d_pch + d_ogs + canopy_cover +
+    f(idareau, model = "besag", graph = g, scale.model = TRUE) +
+    f(idareav, model = "iid")
+
+qof_expanded_hypothesis_formula <- diabetes_qof ~ IMDScore + d_pch + d_ogs + canopy_cover +
+    IncScore + EmpScore + EduScore + HDDScore + CriScore + 
+    BHSScore + EnvScore + IDCScore + IDOScore + CYPScore + 
+    ASScore + GBScore +  WBScore +  IndScore + OutScore +
+    f(idareau, model = "besag", graph = g, scale.model = TRUE) +
+    f(idareav, model = "iid")
+
+qof_formula <- diabetes_qof ~ canopy_cover + IMDScore
+
+base_inla_model <- inla(qof_base_formula,
             family = "poisson", data = model_df, E = diabetes_expected,
             control.predictor = list(compute = TRUE),
-            control.compute = list(return.marginals.predictor = TRUE)
-)
+            control.compute = list(return.marginals.predictor = TRUE))
+expanded_base_inla_model <- inla(qof_expanded_base_formula,
+                   family = "poisson", data = model_df, E = diabetes_expected,
+                   control.predictor = list(compute = TRUE),
+                   control.compute = list(return.marginals.predictor = TRUE))
+hypothesis_inla_model <- inla(qof_hypothesis_base_formula,
+                   family = "poisson", data = model_df, E = diabetes_expected,
+                   control.predictor = list(compute = TRUE),
+                   control.compute = list(return.marginals.predictor = TRUE))
+expanded_hypothesis_inla_model <- inla(qof_expanded_hypothesis_formula,
+                   family = "poisson", data = model_df, E = diabetes_expected,
+                   control.predictor = list(compute = TRUE),
+                   control.compute = list(return.marginals.predictor = TRUE))
 
-summary(res)
+summary(base_inla_model)
+summary(expanded_base_inla_model)
+summary(hypothesis_inla_model)
+summary(expanded_hypothesis_inla_model)
+
+write_rds(base_inla_model, paste0(SERIALISED_OUTPUT_DIR, "/base_inla_model.rds"))
+write_rds(expanded_base_inla_model, paste0(SERIALISED_OUTPUT_DIR, "/expanded_base_inla_model.rds"))
+write_rds(hypothesis_inla_model, paste0(SERIALISED_OUTPUT_DIR, "/hypothesis_inla_model.rds"))
+write_rds(expanded_hypothesis_inla_model, paste0(SERIALISED_OUTPUT_DIR, "/expanded_hypothesis_inla_model.rds"))
 
 # # Check for validity
 # validity <- st_is_valid(model_df)
