@@ -29,6 +29,8 @@ SERIALISED_OUTPUT_DIR <- paste0(OUTPUT_DIR, "/serialised")
 
 imd_distance_path <- paste0(VECTOR_OUTPUT_DIR, 
                             "/imd/imd_distance_aggregated_canopy_cover.geojson")
+imd_england_path <- paste0(VECTOR_INPUT_DIR, 
+                      "/imd/English IMD 2019/IMD_2019.shp")
 diabetes_path <- paste0(TABULAR_INPUT_DIR, 
                         "/diabetes/Diabetes-Prevalence-Data(Wards).csv")
 ons_codes_path <- paste0(TABULAR_INPUT_DIR, 
@@ -44,7 +46,9 @@ population_ward_path <- paste0(TABULAR_INPUT_DIR, "/population/2017_ward_populat
 # Data Processing ---------------------------------------------------------
 
 log_info(paste("Running Data Processing"))                           
+
 imd_distance_df <- read_sf(imd_distance_path)
+imd_england_sf <- read_sf(imd_england_path)
 
 population_lsoa_df <- read_csv(population_lsoa_path)
 population_ward_df <- read_csv(population_ward_path)
@@ -73,7 +77,10 @@ diabetes_lsoa_df <- diabetes_df |>
     summarize(across(`Estimated Diabetes Prevalence`:diabetes_SIR, mean, na.rm = TRUE))
 
 diabetes_imd_green_sf <- imd_distance_df |> 
-    inner_join(diabetes_lsoa_df, join_by(LSOA == LSOA11CD))
+    select(LSOA, `distance_pch mean`:canopy_cover) |> 
+    inner_join(imd_england_sf |> 
+                   st_drop_geometry(), by = join_by(LSOA == lsoa11cd)) |> 
+    inner_join(diabetes_lsoa_df, by = join_by(LSOA == LSOA11CD))
 
 normalize <- function(x) (x - min(x)) / (max(x) - min(x))
 
@@ -89,9 +96,9 @@ model_df <- diabetes_imd_green_sf |>
            diabetes_prev_bin = if_else(`Estimated Diabetes Prevalence` > 6.7, 1, 0), 
            diabetes_prev = normalize(`Estimated Diabetes Prevalence`),
            diabetes_qof = `Estimated QOF Diabetes Register (17+)`) |> 
-    select(lsoa, d_pch, d_ogs, canopy_cover, LA_decile, LA_pct, SOA_decile,
-           SOA_pct, diabetes_prev, diabetes_qof, diabetes_expected, diabetes_SIR, 
-           ends_with('_bin')) |> 
+    select(lsoa, IMD_Rank, IMD_Decile, d_pch, d_ogs, canopy_cover,
+           diabetes_prev, diabetes_qof, diabetes_expected, diabetes_SIR, 
+           ends_with('Score')) |> 
     drop_na() |> 
     st_make_valid()
 
@@ -130,17 +137,42 @@ model_df <- diabetes_imd_green_sf |>
 
 # Create a spatial weights matrix using Queen contiguity
 coords <- st_coordinates(model_df)
-nb <- poly2nb(model_df)
+nb <- poly2nb(model_df, row.names = model_df$lsoa)
 lw <- nb2listw(nb, style = "W", zero.policy = T)
 
-# Define the formula
-formula <- diabetes_prev ~ d_pch + d_ogs + canopy_cover + LA_pct
+# Base formula
+base_formula <- diabetes_prev ~ IMDScore
 
-log_info(paste("Running OLS Model"))
+# Expanded Base Formula
+expanded_base_formula <- diabetes_prev ~ IncScore + EmpScore + EduScore + HDDScore + CriScore + 
+    BHSScore + EnvScore + IDCScore + IDOScore + CYPScore + 
+    ASScore + GBScore +  WBScore +  IndScore + OutScore
+
+# (Green) Hypothesis Formulas
+# 3: Visibility
+# 30: Availability
+# 300: Accessibility
+hypothesis_base_formula <- diabetes_prev ~ IMDScore + d_pch + d_ogs + canopy_cover
+
+hypothesis_expanded_formula <- diabetes_prev ~ IMDScore + d_pch + d_ogs + canopy_cover +
+    IncScore + EmpScore + EduScore + HDDScore + CriScore + 
+    BHSScore + EnvScore + IDCScore + IDOScore + CYPScore + 
+    ASScore + GBScore +  WBScore +  IndScore + OutScore
+
 # OLS Regression
-ols_model <- lm(formula, data = model_df)
-summary(ols_model)
-write_rds(ols_model, paste0(SERIALISED_OUTPUT_DIR, "/ols_model.rds"))
+log_info(paste("Running OLS Model"))
+
+base_ols_model <- lm(base_formula, data = model_df)
+expanded_base_ols_model <- lm(expanded_base_formula, data = model_df)
+hypothesis_ols_model <- lm(hypothesis_base_formula, data = model_df)
+hypothesis_expanded_ols_model <- lm(hypothesis_expanded_formula, data = model_df)
+
+summary(base_ols_model)
+summary(expanded_base_ols_model)
+summary(hypothesis_ols_model)
+summary(hypothesis_expanded_ols_model)
+
+write_rds(hypothesis_expanded_ols_model, paste0(SERIALISED_OUTPUT_DIR, "/ols_model.rds"))
 
 # Check for spatial autocorrelation in residuals
 moran.test(residuals(ols_model), lw)
