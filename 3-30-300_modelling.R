@@ -27,6 +27,8 @@ TABULAR_INPUT_DIR <- paste0(INPUT_DIR, "/tabular")
 TABULAR_OUTPUT_DIR <- paste0(OUTPUT_DIR, "/tabular")
 SERIALISED_OUTPUT_DIR <- paste0(OUTPUT_DIR, "/serialised")
 
+population_lsoa_path <- paste0(TABULAR_INPUT_DIR, "/population/2017_lsoa_population_total.csv")
+population_ward_path <- paste0(TABULAR_INPUT_DIR, "/population/2017_ward_population_total.csv")
 imd_distance_path <- paste0(VECTOR_OUTPUT_DIR, 
                             "/imd/imd_distance_aggregated_canopy_cover.geojson")
 imd_england_path <- paste0(VECTOR_INPUT_DIR, 
@@ -39,9 +41,6 @@ ons_geometries_path <- paste0(VECTOR_INPUT_DIR,
                               "/gbg_boundaries/LAD_Dec_2019_Boundaries_UK_BFC_2022_2942927368901013076/Local_Authority_Districts__December_2019__Boundaries_UK_BFC.shp")
 wards_geometries <- paste0(VECTOR_INPUT_DIR, 
                            "/gbg_boundaries/Wards_December_2019_FCB_GB_2022_-8436552284962077830/Wards_December_2019_FCB_GB.shp")
-
-population_lsoa_path <- paste0(TABULAR_INPUT_DIR, "/population/2017_lsoa_population_total.csv")
-population_ward_path <- paste0(TABULAR_INPUT_DIR, "/population/2017_ward_population_total.csv")
 
 # Data Processing ---------------------------------------------------------
 
@@ -177,7 +176,10 @@ summary(expanded_base_ols_model)
 summary(hypothesis_ols_model)
 summary(expanded_hypothesis_ols_model)
 
-write_rds(expanded_hypothesis_ols_model, paste0(SERIALISED_OUTPUT_DIR, "/ols_model.rds"))
+write_rds(base_ols_model, paste0(SERIALISED_OUTPUT_DIR, "/base_ols_model.rds"))
+write_rds(expanded_base_ols_model, paste0(SERIALISED_OUTPUT_DIR, "/expanded_base_ols_model.rds"))
+write_rds(hypothesis_ols_model, paste0(SERIALISED_OUTPUT_DIR, "/hypothesis_ols_model.rds"))
+write_rds(expanded_hypothesis_ols_model, paste0(SERIALISED_OUTPUT_DIR, "/expanded_hypothesis_ols_model.rds"))
 
 # Check for spatial autocorrelation in residuals
 moran.test(residuals(hypothesis_ols_model), lw)
