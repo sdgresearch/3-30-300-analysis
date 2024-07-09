@@ -132,8 +132,16 @@ model_df |>
     theme_minimal()
 
 model_df |> 
-    ggplot(aes(x = IMDScore, y = diabetes_prev)) +
+    ggplot(aes(x = IMDScore, y = diabetes_prev, colour = as.factor(IMD_Decile))) +
     geom_point() +
+    scale_color_brewer(palette = 'RdYlBu') +
+    geom_smooth() +
+    theme_minimal()
+
+model_df |> 
+    ggplot(aes(x = EnvScore, y = d_ogs, colour = as.factor(IMD_Decile))) +
+    geom_point() +
+    scale_color_brewer(palette = 'RdYlBu') +
     geom_smooth() +
     theme_minimal()
 
@@ -156,7 +164,7 @@ expanded_base_formula <- diabetes_prev ~ IncScore + EmpScore + EduScore + HDDSco
 # 3: Visibility
 # 30: Availability
 # 300: Accessibility
-hypothesis_base_formula <- diabetes_prev ~ IMDScore + d_pch + d_ogs + canopy_cover
+hypothesis_formula <- diabetes_prev ~ IMDScore + d_pch + d_ogs + canopy_cover
 
 expanded_hypothesis_formula <- diabetes_prev ~ IMDScore + d_pch + d_ogs + canopy_cover +
     IncScore + EmpScore + EduScore + HDDScore + CriScore + 
@@ -168,7 +176,7 @@ log_info(paste("Running OLS Model"))
 
 base_ols_model <- lm(base_formula, data = model_df)
 expanded_base_ols_model <- lm(expanded_base_formula, data = model_df)
-hypothesis_ols_model <- lm(hypothesis_base_formula, data = model_df)
+hypothesis_ols_model <- lm(hypothesis_formula, data = model_df)
 expanded_hypothesis_ols_model <- lm(expanded_hypothesis_formula, data = model_df)
 
 summary(base_ols_model)
@@ -187,29 +195,54 @@ moran.test(residuals(hypothesis_ols_model), lw)
 # Define the bandwidth for GWR
 log_info(paste("Running Bandwith"))
 
-model_df_bw <- model_df |>
-    select(lsoa, diabetes_prev, d_pch, d_ogs, canopy_cover, LA_pct, geometry) |>
-    as_Spatial(IDs = 'lsoa')
+# model_df_bw <- model_df |>
+#     select(lsoa, diabetes_prev, d_pch, d_ogs, canopy_cover, LA_pct, geometry) |>
+#     as_Spatial(IDs = 'lsoa')
 
 # gwr_bandwidth <- gwr.sel(formula, data = model_df_bw, coords = coords, adapt = T)    
-gwr_bandwidth <- bw.gwr(diabetes_prev ~ d_pch + d_ogs + canopy_cover + LA_pct, data = model_df_bw, adapt = T, parallel.method = 'cluster')
+base_gwr_bandwidth <- bw.gwr(base_formula, data = model_df |>
+                            as_Spatial(IDs = 'lsoa'), adapt = F, parallel.method = 'cluster')
+expanded_base_gwr_bandwidth <- bw.gwr(expanded_base_formula, data = model_df |>
+                                 as_Spatial(IDs = 'lsoa'), adapt = F, parallel.method = 'cluster')
+hypothesis_gwr_bandwidth <- bw.gwr(hypothesis_formula, data = model_df |>
+                                 as_Spatial(IDs = 'lsoa'), adapt = F, parallel.method = 'cluster')
+expanded_hypothesis_gwr_bandwidth <- bw.gwr(expanded_hypothesis_formula, data = model_df |>
+                                 as_Spatial(IDs = 'lsoa'), adapt = F, parallel.method = 'cluster')
 
 write_rds(gwr_bandwidth, paste0(SERIALISED_OUTPUT_DIR, "/gwr_bandwith.rds"))
 
 # GWR Model
 log_info(paste("Running GWR Model"))
 
-gwr_model <- gwr(hypothesis_base_formula,
-                 data = model_df_bw, coords = coords, adapt = gwr_bandwidth, hatmatrix = T)
-summary(gwr_model)
-write_rds(gwr_model, paste0(SERIALISED_OUTPUT_DIR, "/gwr_model.rds"))
+base_gwr_model <- gwr(base_formula, data = model_df |>
+                          as_Spatial(IDs = 'lsoa'), coords = coords,
+                      adapt = base_gwr_bandwidth, hatmatrix = T)
+expanded_base_gwr_model <- gwr(expanded_base_formula, data = model_df |>
+                          as_Spatial(IDs = 'lsoa'), coords = coords,
+                      adapt = expanded_base_gwr_bandwidth, hatmatrix = T)
+hypothesis_gwr_model <- gwr(hypothesis_formula, data = model_df |>
+                          as_Spatial(IDs = 'lsoa'), coords = coords,
+                      adapt = hypothesis_gwr_bandwidth, hatmatrix = T)
+expanded_hypothesis_gwr_model <- gwr(expanded_hypothesis_formula, data = model_df |>
+                          as_Spatial(IDs = 'lsoa'), coords = coords,
+                      adapt = expanded_hypothesis_gwr_bandwidth, hatmatrix = T)
+
+summary(base_gwr_model)
+summary(expanded_base_gwr_model)
+summary(hypothesis_gwr_model)
+summary(expanded_hypothesis_gwr_model)
+
+write_rds(base_gwr_model, paste0(SERIALISED_OUTPUT_DIR, "/base_gwr_model.rds"))
+write_rds(expanded_base_gwr_model, paste0(SERIALISED_OUTPUT_DIR, "/expanded_base_gwr_model.rds"))
+write_rds(hypothesis_gwr_model, paste0(SERIALISED_OUTPUT_DIR, "/hypothesis_gwr_model.rds"))
+write_rds(expanded_hypothesis_gwr_model, paste0(SERIALISED_OUTPUT_DIR, "/expanded_hypothesis_gwr_model.rds"))
 
 # Spatial Lag Model (SLM)
 log_info(paste("Running SLM Model"))
 
 base_slm_model <- lagsarlm(base_formula, data = model_df, listw = lw, zero.policy = T)
 expanded_base_slm_model <- lagsarlm(expanded_base_formula, data = model_df, listw = lw, zero.policy = T)
-hypothesis_slm_model <- lagsarlm(hypothesis_base_formula, data = model_df, listw = lw, zero.policy = T)
+hypothesis_slm_model <- lagsarlm(hypothesis_formula, data = model_df, listw = lw, zero.policy = T)
 expanded_hypothesis_slm_model <- lagsarlm(expanded_hypothesis_formula, data = model_df, listw = lw, zero.policy = T)
 
 summary(base_slm_model)
@@ -227,7 +260,7 @@ log_info(paste("Running SEM Model"))
 
 base_sem_model <- errorsarlm(base_formula, data = model_df, listw = lw, zero.policy = T)
 expanded_base_sem_model <- errorsarlm(expanded_base_formula, data = model_df, listw = lw, zero.policy = T)
-hypothesis_sem_model <- errorsarlm(hypothesis_base_formula, data = model_df, listw = lw, zero.policy = T)
+hypothesis_sem_model <- errorsarlm(hypothesis_formula, data = model_df, listw = lw, zero.policy = T)
 expanded_hypothesis_sem_model <- errorsarlm(expanded_hypothesis_formula, data = model_df, listw = lw, zero.policy = T)
 
 summary(base_sem_model)
@@ -264,7 +297,7 @@ qof_expanded_base_formula <- diabetes_qof ~ IncScore + EmpScore + EduScore + HDD
 # 3: Visibility
 # 30: Availability
 # 300: Accessibility
-qof_hypothesis_base_formula <- diabetes_qof ~ IMDScore + d_pch + d_ogs + canopy_cover +
+qof_hypothesis_formula <- diabetes_qof ~ IMDScore + d_pch + d_ogs + canopy_cover +
     f(idareau, model = "besag", graph = g, scale.model = TRUE) +
     f(idareav, model = "iid")
 
@@ -275,8 +308,6 @@ qof_expanded_hypothesis_formula <- diabetes_qof ~ IMDScore + d_pch + d_ogs + can
     f(idareau, model = "besag", graph = g, scale.model = TRUE) +
     f(idareav, model = "iid")
 
-qof_formula <- diabetes_qof ~ canopy_cover + IMDScore
-
 base_inla_model <- inla(qof_base_formula,
             family = "poisson", data = model_df, E = diabetes_expected,
             control.predictor = list(compute = TRUE),
@@ -285,7 +316,7 @@ expanded_base_inla_model <- inla(qof_expanded_base_formula,
                    family = "poisson", data = model_df, E = diabetes_expected,
                    control.predictor = list(compute = TRUE),
                    control.compute = list(return.marginals.predictor = TRUE))
-hypothesis_inla_model <- inla(qof_hypothesis_base_formula,
+hypothesis_inla_model <- inla(qof_hypothesis_formula,
                    family = "poisson", data = model_df, E = diabetes_expected,
                    control.predictor = list(compute = TRUE),
                    control.compute = list(return.marginals.predictor = TRUE))
@@ -303,6 +334,12 @@ write_rds(base_inla_model, paste0(SERIALISED_OUTPUT_DIR, "/base_inla_model.rds")
 write_rds(expanded_base_inla_model, paste0(SERIALISED_OUTPUT_DIR, "/expanded_base_inla_model.rds"))
 write_rds(hypothesis_inla_model, paste0(SERIALISED_OUTPUT_DIR, "/hypothesis_inla_model.rds"))
 write_rds(expanded_hypothesis_inla_model, paste0(SERIALISED_OUTPUT_DIR, "/expanded_hypothesis_inla_model.rds"))
+
+marginal <- inla.smarginal(hypothesis_inla_model$marginals.fixed$canopy_cover)
+marginal <- data.frame(marginal)
+ggplot(marginal, aes(x = x, y = y)) + geom_line() +
+    labs(x = expression(beta[1]), y = "Density") +
+    geom_vline(xintercept = 0, col = "black") + theme_bw()
 
 # # Check for validity
 # validity <- st_is_valid(model_df)
