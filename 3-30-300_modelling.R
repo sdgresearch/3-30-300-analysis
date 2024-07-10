@@ -209,7 +209,10 @@ hypothesis_gwr_bandwidth <- bw.gwr(hypothesis_formula, data = model_df |>
 expanded_hypothesis_gwr_bandwidth <- bw.gwr(expanded_hypothesis_formula, data = model_df |>
                                  as_Spatial(IDs = 'lsoa'), adapt = F, parallel.method = 'cluster')
 
-write_rds(gwr_bandwidth, paste0(SERIALISED_OUTPUT_DIR, "/gwr_bandwith.rds"))
+write_rds(base_gwr_bandwidth, paste0(SERIALISED_OUTPUT_DIR, "/base_gwr_bandwidth.rds"))
+write_rds(expanded_base_gwr_bandwidth, paste0(SERIALISED_OUTPUT_DIR, "/expanded_base_gwr_bandwidth.rds"))
+write_rds(hypothesis_gwr_bandwidth, paste0(SERIALISED_OUTPUT_DIR, "/hypothesis_gwr_bandwidth.rds"))
+write_rds(hypothesis_gwr_bandwidth, paste0(SERIALISED_OUTPUT_DIR, "/expanded_hypothesis_gwr_bandwidth.rds"))
 
 # GWR Model
 log_info(paste("Running GWR Model"))
