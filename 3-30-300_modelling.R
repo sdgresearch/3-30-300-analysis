@@ -1,6 +1,7 @@
 
 # Libraries ---------------------------------------------------------------
 
+library(here)
 library(tidyverse)
 library(readxl)
 library(sf)
@@ -13,36 +14,27 @@ library(spatialreg)
 library(fmesher)
 library(INLA)
 
+source("constants.R")
+
 log_threshold(DEBUG)
 
 # Paths -------------------------------------------------------------------
 log_info(paste("Creating path variables"))
 
-DATA_DIR <- Sys.getenv("DATA_DIR")
-INPUT_DIR <- paste0(DATA_DIR, "/input")
-OUTPUT_DIR <- paste0(DATA_DIR, "/output")
-VECTOR_INPUT_DIR <- paste0(INPUT_DIR, "/vector")
-VECTOR_OUTPUT_DIR <- paste0(OUTPUT_DIR, "/vector")
-RASTER_INPUT_DIR <- paste0(INPUT_DIR, "/raster")
-RASTER_OUTPUT_DIR <- paste0(OUTPUT_DIR, "/raster")
-TABULAR_INPUT_DIR <- paste0(INPUT_DIR, "/tabular")
-TABULAR_OUTPUT_DIR <- paste0(OUTPUT_DIR, "/tabular")
-SERIALISED_OUTPUT_DIR <- paste0(OUTPUT_DIR, "/serialised")
-
-population_lsoa_path <- paste0(TABULAR_INPUT_DIR, "/population/2017_lsoa_population_total.csv")
-population_ward_path <- paste0(TABULAR_INPUT_DIR, "/population/2017_ward_population_total.csv")
-imd_distance_path <- paste0(VECTOR_OUTPUT_DIR, 
-                            "/imd/imd_distance_aggregated_canopy_cover.geojson")
-imd_england_path <- paste0(VECTOR_INPUT_DIR, 
-                      "/imd/English IMD 2019/IMD_2019.shp")
-diabetes_path <- paste0(TABULAR_INPUT_DIR, 
-                        "/diabetes/Diabetes-Prevalence-Data(Wards).csv")
-ons_codes_path <- paste0(TABULAR_INPUT_DIR, 
-                         "/gbg_boundaries/LSOA11_WD19_LAD19_EW_LU_cbf3896924a74e58ac96b7ec66a34071_-277400741007527430.csv")
-ons_geometries_path <- paste0(VECTOR_INPUT_DIR, 
-                              "/gbg_boundaries/LAD_Dec_2019_Boundaries_UK_BFC_2022_2942927368901013076/Local_Authority_Districts__December_2019__Boundaries_UK_BFC.shp")
-wards_geometries <- paste0(VECTOR_INPUT_DIR, 
-                           "/gbg_boundaries/Wards_December_2019_FCB_GB_2022_-8436552284962077830/Wards_December_2019_FCB_GB.shp")
+population_lsoa_path <- here(TABULAR_INPUT_DIR, "population/2017_lsoa_population_total.csv")
+population_ward_path <- here(TABULAR_INPUT_DIR, "population/2017_ward_population_total.csv")
+imd_distance_path <- here(VECTOR_OUTPUT_DIR, 
+                            "imd/imd_distance_aggregated_canopy_cover.geojson")
+imd_england_path <- here(VECTOR_INPUT_DIR, 
+                      "imd/English IMD 2019/IMD_2019.shp")
+diabetes_path <- here(TABULAR_INPUT_DIR, 
+                        "diabetes/Diabetes-Prevalence-Data(Wards).csv")
+ons_codes_path <- here(TABULAR_INPUT_DIR, 
+                         "gbg_boundaries/LSOA11_WD19_LAD19_EW_LU_cbf3896924a74e58ac96b7ec66a34071_-277400741007527430.csv")
+ons_geometries_path <- here(VECTOR_INPUT_DIR, 
+                              "gbg_boundaries/LAD_Dec_2019_Boundaries_UK_BFC_2022_2942927368901013076/Local_Authority_Districts__December_2019__Boundaries_UK_BFC.shp")
+wards_geometries <- here(VECTOR_INPUT_DIR, 
+                           "gbg_boundaries/Wards_December_2019_FCB_GB_2022_-8436552284962077830/Wards_December_2019_FCB_GB.shp")
 
 # Data Processing ---------------------------------------------------------
 
@@ -186,10 +178,10 @@ summary(expanded_base_ols_model)
 summary(hypothesis_ols_model)
 summary(expanded_hypothesis_ols_model)
 
-write_rds(base_ols_model, paste0(SERIALISED_OUTPUT_DIR, "/base_ols_model.rds"))
-write_rds(expanded_base_ols_model, paste0(SERIALISED_OUTPUT_DIR, "/expanded_base_ols_model.rds"))
-write_rds(hypothesis_ols_model, paste0(SERIALISED_OUTPUT_DIR, "/hypothesis_ols_model.rds"))
-write_rds(expanded_hypothesis_ols_model, paste0(SERIALISED_OUTPUT_DIR, "/expanded_hypothesis_ols_model.rds"))
+write_rds(base_ols_model, here(SERIALISED_OUTPUT_DIR, "base_ols_model.rds"))
+write_rds(expanded_base_ols_model, here(SERIALISED_OUTPUT_DIR, "expanded_base_ols_model.rds"))
+write_rds(hypothesis_ols_model, here(SERIALISED_OUTPUT_DIR, "hypothesis_ols_model.rds"))
+write_rds(expanded_hypothesis_ols_model, here(SERIALISED_OUTPUT_DIR, "expanded_hypothesis_ols_model.rds"))
 
 # Check for spatial autocorrelation in residuals
 moran.test(residuals(hypothesis_ols_model), lw)
@@ -206,10 +198,10 @@ hypothesis_gwr_bandwidth <- bw.gwr(hypothesis_formula, data = model_df |>
 expanded_hypothesis_gwr_bandwidth <- bw.gwr(expanded_hypothesis_formula, data = model_df |>
                                  as_Spatial(IDs = 'lsoa'), adapt = F, parallel.method = 'cluster')
 
-write_rds(base_gwr_bandwidth, paste0(SERIALISED_OUTPUT_DIR, "/base_gwr_bandwidth.rds"))
-write_rds(expanded_base_gwr_bandwidth, paste0(SERIALISED_OUTPUT_DIR, "/expanded_base_gwr_bandwidth.rds"))
-write_rds(hypothesis_gwr_bandwidth, paste0(SERIALISED_OUTPUT_DIR, "/hypothesis_gwr_bandwidth.rds"))
-write_rds(hypothesis_gwr_bandwidth, paste0(SERIALISED_OUTPUT_DIR, "/expanded_hypothesis_gwr_bandwidth.rds"))
+write_rds(base_gwr_bandwidth, here(SERIALISED_OUTPUT_DIR, "base_gwr_bandwidth.rds"))
+write_rds(expanded_base_gwr_bandwidth, here(SERIALISED_OUTPUT_DIR, "expanded_base_gwr_bandwidth.rds"))
+write_rds(hypothesis_gwr_bandwidth, here(SERIALISED_OUTPUT_DIR, "hypothesis_gwr_bandwidth.rds"))
+write_rds(hypothesis_gwr_bandwidth, here(SERIALISED_OUTPUT_DIR, "expanded_hypothesis_gwr_bandwidth.rds"))
 
 # GWR Model
 log_info(paste("Running GWR Model"))
@@ -232,10 +224,10 @@ summary(expanded_base_gwr_model)
 summary(hypothesis_gwr_model)
 summary(expanded_hypothesis_gwr_model)
 
-write_rds(base_gwr_model, paste0(SERIALISED_OUTPUT_DIR, "/base_gwr_model.rds"))
-write_rds(expanded_base_gwr_model, paste0(SERIALISED_OUTPUT_DIR, "/expanded_base_gwr_model.rds"))
-write_rds(hypothesis_gwr_model, paste0(SERIALISED_OUTPUT_DIR, "/hypothesis_gwr_model.rds"))
-write_rds(expanded_hypothesis_gwr_model, paste0(SERIALISED_OUTPUT_DIR, "/expanded_hypothesis_gwr_model.rds"))
+write_rds(base_gwr_model, here(SERIALISED_OUTPUT_DIR, "base_gwr_model.rds"))
+write_rds(expanded_base_gwr_model, here(SERIALISED_OUTPUT_DIR, "expanded_base_gwr_model.rds"))
+write_rds(hypothesis_gwr_model, here(SERIALISED_OUTPUT_DIR, "hypothesis_gwr_model.rds"))
+write_rds(expanded_hypothesis_gwr_model, here(SERIALISED_OUTPUT_DIR, "expanded_hypothesis_gwr_model.rds"))
 
 # Spatial Lag Model (SLM)
 log_info(paste("Running SLM Model"))
@@ -250,10 +242,10 @@ summary(expanded_base_slm_model)
 summary(hypothesis_slm_model)
 summary(expanded_hypothesis_slm_model)
 
-write_rds(base_slm_model, paste0(SERIALISED_OUTPUT_DIR, "/base_slm_model.rds"))
-write_rds(expanded_base_slm_model, paste0(SERIALISED_OUTPUT_DIR, "/expanded_base_slm_model.rds"))
-write_rds(hypothesis_slm_model, paste0(SERIALISED_OUTPUT_DIR, "/hypothesis_slm_model.rds"))
-write_rds(expanded_hypothesis_slm_model, paste0(SERIALISED_OUTPUT_DIR, "/expanded_hypothesis_slm_model.rds"))
+write_rds(base_slm_model, here(SERIALISED_OUTPUT_DIR, "base_slm_model.rds"))
+write_rds(expanded_base_slm_model, here(SERIALISED_OUTPUT_DIR, "expanded_base_slm_model.rds"))
+write_rds(hypothesis_slm_model, here(SERIALISED_OUTPUT_DIR, "hypothesis_slm_model.rds"))
+write_rds(expanded_hypothesis_slm_model, here(SERIALISED_OUTPUT_DIR, "expanded_hypothesis_slm_model.rds"))
 
 # Spatial Error Model (SEM)
 log_info(paste("Running SEM Model"))
@@ -268,15 +260,15 @@ summary(expanded_base_sem_model)
 summary(hypothesis_sem_model)
 summary(expanded_hypothesis_sem_model)
 
-write_rds(base_sem_model, paste0(SERIALISED_OUTPUT_DIR, "/base_sem_model.rds"))
-write_rds(expanded_base_sem_model, paste0(SERIALISED_OUTPUT_DIR, "/expanded_base_sem_model.rds"))
-write_rds(hypothesis_sem_model, paste0(SERIALISED_OUTPUT_DIR, "/hypothesis_sem_model.rds"))
-write_rds(expanded_hypothesis_sem_model, paste0(SERIALISED_OUTPUT_DIR, "/expanded_hypothesis_sem_model.rds"))
+write_rds(base_sem_model, here(SERIALISED_OUTPUT_DIR, "base_sem_model.rds"))
+write_rds(expanded_base_sem_model, here(SERIALISED_OUTPUT_DIR, "expanded_base_sem_model.rds"))
+write_rds(hypothesis_sem_model, here(SERIALISED_OUTPUT_DIR, "hypothesis_sem_model.rds"))
+write_rds(expanded_hypothesis_sem_model, here(SERIALISED_OUTPUT_DIR, "expanded_hypothesis_sem_model.rds"))
 
 # Relative Risk Analysis --------------------------------------------------
 
-nb2INLA(paste0(SERIALISED_OUTPUT_DIR, "/n_matrix.rds"), nb)
-g <- inla.read.graph(filename = paste0(SERIALISED_OUTPUT_DIR, "/n_matrix.rds"))
+nb2INLA(here(SERIALISED_OUTPUT_DIR, "n_matrix.rds"), nb)
+g <- inla.read.graph(filename = here(SERIALISED_OUTPUT_DIR, "n_matrix.rds"))
 
 model_df$idareau <- 1:nrow(model_df)
 model_df$idareav <- 1:nrow(model_df)
@@ -330,10 +322,10 @@ summary(expanded_base_inla_model)
 summary(hypothesis_inla_model)
 summary(expanded_hypothesis_inla_model)
 
-write_rds(base_inla_model, paste0(SERIALISED_OUTPUT_DIR, "/base_inla_model.rds"))
-write_rds(expanded_base_inla_model, paste0(SERIALISED_OUTPUT_DIR, "/expanded_base_inla_model.rds"))
-write_rds(hypothesis_inla_model, paste0(SERIALISED_OUTPUT_DIR, "/hypothesis_inla_model.rds"))
-write_rds(expanded_hypothesis_inla_model, paste0(SERIALISED_OUTPUT_DIR, "/expanded_hypothesis_inla_model.rds"))
+write_rds(base_inla_model, here(SERIALISED_OUTPUT_DIR, "base_inla_model.rds"))
+write_rds(expanded_base_inla_model, here(SERIALISED_OUTPUT_DIR, "expanded_base_inla_model.rds"))
+write_rds(hypothesis_inla_model, here(SERIALISED_OUTPUT_DIR, "hypothesis_inla_model.rds"))
+write_rds(expanded_hypothesis_inla_model, here(SERIALISED_OUTPUT_DIR, "expanded_hypothesis_inla_model.rds"))
 
 marginal <- inla.smarginal(hypothesis_inla_model$marginals.fixed$canopy_cover)
 marginal <- data.frame(marginal)
