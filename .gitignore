@@ -2,6 +2,7 @@
 .env
 .venv
 .Renviron
+.RData
 *.Rhistory
 *.Rproj
 *.tif
