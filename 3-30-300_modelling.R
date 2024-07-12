@@ -23,6 +23,8 @@ INPUT_DIR <- paste0(DATA_DIR, "/input")
 OUTPUT_DIR <- paste0(DATA_DIR, "/output")
 VECTOR_INPUT_DIR <- paste0(INPUT_DIR, "/vector")
 VECTOR_OUTPUT_DIR <- paste0(OUTPUT_DIR, "/vector")
+RASTER_INPUT_DIR <- paste0(INPUT_DIR, "/raster")
+RASTER_OUTPUT_DIR <- paste0(OUTPUT_DIR, "/raster")
 TABULAR_INPUT_DIR <- paste0(INPUT_DIR, "/tabular")
 TABULAR_OUTPUT_DIR <- paste0(OUTPUT_DIR, "/tabular")
 SERIALISED_OUTPUT_DIR <- paste0(OUTPUT_DIR, "/serialised")
@@ -195,11 +197,6 @@ moran.test(residuals(hypothesis_ols_model), lw)
 # Define the bandwidth for GWR
 log_info(paste("Running Bandwith"))
 
-# model_df_bw <- model_df |>
-#     select(lsoa, diabetes_prev, d_pch, d_ogs, canopy_cover, LA_pct, geometry) |>
-#     as_Spatial(IDs = 'lsoa')
-
-# gwr_bandwidth <- gwr.sel(formula, data = model_df_bw, coords = coords, adapt = T)    
 base_gwr_bandwidth <- bw.gwr(base_formula, data = model_df |>
                             as_Spatial(IDs = 'lsoa'), adapt = F, parallel.method = 'cluster')
 expanded_base_gwr_bandwidth <- bw.gwr(expanded_base_formula, data = model_df |>
