@@ -67,7 +67,7 @@ wards_sf <- read_sf(wards_geometries)
 diabetes_lsoa_df <- diabetes_df |> 
     left_join(ons_codes_df, by = join_by(`ONS Code` == WD19CD)) |> 
     group_by(LSOA11CD) |> 
-    summarize(across(`Estimated Diabetes Prevalence`:diabetes_SIR, mean, na.rm = TRUE))
+    summarize(across(`Estimated Diabetes Prevalence`:diabetes_SIR, mean, na.rm = T))
 
 diabetes_imd_green_sf <- imd_distance_df |> 
     select(LSOA, `distance_pch mean`:canopy_cover) |> 
@@ -95,49 +95,7 @@ model_df <- diabetes_imd_green_sf |>
     drop_na() |> 
     st_make_valid()
 
-# EDA - Diabetes ----------------------------------------------------------
-
-model_df |>
-    ggplot(aes(x = as.factor(IMD_Decile), y = diabetes_prev, fill = as.factor(IMD_Decile))) +
-    geom_violin() +
-    geom_smooth() +
-    scale_fill_brewer(palette = 'RdYlBu') +
-    theme_minimal()
-
-model_df |>
-    ggplot(aes(x = d_pch, y = diabetes_prev, colour = as.factor(IMD_Decile))) +
-    geom_point(alpha = .5) +
-    geom_smooth() +
-    scale_color_brewer(palette = 'RdYlBu') +
-    theme_minimal()
-
-model_df |>
-    ggplot(aes(x = canopy_cover, y = diabetes_prev, colour = as.factor(IMD_Decile))) +
-    geom_point(alpha = .5) +
-    geom_smooth() +
-    scale_color_brewer(palette = 'RdYlBu') +
-    theme_minimal()
-
-model_df |>
-    ggplot(aes(x = d_ogs, y = diabetes_prev, colour = as.factor(IMD_Decile))) +
-    geom_point(alpha = .5) +
-    geom_smooth() +
-    scale_color_brewer(palette = 'RdYlBu') +
-    theme_minimal()
-
-model_df |> 
-    ggplot(aes(x = IMDScore, y = diabetes_prev, colour = as.factor(IMD_Decile))) +
-    geom_point() +
-    scale_color_brewer(palette = 'RdYlBu') +
-    geom_smooth() +
-    theme_minimal()
-
-model_df |> 
-    ggplot(aes(x = EnvScore, y = d_ogs, colour = as.factor(IMD_Decile))) +
-    geom_point() +
-    scale_color_brewer(palette = 'RdYlBu') +
-    geom_smooth() +
-    theme_minimal()
+st_write(model_df, here(VECTOR_OUTPUT_DIR, "diabetes_imd_330300", "model_sf.gpkg"))
 
 # SDG Presentation --------------------------------------------------------
 
@@ -150,9 +108,9 @@ lw <- nb2listw(nb, style = "W", zero.policy = T)
 base_formula <- diabetes_prev ~ IMDScore
 
 # Expanded Base Formula
-expanded_base_formula <- diabetes_prev ~ IncScore + EmpScore + EduScore + HDDScore + CriScore + 
-    BHSScore + EnvScore + IDCScore + IDOScore + CYPScore + 
-    ASScore + GBScore +  WBScore +  IndScore + OutScore
+expanded_base_formula <- 
+    diabetes_prev ~ IncScore + EmpScore + EduScore + HDDScore + CriScore + BHSScore + EnvScore #+
+    # IDCScore + IDOScore + CYPScore + ASScore + GBScore +  WBScore +  IndScore + OutScore
 
 # (Green) Hypothesis Formulas
 # 3: Visibility
@@ -160,10 +118,9 @@ expanded_base_formula <- diabetes_prev ~ IncScore + EmpScore + EduScore + HDDSco
 # 300: Accessibility
 hypothesis_formula <- diabetes_prev ~ IMDScore + d_pch + d_ogs + canopy_cover
 
-expanded_hypothesis_formula <- diabetes_prev ~ IMDScore + d_pch + d_ogs + canopy_cover +
-    IncScore + EmpScore + EduScore + HDDScore + CriScore + 
-    BHSScore + EnvScore + IDCScore + IDOScore + CYPScore + 
-    ASScore + GBScore +  WBScore +  IndScore + OutScore
+expanded_hypothesis_formula <- diabetes_prev ~ d_pch + d_ogs + canopy_cover +
+    IncScore + EmpScore + EduScore + HDDScore + CriScore + BHSScore + EnvScore #+ 
+    # IDCScore + IDOScore + CYPScore + ASScore + GBScore +  WBScore +  IndScore + OutScore
 
 # OLS Regression
 log_info(paste("Running OLS Model"))
@@ -184,7 +141,10 @@ write_rds(hypothesis_ols_model, here(SERIALISED_OUTPUT_DIR, "hypothesis_ols_mode
 write_rds(expanded_hypothesis_ols_model, here(SERIALISED_OUTPUT_DIR, "expanded_hypothesis_ols_model.rds"))
 
 # Check for spatial autocorrelation in residuals
+moran.test(residuals(base_ols_model), lw)
+moran.test(residuals(expanded_base_ols_model), lw)
 moran.test(residuals(hypothesis_ols_model), lw)
+moran.test(residuals(expanded_hypothesis_ols_model), lw)
 
 # Define the bandwidth for GWR
 log_info(paste("Running Bandwith"))
@@ -275,14 +235,13 @@ model_df$idareav <- 1:nrow(model_df)
 
 # Base formula
 qof_base_formula <- diabetes_qof ~ IMDScore +
-    f(idareau, model = "besag", graph = g, scale.model = TRUE) +
+    f(idareau, model = "besag", graph = g, scale.model = T) +
     f(idareav, model = "iid")
 
 # Expanded Base Formula
-qof_expanded_base_formula <- diabetes_qof ~ IncScore + EmpScore + EduScore + HDDScore + CriScore + 
-    BHSScore + EnvScore + IDCScore + IDOScore + CYPScore + 
-    ASScore + GBScore +  WBScore +  IndScore + OutScore +
-    f(idareau, model = "besag", graph = g, scale.model = TRUE) +
+qof_expanded_base_formula <- diabetes_qof ~ IncScore + EmpScore + EduScore + HDDScore + CriScore + BHSScore + EnvScore +
+    # IDCScore + IDOScore + CYPScore + ASScore + GBScore +  WBScore +  IndScore + OutScore +
+    f(idareau, model = "besag", graph = g, scale.model = T) +
     f(idareav, model = "iid")
 
 # (Green) Hypothesis Formulas
@@ -290,32 +249,31 @@ qof_expanded_base_formula <- diabetes_qof ~ IncScore + EmpScore + EduScore + HDD
 # 30: Availability
 # 300: Accessibility
 qof_hypothesis_formula <- diabetes_qof ~ IMDScore + d_pch + d_ogs + canopy_cover +
-    f(idareau, model = "besag", graph = g, scale.model = TRUE) +
+    f(idareau, model = "besag", graph = g, scale.model = T) +
     f(idareav, model = "iid")
 
-qof_expanded_hypothesis_formula <- diabetes_qof ~ IMDScore + d_pch + d_ogs + canopy_cover +
-    IncScore + EmpScore + EduScore + HDDScore + CriScore + 
-    BHSScore + EnvScore + IDCScore + IDOScore + CYPScore + 
-    ASScore + GBScore +  WBScore +  IndScore + OutScore +
-    f(idareau, model = "besag", graph = g, scale.model = TRUE) +
+qof_expanded_hypothesis_formula <- diabetes_qof ~ d_pch + d_ogs + canopy_cover +
+    IncScore + EmpScore + EduScore + HDDScore + CriScore + BHSScore + EnvScore +
+    # IDCScore + IDOScore + CYPScore + ASScore + GBScore +  WBScore +  IndScore + OutScore +
+    f(idareau, model = "besag", graph = g, scale.model = T) +
     f(idareav, model = "iid")
 
 base_inla_model <- inla(qof_base_formula,
             family = "poisson", data = model_df, E = diabetes_expected,
-            control.predictor = list(compute = TRUE),
-            control.compute = list(return.marginals.predictor = TRUE))
+            control.predictor = list(compute = T),
+            control.compute = list(return.marginals.predictor = T, dic = T, waic = T, cpo = T))
 expanded_base_inla_model <- inla(qof_expanded_base_formula,
                    family = "poisson", data = model_df, E = diabetes_expected,
-                   control.predictor = list(compute = TRUE),
-                   control.compute = list(return.marginals.predictor = TRUE))
+                   control.predictor = list(compute = T),
+                   control.compute = list(return.marginals.predictor = T, dic = T, waic = T, cpo = T))
 hypothesis_inla_model <- inla(qof_hypothesis_formula,
                    family = "poisson", data = model_df, E = diabetes_expected,
-                   control.predictor = list(compute = TRUE),
-                   control.compute = list(return.marginals.predictor = TRUE))
+                   control.predictor = list(compute = T),
+                   control.compute = list(return.marginals.predictor = T, dic = T, waic = T, cpo = T))
 expanded_hypothesis_inla_model <- inla(qof_expanded_hypothesis_formula,
                    family = "poisson", data = model_df, E = diabetes_expected,
-                   control.predictor = list(compute = TRUE),
-                   control.compute = list(return.marginals.predictor = TRUE))
+                   control.predictor = list(compute = T),
+                   control.compute = list(return.marginals.predictor = T, dic = T, waic = T, cpo = T))
 
 summary(base_inla_model)
 summary(expanded_base_inla_model)
