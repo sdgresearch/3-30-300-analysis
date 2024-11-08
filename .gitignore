@@ -9,6 +9,8 @@
 scripts/__pycache__
 data/
 .Rproj.user
+.RDataTmp
 *.qgz
 *.out
 *.sh
+/images
