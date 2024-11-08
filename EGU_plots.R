@@ -62,10 +62,3 @@ ggplot(imd_distance_df) +
     labs(title = '3 v 30', x = 'Distance to closest tree (log(m))',
              y = 'Canopy cover (%)', fill = 'Frequency') +
     theme_minimal()
-
-# boxplot
-ggplot(imd_distance_df) +
-    geom_boxplot(aes(x = as.factor(SOA_decile), y = log(`distance_pch mean`)))
-
-ggplot(imd_distance_df) +
-    geom_boxplot(aes(x = as.factor(SOA_decile), y = log(`distance_ogs mean`)))
