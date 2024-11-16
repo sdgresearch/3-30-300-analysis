@@ -14,7 +14,10 @@ map$RR_eh <- expanded_hypothesis_inla_model$summary.fitted.values[, "mean"]
 map$LL_eh <- expanded_hypothesis_inla_model$summary.fitted.values[, "0.025quant"]
 map$UL_eh <- expanded_hypothesis_inla_model$summary.fitted.values[, "0.975quant"]
 
-pal <- colorNumeric(palette = "YlOrRd", domain = map$RR)
+pal_RR <- colorNumeric(palette = "YlOrRd", domain = map$RR_eh)
+pal_IMD <- colorNumeric(palette = "RdYlBu", domain = map$IMD_Decile)
+pal_canopy <- colorNumeric(palette = "Greens", domain = map$canopy_cover)
+pal_NDVI <- colorNumeric(palette = "PRGn", domain = map$NDVI)
 
 labels <- sprintf("<strong> %s </strong> <br/>
                   Observed: %s <br/> Expected: %s <br/>
@@ -38,10 +41,11 @@ labels <- sprintf("<strong> %s </strong> <br/>
 ) %>% lapply(htmltools::HTML)
 
 lRR <- leaflet(map) %>%
-    addTiles() %>%
+    # addTiles() %>% 
+    addProviderTiles("CartoDB.Positron") %>%
     addPolygons(
-        color = "grey", weight = 1, fillColor = ~ pal(RR_eh),
-        fillOpacity = 0.5,
+        color = "grey", weight = 2, fillColor = ~ pal_RR(RR_eh),
+        fillOpacity = 0.7, group = 'Relative Risk',
         highlightOptions = highlightOptions(weight = 4),
         label = labels,
         labelOptions = labelOptions(
@@ -53,10 +57,58 @@ lRR <- leaflet(map) %>%
             textsize = "15px", direction = "auto"
         )
     ) %>%
-    addLegend(
-        pal = pal, values = ~RR_eh, opacity = 0.5, title = "RR",
-        position = "bottomright"
-    )
+    addPolygons(
+        color = "grey", weight = 2, fillColor = ~ pal_IMD(IMD_Decile),
+        fillOpacity = 0.7, group = 'IMD',
+        highlightOptions = highlightOptions(weight = 4),
+        label = labels,
+        labelOptions = labelOptions(
+            style =
+                list(
+                    "font-weight" = "normal",
+                    padding = "3px 8px"
+                ),
+            textsize = "15px", direction = "auto"
+        )
+    ) %>%
+    addPolygons(
+        color = "grey", weight = 2, fillColor = ~ pal_canopy(canopy_cover),
+        fillOpacity = 0.7, group = 'Canopy Cover',
+        highlightOptions = highlightOptions(weight = 4),
+        label = labels,
+        labelOptions = labelOptions(
+            style =
+                list(
+                    "font-weight" = "normal",
+                    padding = "3px 8px"
+                ),
+            textsize = "15px", direction = "auto"
+        )
+    ) %>%
+    addPolygons(
+        color = "grey", weight = 2, fillColor = ~ pal_NDVI(NDVI),
+        fillOpacity = 0.7, group = 'NDVI',
+        highlightOptions = highlightOptions(weight = 4),
+        label = labels,
+        labelOptions = labelOptions(
+            style =
+                list(
+                    "font-weight" = "normal",
+                    padding = "3px 8px"
+                ),
+            textsize = "15px", direction = "auto"
+        )
+    ) %>%
+    addLayersControl(
+        baseGroups = c(
+            "Positron (minimal)"),
+        overlayGroups = c("Relative Risk", "IMD", "Canopy Cover", 'NDVI'),
+        options = layersControlOptions(collapsed = T)
+    ) #|> 
+    # addLegend(
+    #     pal = pal, values = ~RR_eh, opacity = 0.5, title = "RR",
+    #     position = "bottomright"
+    # )
 lRR
 
 map <- tibble(.rows = 1)
@@ -84,6 +136,33 @@ map |> select(lsoa, ends_with(c('_b', '_eb', '_h', '_eh'))) |>
 ggplot() +
     geom_point(aes(x = Risk_value, y = Hypothesis)) +
     theme_bw()
+
+
+library(sf)
+library(ggplot2)
+library(RColorBrewer)
+
+# Assuming your spatial data is stored in a variable called 'spatial_data'
+# and it has a column named 'IMD_Decile'
+
+# Create the color palette
+color_palette <- colorRampPalette(brewer.pal(11, "RdYlBu"))(10)
+
+# Create the map
+choropleth_map <- ggplot(data = model_spectral_df) +
+    geom_sf(aes(fill = IMD_Decile), color = 'darkgray', size = 0.05) +
+    scale_fill_gradientn(colors = color_palette, 
+                         name = "IMD Decile",
+                         breaks = 1:10,
+                         labels = 1:10,
+                         limits = c(1, 10)) +
+    theme_minimal() +
+    theme(legend.position = "bottom",
+          axis.text = element_blank(),
+          axis.ticks = element_blank(),
+          panel.grid = element_blank())
+
+choropleth_map
 
 
 # Critically analysing the 3/30/300 for health
