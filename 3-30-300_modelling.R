@@ -227,8 +227,10 @@ write_rds(expanded_hypothesis_sem_model, here(SERIALISED_OUTPUT_DIR, "expanded_h
 
 # Relative Risk Analysis --------------------------------------------------
 
-nb2INLA(here(SERIALISED_OUTPUT_DIR, "n_matrix.rds"), nb)
-g <- inla.read.graph(filename = here(SERIALISED_OUTPUT_DIR, "n_matrix.rds"))
+matrix_path <- here(SERIALISED_OUTPUT_DIR, "n_matrix.rds")
+
+nb2INLA(matrix_path, nb)
+g <- inla.read.graph(filename = matrix_path)
 
 model_df$idareau <- 1:nrow(model_df)
 model_df$idareav <- 1:nrow(model_df)
