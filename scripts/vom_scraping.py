@@ -16,7 +16,7 @@ def download_file(url: str, filename: str, folder_path: Path) -> int:
     response = requests.get(url)
     # response.raise_for_status()  # Check if the request was successful
 
-    if response.status_code == 200:
+    if response.status_code == 200 and not os.path.exists(file_path):
          # Ensure the folder exists
         folder_path.mkdir(parents=True, exist_ok=True)
         
@@ -106,17 +106,17 @@ def main():
     geo_level = 'LAD22NM'#args.geo_level
     geo_name = args.geo_name
 
-    for geo_name in england_lsoa_bua_boundaries_gdf.LAD22NM.unique():
+    for geo_name in england_lsoa_bua_boundaries_gdf[geo_level].unique():
         print(geo_name)
-        roi_dir = vom_dir / geo_name
-        roi_dir.mkdir(parents=True, exist_ok=True)
-        roi_vom_tiles_path = roi_dir / f"{geo_name}_VOM_tiles.csv"
+        # roi_dir = vom_dir / geo_name
+        vom_dir.mkdir(parents=True, exist_ok=True)
+        roi_vom_tiles_path = vom_dir / f"{geo_name}_VOM_tiles.csv"
 
         roi_boundaries_gdf = england_lsoa_bua_boundaries_gdf[england_lsoa_bua_boundaries_gdf[geo_level] == geo_name]
 
         roi_tiles_gdf = filter_geographies(roi_boundaries_gdf, os_5km_boundaries_gdf)
 
-        roi_tiles_df = download_tiles_geography(roi_tiles_gdf['TILE_NAME'].unique(), base_url, roi_dir)
+        roi_tiles_df = download_tiles_geography(roi_tiles_gdf['TILE_NAME'].unique(), base_url, vom_dir)
         roi_tiles_df.to_csv(roi_vom_tiles_path, index=False)
 
 if __name__ == '__main__':
