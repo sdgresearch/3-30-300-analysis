@@ -15,6 +15,23 @@ from tqdm import tqdm
 def filter_features(road_nodes_gdf: gpd.GeoDataFrame, road_edges_gdf: gpd.GeoDataFrame, 
                     public_park_site_gdf: gpd.GeoDataFrame, public_park_access_gdf: gpd.GeoDataFrame, 
                     buildings_gdf: gpd.GeoDataFrame, geo_boundary_gdf: gpd.GeoDataFrame) -> dict:
+    """
+    Filters various GeoDataFrames by performing spatial joins with a given geographic boundary.
+    Parameters:
+        road_nodes_gdf (gpd.GeoDataFrame): GeoDataFrame containing road nodes.
+        road_edges_gdf (gpd.GeoDataFrame): GeoDataFrame containing road edges.
+        public_park_site_gdf (gpd.GeoDataFrame): GeoDataFrame containing public park sites.
+        public_park_access_gdf (gpd.GeoDataFrame): GeoDataFrame containing public park access points.
+        buildings_gdf (gpd.GeoDataFrame): GeoDataFrame containing building information.
+        geo_boundary_gdf (gpd.GeoDataFrame): GeoDataFrame containing the geographic boundary for filtering.
+    Returns:
+        dict: A dictionary containing filtered GeoDataFrames with the following keys:
+            - 'nodes': Filtered road nodes GeoDataFrame.
+            - 'edges': Filtered road edges GeoDataFrame.
+            - 'public_park_sites': Filtered public park sites GeoDataFrame.
+            - 'public_park_access': Filtered public park access points GeoDataFrame.
+            - 'buildings': Filtered buildings GeoDataFrame.
+    """
     
     logging.debug("Filtering GeoDataFrames by spatial join")
 
@@ -39,6 +56,15 @@ def filter_features(road_nodes_gdf: gpd.GeoDataFrame, road_edges_gdf: gpd.GeoDat
     return result_dict
 
 def get_closest_park(geo_graph: nx.MultiGraph, geo_buildings_gdf: gpd.GeoDataFrame, geo_public_park_access_gdf: gpd.GeoDataFrame) -> pd.DataFrame:
+    """
+    Calculate the closest park access point for each building in the given GeoDataFrame.
+    Parameters:
+        geo_graph (nx.MultiGraph): A graph representing the road network.
+        geo_buildings_gdf (gpd.GeoDataFrame): A GeoDataFrame containing building information, including the nearest road node.
+        geo_public_park_access_gdf (gpd.GeoDataFrame): A GeoDataFrame containing public park access points, including the nearest road node.
+    Returns:
+        pd.DataFrame: A DataFrame with columns 'verisk_premise_id', 'closest_park_access_id', and 'distance', representing the building ID, the closest park access point ID, and the distance to the closest park access point, respectively.
+    """
 
     logging.debug("Getting closest park to each building")
 
@@ -78,6 +104,21 @@ def get_closest_park(geo_graph: nx.MultiGraph, geo_buildings_gdf: gpd.GeoDataFra
 def process_geo_code(geo_code: str, geo_level: str, imd_lsoa_bua_gdf: gpd.GeoDataFrame, road_nodes_gdf: gpd.GeoDataFrame, 
                      road_edges_gdf: gpd.GeoDataFrame, public_park_site_gdf: gpd.GeoDataFrame,
                       public_park_access_gdf: gpd.GeoDataFrame, buildings_gdf: gpd.GeoDataFrame) -> None:
+    """
+    Processes geographical data for a given geo_code and geo_level, calculates the distance from buildings to the nearest park,
+    and saves the results to a CSV file.
+    Args:
+        geo_code (str): The geographical code to process.
+        geo_level (str): The geographical level (e.g., LSOA, BUA) to process.
+        imd_lsoa_bua_gdf (gpd.GeoDataFrame): GeoDataFrame containing the geographical boundaries.
+        road_nodes_gdf (gpd.GeoDataFrame): GeoDataFrame containing the road nodes.
+        road_edges_gdf (gpd.GeoDataFrame): GeoDataFrame containing the road edges.
+        public_park_site_gdf (gpd.GeoDataFrame): GeoDataFrame containing the public park sites.
+        public_park_access_gdf (gpd.GeoDataFrame): GeoDataFrame containing the public park access points.
+        buildings_gdf (gpd.GeoDataFrame): GeoDataFrame containing the buildings.
+    Returns:
+        None
+    """
     
     start_time = time.time()
     
