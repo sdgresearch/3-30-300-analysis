@@ -4,6 +4,7 @@ import sys, argparse, time, concurrent.futures
 # sys.path.append('..')  # Adjust the path as per your directory structure
 
 from constants import *
+from logging_config import *
 
 import pandas as pd
 import geopandas as gpd
@@ -14,6 +15,8 @@ from tqdm import tqdm
 def filter_features(road_nodes_gdf: gpd.GeoDataFrame, road_edges_gdf: gpd.GeoDataFrame, 
                     public_park_site_gdf: gpd.GeoDataFrame, public_park_access_gdf: gpd.GeoDataFrame, 
                     buildings_gdf: gpd.GeoDataFrame, geo_boundary_gdf: gpd.GeoDataFrame) -> dict:
+    
+    logging.debug("Filtering GeoDataFrames by spatial join")
 
     geo_road_edges_gdf = gpd.sjoin(road_edges_gdf, geo_boundary_gdf)\
         .rename(columns={'start_node': 'u', 'end_node': 'v', 'id': 'key'})\
@@ -36,6 +39,9 @@ def filter_features(road_nodes_gdf: gpd.GeoDataFrame, road_edges_gdf: gpd.GeoDat
     return result_dict
 
 def get_closest_park(geo_graph: nx.MultiGraph, geo_buildings_gdf: gpd.GeoDataFrame, geo_public_park_access_gdf: gpd.GeoDataFrame) -> pd.DataFrame:
+
+    logging.debug("Getting closest park to each building")
+
     # Create a list to store the distances
     distances = []
 
@@ -58,6 +64,8 @@ def get_closest_park(geo_graph: nx.MultiGraph, geo_buildings_gdf: gpd.GeoDataFra
                     min_distance = distance
                     closest_park_access_id = park_access.id
             except nx.NetworkXNoPath:
+
+                logging.error(f"Closest park couldn't be calculated for building: {building_id}")
                 continue
 
         distances.append((building_id, closest_park_access_id, min_distance))
@@ -71,6 +79,8 @@ def process_geo_code(geo_code: str, geo_level: str, imd_lsoa_bua_gdf: gpd.GeoDat
                      road_edges_gdf: gpd.GeoDataFrame, public_park_site_gdf: gpd.GeoDataFrame,
                       public_park_access_gdf: gpd.GeoDataFrame, buildings_gdf: gpd.GeoDataFrame) -> None:
     
+    start_time = time.time()
+    
     T300_dir = VECTOR_OUT_DIR / "3-30-300" / "T300"
     T300_dir.mkdir(parents=True, exist_ok=True)
     geo_building_park_distance_path = T300_dir / f"{geo_code}_T300.csv"
@@ -78,6 +88,8 @@ def process_geo_code(geo_code: str, geo_level: str, imd_lsoa_bua_gdf: gpd.GeoDat
     geo_boundary_gdf = imd_lsoa_bua_gdf[imd_lsoa_bua_gdf[geo_level] == geo_code].dissolve()[['geometry', geo_level]]
 
     geo_road_nodes_gdf, geo_road_edges_gdf, geo_public_park_site_gdf, geo_public_park_access_gdf, geo_buildings_gdf = filter_features(road_nodes_gdf, road_edges_gdf, public_park_site_gdf, public_park_access_gdf, buildings_gdf, geo_boundary_gdf).values()
+
+    logging.debug(f"Generating graph for {geo_code}")
 
     geo_graph = ox.graph_from_gdfs(geo_road_nodes_gdf, geo_road_edges_gdf).to_undirected()
 
@@ -88,21 +100,25 @@ def process_geo_code(geo_code: str, geo_level: str, imd_lsoa_bua_gdf: gpd.GeoDat
 
     geo_building_park_distance_df.to_csv(geo_building_park_distance_path)
 
+    end_time = time.time()
+    logging.debug(f"Processing took {end_time - start_time:.2f} seconds")
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='Description of your script.')
-    parser.add_argument('--geo_code', type=str, required=False, default='E07000008', help='Geographical variable name')
     parser.add_argument('--geo_level', type=str, required=True, default='LAD22CD', help='Name/Code of the desired geography')
-    parser.add_argument('--n_workers', type=int, required=False, default=1, help='Number of workers')
+    parser.add_argument('--geo_code', type=str, required=False, default='E07000008', help='Geographical variable name')
+    parser.add_argument('--parallel', action='store_true', help='Run job in parallel')
+    parser.add_argument('--n_workers', type=int, required=False, default=2, help='Number of workers')
+    parser.add_argument('--log_level', type=str, required=False, default='WARNING', help='Logging level')
 
     args = parser.parse_args()
 
     geo_level = args.geo_level
     geo_code = args.geo_code
+    parallel = args.parallel
     n_workers = args.n_workers
-
-    # Variables
-    project_crs = 'EPSG:27700'
+    log_level = args.log_level
 
     # IN paths
     imd_lsoa_bua_boundaries_path = VECTOR_OUT_DIR / "IMD" / "English_IMD_2019_BUA_filtered_boundaries.geojson"
@@ -110,6 +126,11 @@ if __name__ == "__main__":
     roads_path = VECTOR_IN_DIR / "OS" / "Roads" / "oproad_gb.gpkg"
     buildings_path = VECTOR_IN_DIR / "EDINA" / "Buildings_6183" / "edition_17_0_new_format.gpkg"
     buildings_parquet_path = VECTOR_IN_DIR / "EDINA" / "Buildings_6183" / "Buildings_6183.parquet"
+
+    log_path = Path("logs/T300_calculation.log")
+    setup_logger(log_path=log_path, log_level=log_level)
+    logging.info("Running started")
+    logging.debug("Reading files")
 
     imd_lsoa_bua_gdf = gpd.read_file(imd_lsoa_bua_boundaries_path)
     
@@ -126,34 +147,25 @@ if __name__ == "__main__":
     public_park_site_gdf = green_space_site_gdf.copy()[green_space_site_gdf['function'] == 'Public Park Or Garden']
     public_park_access_gdf = green_space_access_gdf.copy()[green_space_access_gdf['ref_to_greenspace_site'].isin(public_park_site_gdf.id)]
 
-    # for geo_code in tqdm(imd_lsoa_bua_gdf[geo_level].unique(), desc='LADs Processed'):
- 
-    #     T300_dir = VECTOR_OUT_DIR / "3-30-300" / "T300"
-    #     T300_dir.mkdir(parents=True, exist_ok=True)
-    #     geo_building_park_distance_path = T300_dir / f"{geo_code}_T300.csv"
+    if parallel:
+        logging.debug("Running in parallel")
 
-    #     geo_boundary_gdf = imd_lsoa_bua_gdf[imd_lsoa_bua_gdf[geo_level] == geo_code].dissolve()[['geometry', geo_level]]
+        with concurrent.futures.ThreadPoolExecutor(max_workers=n_workers) as executor:
+            futures = [executor.submit(process_geo_code, geo_code, 
+                                       geo_level, imd_lsoa_bua_gdf, 
+                                       road_nodes_gdf, road_edges_gdf, 
+                                       public_park_site_gdf, public_park_access_gdf, 
+                                       buildings_gdf) for geo_code in imd_lsoa_bua_gdf[geo_level].unique()]
+            
+            for future in tqdm(concurrent.futures.as_completed(futures), total=len(futures), desc="Regions Processed"):
+                try:
+                    future.result()                
+                except Exception as e:
+                    logging.error(f"Error processing: {e}")
 
-    #     geo_road_nodes_gdf, geo_road_edges_gdf, geo_public_park_site_gdf, geo_public_park_access_gdf, geo_buildings_gdf = filter_features(road_nodes_gdf, road_edges_gdf, public_park_site_gdf, public_park_access_gdf, buildings_gdf, geo_boundary_gdf).values()
+    else:
+        logging.debug("Running sequentially")
 
-    #     geo_graph = ox.graph_from_gdfs(geo_road_nodes_gdf, geo_road_edges_gdf).to_undirected()
-
-    #     geo_public_park_access_gdf['nearest_road_node'] = ox.distance.nearest_nodes(geo_graph, geo_public_park_access_gdf.geometry.centroid.x, geo_public_park_access_gdf.geometry.centroid.y)
-    #     geo_buildings_gdf['nearest_road_node'] = ox.distance.nearest_nodes(geo_graph, geo_buildings_gdf.geometry.centroid.x, geo_buildings_gdf.geometry.centroid.y)
-
-    #     geo_building_park_distance_df = get_closest_park(geo_graph, geo_buildings_gdf, geo_public_park_access_gdf)
-
-    #     geo_building_park_distance_df.to_csv(geo_building_park_distance_path)
-
-    # Use ThreadPoolExecutor to parallelize the processing of each geo_code
-    with concurrent.futures.ThreadPoolExecutor(max_workers=n_workers) as executor:
-        futures = [executor.submit(process_geo_code, geo_code, geo_level, imd_lsoa_bua_gdf, road_nodes_gdf, road_edges_gdf, public_park_site_gdf, public_park_access_gdf, buildings_gdf) for geo_code in imd_lsoa_bua_gdf[geo_level].unique()]
-        for future in tqdm(concurrent.futures.as_completed(futures), total=len(futures), desc="Processing geo_codes"):
-            geo_code = futures[future]
-            try:
-                start_time = time.time()
-                future.result()
-                end_time = time.time()
-                print(f"Processed geo_code {geo_code} in {end_time - start_time:.2f} seconds")
-            except Exception as e:
-                print(f"Error processing geo_code {geo_code}: {e}")
+        for geo_code in tqdm(imd_lsoa_bua_gdf[geo_level].unique(), desc='Regions Processed'):   
+            process_geo_code(geo_code, geo_level, imd_lsoa_bua_gdf, road_nodes_gdf, road_edges_gdf, public_park_site_gdf, public_park_access_gdf, buildings_gdf)
+            
