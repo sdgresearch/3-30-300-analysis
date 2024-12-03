@@ -90,8 +90,7 @@ def get_closest_park(geo_graph: nx.MultiGraph, geo_buildings_gdf: gpd.GeoDataFra
                     min_distance = distance
                     closest_park_access_id = park_access.id
             except nx.NetworkXNoPath:
-
-                logging.error(f"Closest park couldn't be calculated for building: {building_id}")
+                # logging.error(f"Closest park couldn't be calculated for building: {park_access.id}")
                 continue
 
         distances.append((building_id, closest_park_access_id, min_distance))
@@ -124,13 +123,13 @@ def process_geo_code(geo_code: str, geo_level: str, imd_lsoa_bua_gdf: gpd.GeoDat
     
     T300_dir = VECTOR_OUT_DIR / "3-30-300" / "T300"
     T300_dir.mkdir(parents=True, exist_ok=True)
-    geo_building_park_distance_path = T300_dir / f"{geo_code}_T300.csv"
+    geo_building_park_distance_path = T300_dir / f"T300_{geo_code}.csv"
 
     geo_boundary_gdf = imd_lsoa_bua_gdf[imd_lsoa_bua_gdf[geo_level] == geo_code].dissolve()[['geometry', geo_level]]
 
     geo_road_nodes_gdf, geo_road_edges_gdf, geo_public_park_site_gdf, geo_public_park_access_gdf, geo_buildings_gdf = filter_features(road_nodes_gdf, road_edges_gdf, public_park_site_gdf, public_park_access_gdf, buildings_gdf, geo_boundary_gdf).values()
 
-    logging.debug(f"Generating graph for {geo_code}")
+    logging.info(f"Generating graph for {geo_code}")
 
     geo_graph = ox.graph_from_gdfs(geo_road_nodes_gdf, geo_road_edges_gdf).to_undirected()
 
@@ -139,10 +138,12 @@ def process_geo_code(geo_code: str, geo_level: str, imd_lsoa_bua_gdf: gpd.GeoDat
 
     geo_building_park_distance_df = get_closest_park(geo_graph, geo_buildings_gdf, geo_public_park_access_gdf)
 
-    geo_building_park_distance_df.to_csv(geo_building_park_distance_path)
+    logging.info(f"Saving file for {geo_code} with {len(geo_building_park_distance_df)} records")
+
+    geo_building_park_distance_df.to_csv(geo_building_park_distance_path, index=False)
 
     end_time = time.time()
-    logging.debug(f"Processing took {end_time - start_time:.2f} seconds")
+    logging.info(f"Processing for {geo_code} took {end_time - start_time:.2f} seconds")
 
 if __name__ == "__main__":
 
@@ -170,7 +171,7 @@ if __name__ == "__main__":
 
     log_path = Path("logs/T300_calculation.log")
     setup_logger(log_path=log_path, log_level=log_level)
-    logging.info("Running started")
+    logging.info("Calculating the 300 metric for all buildings")
     logging.debug("Reading files")
 
     imd_lsoa_bua_gdf = gpd.read_file(imd_lsoa_bua_boundaries_path)
