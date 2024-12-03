@@ -14,3 +14,4 @@ data/
 *.out
 *.sh
 /images
+/logs
