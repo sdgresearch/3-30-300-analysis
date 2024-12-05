@@ -19,6 +19,7 @@ ipykernel = "^6.29.5"
 cartopy = "^0.24.1"
 scipy = "^1.14.1"
 pyarrow = "^18.1.0"
+rasterstats = "^0.20.0"
 
 
 [build-system]
