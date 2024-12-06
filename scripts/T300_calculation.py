@@ -66,31 +66,35 @@ def get_closest_park(geo_graph: nx.MultiGraph, geo_buildings_gdf: gpd.GeoDataFra
         pd.DataFrame: A DataFrame with columns 'verisk_premise_id', 'closest_park_access_id', and 'distance', representing the building ID, the closest park access point ID, and the distance to the closest park access point, respectively.
     """
 
-    logging.debug("Getting closest park to each building")
+    logging.debug(f"Getting closest park (n: {len(geo_public_park_access_gdf)}) to each building (n: {len(geo_buildings_gdf)})")
+
+    park_access_nodes = geo_public_park_access_gdf['nearest_road_node'].unique()
+    shortest_paths = {}
+    for park_access_node in park_access_nodes:
+        lengths = nx.single_source_dijkstra_path_length(geo_graph, park_access_node, weight='length')
+        shortest_paths[park_access_node] = lengths
 
     # Create a list to store the distances
     distances = []
 
     # Iterate over each building
-    for building in geo_buildings_gdf.iloc[:].itertuples():
+    for building in tqdm(geo_buildings_gdf.itertuples(), desc='Buildings processed'):
         building_node = building.nearest_road_node
         building_id = building.Index
         min_distance = float('inf')
         closest_park_access_id = None
-        
+
         # Iterate over each park access point
         for park_access in geo_public_park_access_gdf.itertuples():
             park_access_node = park_access.nearest_road_node
-            
-            # Calculate the shortest path distance
+
+            # Lookup the precomputed shortest path distance
             try:
-                distance = nx.shortest_path_length(geo_graph, source=building_node, target=park_access_node, weight='length')
-                
+                distance = shortest_paths[park_access_node][building_node]
                 if distance < min_distance:
                     min_distance = distance
                     closest_park_access_id = park_access.id
-            except nx.NetworkXNoPath:
-                # logging.error(f"Closest park couldn't be calculated for building: {park_access.id}")
+            except KeyError:
                 continue
 
         distances.append((building_id, closest_park_access_id, min_distance))
@@ -106,7 +110,7 @@ def process_geo_code(geo_code: str, geo_level: str, imd_lsoa_bua_gdf: gpd.GeoDat
     """
     Processes geographical data for a given geo_code and geo_level, calculates the distance from buildings to the nearest park,
     and saves the results to a CSV file.
-    Args:
+    Parameters:
         geo_code (str): The geographical code to process.
         geo_level (str): The geographical level (e.g., LSOA, BUA) to process.
         imd_lsoa_bua_gdf (gpd.GeoDataFrame): GeoDataFrame containing the geographical boundaries.
@@ -127,7 +131,7 @@ def process_geo_code(geo_code: str, geo_level: str, imd_lsoa_bua_gdf: gpd.GeoDat
 
     geo_boundary_gdf = imd_lsoa_bua_gdf[imd_lsoa_bua_gdf[geo_level] == geo_code].dissolve()[['geometry', geo_level]]
 
-    geo_road_nodes_gdf, geo_road_edges_gdf, geo_public_park_site_gdf, geo_public_park_access_gdf, geo_buildings_gdf = filter_features(road_nodes_gdf, road_edges_gdf, public_park_site_gdf, public_park_access_gdf, buildings_gdf, geo_boundary_gdf).values()
+    geo_road_nodes_gdf, geo_road_edges_gdf, _, geo_public_park_access_gdf, geo_buildings_gdf = filter_features(road_nodes_gdf, road_edges_gdf, public_park_site_gdf, public_park_access_gdf, buildings_gdf, geo_boundary_gdf).values()
 
     logging.info(f"Generating graph for {geo_code}")
 
@@ -174,8 +178,9 @@ if __name__ == "__main__":
     logging.info("Calculating the 300 metric for all buildings")
     logging.debug("Reading files")
 
-    imd_lsoa_bua_gdf = gpd.read_file(imd_lsoa_bua_boundaries_path)
-    
+    imd_lsoa_bua_gdf = gpd.read_file(imd_lsoa_bua_boundaries_path).sort_values(by=geo_level)
+    geo_level_codes = imd_lsoa_bua_gdf[geo_level].unique()
+
     green_space_access_gdf = gpd.read_file(green_space_path, layer='access_point')
     green_space_site_gdf = gpd.read_file(green_space_path, layer='greenspace_site')
     road_edges_gdf = gpd.read_file(roads_path, layer='road_link')
@@ -197,9 +202,9 @@ if __name__ == "__main__":
                                        geo_level, imd_lsoa_bua_gdf, 
                                        road_nodes_gdf, road_edges_gdf, 
                                        public_park_site_gdf, public_park_access_gdf, 
-                                       buildings_gdf) for geo_code in imd_lsoa_bua_gdf[geo_level].unique()]
+                                       buildings_gdf) for geo_code in geo_level_codes]
             
-            for future in tqdm(concurrent.futures.as_completed(futures), total=len(futures), desc="Regions Processed"):
+            for future in tqdm(concurrent.futures.as_completed(futures), total=len(futures), desc="Regions processed"):
                 try:
                     future.result()                
                 except Exception as e:
@@ -208,6 +213,6 @@ if __name__ == "__main__":
     else:
         logging.debug("Running sequentially")
 
-        for geo_code in tqdm(imd_lsoa_bua_gdf[geo_level].unique(), desc='Regions Processed'):   
+        for geo_code in tqdm(geo_level_codes, desc='Regions processed'):   
             process_geo_code(geo_code, geo_level, imd_lsoa_bua_gdf, road_nodes_gdf, road_edges_gdf, public_park_site_gdf, public_park_access_gdf, buildings_gdf)
             
