@@ -5,6 +5,8 @@ library(logger)
 library(argparse)
 library(parallel)
 library(pbapply)
+library(future)
+library(future.apply)
 library(progress)
 library(jsonlite)
 library(readr)
@@ -23,7 +25,7 @@ vom_lad_dir <- here(vom_dir, "LADs")
 trees_dir <- here(VECTOR_OUTPUT_DIR, "3-30-300", "VOM_Trees")
 chm_lad_tiles_path <- here(vom_lad_dir, "LAD_CHM_tiles_paths.json")
 chm_lad_tiles_lst <- jsonlite::read_json(chm_lad_tiles_path, simplifyVector = T)
-chm_tif_paths <- sort(unique(unlist(chm_lad_tiles_lst)))
+chm_tif_paths <- sort(unique(unlist(chm_lad_tiles_lst)), decreasing = F)
 
 # geo_code <- 'E09000013'
 # crowns_path <- here(T3_dir, paste0("T3_", geo_code, ".geojson"))
@@ -76,24 +78,44 @@ extract_trees <- function(chm_spat_rast) {
 }
 
 process_vom_tile <- function(chm_path) {
-    
-    # Extract the parent folder (2023)
-    year <- str_match(chm_path, ".*/(\\d{4})/.*")[,2]
 
-    # Extract the specific part of the filename (two uppercase letters followed by four numbers)
-    tile_name <- str_match(chm_path, "VOM_([A-Z]{2}\\d{4})_")[,2]
-    
-    log_info(paste("Processing tile", tile_name, "from", year))
+    tryCatch({   
+        # Extract the parent folder (2023)
+        year <- str_match(chm_path, ".*/(\\d{4})/.*")[,2]
 
-    crowns_path <- here(trees_dir, paste0("VOM_trees_", tile_name, "_", year, ".geojson"))
-    chm_spat_rast <- rast(chm_path)
-    crowns_vect <- extract_trees(chm_spat_rast)
+        # Extract the specific part of the filename (two uppercase letters followed by four numbers)
+        tile_name <- str_match(chm_path, "VOM_([A-Z]{2}\\d{4})_")[,2]
+        
+        # log_info(paste("Processing tile", tile_name, "from", year))
 
-    writeVector(crowns_vect, crowns_path, overwrite = T)
+        crowns_path <- here(trees_dir, paste0("VOM_trees_", tile_name, "_", year, ".gpkg"))
+
+        if (!file.exists(crowns_path)) {
+            chm_spat_rast <- rast(chm_path)
+            crowns_vect <- extract_trees(chm_spat_rast)
+
+            writeVector(crowns_vect, crowns_path, overwrite = T)
+        }
+    },
+    error = function(e) {
+        message("Error with file: ", chm_path)
+        message("Error message: ", e$message)
+
+        return(NULL)
+    }
+    # warning = function(w) {
+    #     message("Warning when reading file: ", chm_path)
+    #     message("Warning message: ", w$message)
+    #     return(NULL)
+    # }
+    )
 }
-
+# Set the log format
+log_appender(appender_console)
+log_formatter(formatter_glue)
+log_layout(layout_glue_generator("{time} - {level} - {msg}"))
 log_threshold(DEBUG)
-
+# NU2035 from 2018
 # Create a parser object
 parser <- ArgumentParser(description = "Example script with argparse")
 
@@ -111,16 +133,18 @@ if (parallel) {
     
     log_debug("Running in parallel")
 
-    cl <- makeCluster(n_workers)
-    clusterExport(cl, varlist = c("process_vom_tile", "chm_tif_paths", "trees_dir",
-                                  "extract_trees", "rast", "here", "str_match",
-                                  "log_info", "log_debug", "writeVector"))
-    pboptions(type = "timer")
-    pblapply(cl, chm_tif_paths, process_vom_tile)
-    stopCluster(cl)
+    # cl <- makeCluster(n_workers)
+    # clusterExport(cl, varlist = c("process_vom_tile", "extract_trees", "rast", "here", "str_match",
+    #                               "log_info", "log_debug", "writeVector", "trees_dir", "chm_lad_tiles_lst",
+    #                               "chm_tif_paths"))
+    # pboptions(type = "timer")
+    # pblapply(chm_tif_paths, process_vom_tile, cl = cl)
+    # stopCluster(cl)
+    plan(multisession, workers = n_workers)
+    future.apply::future_lapply(chm_tif_paths, process_vom_tile)
 
 } else {
-    # print('************************')
+
     pb <- progress::progress_bar$new(format = "[:bar] :current/:total (:percent)", total = length(chm_tif_paths))
     log_debug("Running sequentially")
 
