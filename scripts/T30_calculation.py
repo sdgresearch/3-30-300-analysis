@@ -30,7 +30,7 @@ def classify_vom_type(file_name: str|Path) -> str:
     else:
         return 'CHM'
     
-def extract_grid_reference(filename: str|Path) -> str|None:
+def extract_grid_reference(filename: str) -> str|None:
     """
     Extracts a grid reference from a given filename.
     The function searches for a pattern in the filename that matches 'VOM' or 'VOM_HS'
