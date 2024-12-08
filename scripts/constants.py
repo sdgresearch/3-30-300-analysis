@@ -2,7 +2,6 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-
 load_dotenv()  # take environment variables from .env.
 DATA_DIR = Path(os.getenv("DATA_DIR")) 
 INPUT_DIR = DATA_DIR / "input"
@@ -25,3 +24,4 @@ OGS_IN_DIR = VECTOR_IN_DIR / "ogs"
 OGS_OUT_DIR = VECTOR_OUT_DIR / "ogs"
 IMD_IN_DIR = VECTOR_IN_DIR / "imd"
 IMD_OUT_DIR = VECTOR_OUT_DIR / "imd"
+# JAVA_HOME = os.getenv("JAVA_HOME")

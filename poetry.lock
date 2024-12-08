@@ -69,6 +69,7 @@ files = [
 
 [package.dependencies]
 attrs = "*"
+pyspark = {version = ">=2.3.0", optional = true, markers = "extra == \"spark\""}
 shapely = ">=1.7.0"
 
 [package.extras]
@@ -775,6 +776,17 @@ files = [
 
 [package.extras]
 all = ["flake8 (>=7.1.1)", "mypy (>=1.11.2)", "pytest (>=8.3.2)", "ruff (>=0.6.2)"]
+
+[[package]]
+name = "install-jdk"
+version = "1.1.0"
+description = "install-jdk allows you to easily install latest Java OpenJDK version. Supports OpenJDK builds from Adoptium (previously AdoptOpenJDK), Corretto, and Zulu. Simplify your Java development with the latest OpenJDK builds."
+optional = false
+python-versions = ">=3.6,<4.0"
+files = [
+    {file = "install_jdk-1.1.0-py3-none-any.whl", hash = "sha256:b63f0fcd63f7abab3443d4120ba92716397753b8a8ea3c85762a629925a9936e"},
+    {file = "install_jdk-1.1.0.tar.gz", hash = "sha256:2bfd53caf660e4916df0215a5715519dcb9547fa2a5f07421fd97a8046851eaa"},
+]
 
 [[package]]
 name = "ipykernel"
@@ -2449,4 +2461,4 @@ viz = ["cartopy", "matplotlib", "nc-time-axis", "seaborn"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "2a5b097bef9ac8b0b6a1beed572f4ebdd21e9676e84cc04885a9ff6c245a2491"
+content-hash = "ee030fab5639de2c7cc527ceeedf0ab8cdd629db6a1d3cdc0c79b9f131d1043e"
