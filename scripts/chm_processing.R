@@ -57,6 +57,9 @@ extract_trees <- function(chm_spat_rast) {
 
     log_debug('Locating Trees')
     ttops_chm_smoothed <- locate_trees(chm_smoothed, lmf(f))
+    if (nrow(ttops_chm_smoothed) == 0) {
+        ttops_chm_smoothed <- locate_trees(chm_spat_rast, lmf(f))
+    }
     ttops_chm_smoothed_spat_vect <- vect(ttops_chm_smoothed)
     names(ttops_chm_smoothed_spat_vect)[2] <- 'height'
     # write_rds(ttops_chm_smoothed, "temp/ttops_chm_smoothed.rds")
