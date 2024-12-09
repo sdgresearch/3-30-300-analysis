@@ -24,4 +24,4 @@ OGS_IN_DIR = VECTOR_IN_DIR / "ogs"
 OGS_OUT_DIR = VECTOR_OUT_DIR / "ogs"
 IMD_IN_DIR = VECTOR_IN_DIR / "imd"
 IMD_OUT_DIR = VECTOR_OUT_DIR / "imd"
-# JAVA_HOME = os.getenv("JAVA_HOME")
+JAVA_HOME = str(DATA_DIR.parent / ".jdk" / os.getenv("JDK_HOME"))
