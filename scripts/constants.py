@@ -25,3 +25,4 @@ OGS_OUT_DIR = VECTOR_OUT_DIR / "ogs"
 IMD_IN_DIR = VECTOR_IN_DIR / "imd"
 IMD_OUT_DIR = VECTOR_OUT_DIR / "imd"
 JAVA_HOME = str(DATA_DIR.parent / ".jdk" / os.getenv("JDK_HOME"))
+GEE_PROJECT_NAME = os.getenv("GEE_PROJECT_NAME")
