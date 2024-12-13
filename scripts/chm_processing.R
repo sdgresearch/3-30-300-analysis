@@ -1,10 +1,8 @@
 
-# Libraries ---------------------------------------------------------------
+# Packages ----------------------------------------------------------------
 
 library(logger)
 library(argparse)
-library(parallel)
-library(pbapply)
 library(future)
 library(future.apply)
 library(progress)
@@ -18,11 +16,11 @@ library(lidR)
 
 source("scripts/constants.R")
 
-# Data Paths --------------------------------------------------------------
+# Paths -------------------------------------------------------------------
 
-vom_dir <- here(RASTER_INPUT_DIR, "Defra", "VOM")
+vom_dir <- here(RASTER_IN_DIR, "Defra", "VOM")
 vom_lad_dir <- here(vom_dir, "LADs")
-trees_dir <- here(VECTOR_OUTPUT_DIR, "3-30-300", "VOM_Trees")
+trees_dir <- here(VECTOR_OUT_DIR, "3-30-300", "VOM_Trees")
 chm_lad_tiles_path <- here(vom_lad_dir, "LAD_CHM_tiles_paths.json")
 chm_lad_tiles_lst <- jsonlite::read_json(chm_lad_tiles_path, simplifyVector = T)
 chm_tif_paths <- sort(unique(unlist(chm_lad_tiles_lst)), decreasing = F)
