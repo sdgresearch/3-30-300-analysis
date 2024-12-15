@@ -69,6 +69,18 @@ def run_queries(sedona):
     t3_30_300_sdf = t30_imd_lsoa_sdf.join(t3_300_lsoa_sdf, on="LSOA11CD", how="inner")
     t3_30_300_sdf = t3_30_300_sdf.drop("lsoa11cd")
     t3_30_300_sdf.createOrReplaceTempView("t3_30_300")
+    t3_30_300_sdf = sedona.sql(
+    """
+    SELECT *, (TotPop / area) AS TotPop_density,
+    (DepChi / TotPop) AS DepChi_ratio,
+    (Pop16_59 / TotPop) AS Pop16_59_ratio,
+    (`Pop60+` / TotPop) AS Pop60_ratio,
+    (WorkPop / TotPop) AS WorkPop_ratio
+    FROM t3_30_300
+    
+    """
+    )
+    t3_30_300_sdf.createOrReplaceTempView("t3_30_300")
 
     return t3_30_300_sdf
 
@@ -91,7 +103,7 @@ if __name__ == "__main__":
     imd_lsoa_bua_boundaries_path = VECTOR_OUT_DIR / "IMD" / "English_IMD_2019_BUA_filtered_boundaries.geojson"
     imd_england_path = VECTOR_IN_DIR / "IMD" / "English IMD 2019" / "IMD_2019.shp"
     buildings_path = VECTOR_IN_DIR / "EDINA" / "Buildings_6183" / "Buildings_6183.parquet"
-    log_path = Path("logs/T3_calculation_sequential.log")
+    log_path = Path("logs/3-30-300_aggregate.log")
 
     setup_logger(log_path=log_path, log_level=log_level)
     logging.info("Aggregating data for all geographies (3-30-300)")
