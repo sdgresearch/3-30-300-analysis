@@ -109,7 +109,7 @@ if __name__ == "__main__":
     logging.info("Aggregating data for all geographies (3-30-300)")
     logging.debug("Reading files")
     start_time = time.time()
-    imd_lsoa_bua_gdf = gpd.read_file(imd_lsoa_bua_boundaries_path)
+    imd_lsoa_bua_gdf = gpd.read_file(imd_lsoa_bua_boundaries_path).sort_values(by='RGN22CD').drop_duplicates(subset='LSOA11CD', keep='first')
     imd_england_columns = ['lsoa11cd', 'TotPop', 'DepChi', 'Pop16_59', 'Pop60+', 'WorkPop',
                        'IMD_Rank', 'IMD_Decile', 'IMDScore', 'IncScore', 'IncRank', 'IncDec', 
                        'EmpScore', 'EmpRank', 'EmpDec', 'EduScore', 'EduRank', 'EduDec', 
