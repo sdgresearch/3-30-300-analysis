@@ -25,6 +25,8 @@ xee = "^0.0.19"
 dask = {extras = ["distributed"], version = "^2024.12.0"}
 earthengine-api = "^1.4.3"
 geemap = "^0.35.1"
+eemont = "^0.3.6"
+spyndex = "^0.6.0"
 
 
 [build-system]
