@@ -5,7 +5,9 @@ from logging_config import *
 from utils import *
 
 import ee, eemont
-import pandas as pd
+# import pandas as pd
+import geopandas as gpd
+from shapely.geometry import shape
 
 # Function to calculate mean NDVI for each feature
 def calculate_median_index(image_collection: ee.image.Image, geometries: ee.featurecollection.FeatureCollection, 
@@ -27,7 +29,7 @@ def calculate_median_index(image_collection: ee.image.Image, geometries: ee.feat
     )
     return mean_dict
 
-def calculate_zonal_statistics(imd_lsoa_bua_boundaries_ee: ee.featurecollection.FeatureCollection, iter_span: int=500) -> list:
+def calculate_zonal_statistics(imd_lsoa_bua_boundaries_ee: ee.featurecollection.FeatureCollection, iter_span: int=100) -> list:
     """
     Calculate zonal statistics for a given Earth Engine FeatureCollection.
     This function processes the input FeatureCollection in chunks, calculates the median spectral index
@@ -35,21 +37,28 @@ def calculate_zonal_statistics(imd_lsoa_bua_boundaries_ee: ee.featurecollection.
     Args:
         imd_lsoa_bua_boundaries_ee (ee.featurecollection.FeatureCollection): The input FeatureCollection
             containing the geometries for which zonal statistics are to be calculated.
-        iter_span (int, optional): The number of features to process in each iteration. Defaults to 500.
+        iter_span (int, optional): The number of features to process in each iteration. Defaults to 100.
     Returns:
         list: A list of dictionaries containing the calculated zonal statistics for each feature.
     """
-
 
     start_time = time.time()
     spectral_results_lst = []
     for i in range(0, imd_lsoa_bua_boundaries_ee.size().getInfo(), iter_span):
         limited_geometries = imd_lsoa_bua_boundaries_ee.toList(iter_span, i)
         limited_geometries_fc = ee.FeatureCollection(limited_geometries)
-        median_index_features = calculate_median_index(image_collection, limited_geometries_fc)
-        median_index_dict = median_index_features.getInfo()['features']
-        temp_features = [row['properties'] for row in median_index_dict]
-        spectral_results_lst.extend(temp_features)
+        retry_count = 0
+        while retry_count < 3:
+            try:
+                median_index_features = calculate_median_index(image_collection, limited_geometries_fc)
+                median_index_dict = median_index_features.getInfo()['features']
+                # temp_features = [row['properties'] for row in median_index_dict]
+                spectral_results_lst.extend(median_index_dict)
+                break
+            except ee.ee_exception.EEException as e:
+                logging.warning(f"Attempt {retry_count + 1} failed with error: {e}")
+                retry_count += 1
+                time.sleep(5)  # Wait before retrying
 
     end_time = time.time()
     logging.info(f"Calculating spectral zonal statistics took {end_time - start_time:.2f} seconds")
@@ -75,9 +84,11 @@ if __name__ == "__main__":
     indexes = args.indexes
     log_level = args.log_level
 
+    project_crs = 'EPSG:27700'
+
     T3_30_300_DIR = VECTOR_OUT_DIR / "3-30-300"
     imd_lsoa_bua_boundaries_ee_path = "projects/ee-phd-thesis/assets/English_IMD_2019_BUA_filtered_boundaries"
-    spectral_indexes_path = T3_30_300_DIR / "spectral_indexes.csv"
+    spectral_indexes_path = T3_30_300_DIR / "spectral_indexes.geojson"
 
     log_path = Path("logs/spectral_indexes_calculation.log")
     setup_logger(log_path=log_path, log_level=log_level)
@@ -102,6 +113,10 @@ if __name__ == "__main__":
         .select(indexes))
 
     spectral_results_lst = calculate_zonal_statistics(imd_lsoa_bua_boundaries_ee)    
-    spectral_results_df = pd.DataFrame(spectral_results_lst)
+    geometry = [shape(feature['geometry']) for feature in spectral_results_lst]
+    properties = [feature['properties'] for feature in spectral_results_lst]
 
-    spectral_results_df.to_csv(spectral_indexes_path, index=False)
+    spectral_index_gdf = gpd.GeoDataFrame(properties, geometry=geometry, crs='EPSG:4326').to_crs(project_crs)
+    spectral_index_gdf.to_file(spectral_indexes_path)
+    # spectral_results_df = pd.DataFrame(spectral_results_lst)
+    # spectral_results_df.to_csv(spectral_indexes_path, index=False)
