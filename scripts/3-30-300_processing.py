@@ -9,7 +9,7 @@ from sedona_config import *
 
 import geopandas as gpd
 
-def create_schemas(sedona, imd_lsoa_bua_gdf, imd_england_gdf, buildings_path, T3_dir, T30_dir, T300_dir) -> None:
+def create_schemas(sedona, imd_lsoa_bua_gdf, imd_england_gdf, spectral_indexes_gdf, buildings_path, T3_dir, T30_dir, T300_dir) -> None:
 
     boundaries_sdf = sedona.createDataFrame(imd_lsoa_bua_gdf.drop(columns=['LSOA21NMW', 'LAD22NMW', 'BUA22NMG', 'BUA22NMW', 'RGN22NMW'], axis=1))
     boundaries_sdf.createOrReplaceTempView('boundaries')
@@ -17,6 +17,8 @@ def create_schemas(sedona, imd_lsoa_bua_gdf, imd_england_gdf, buildings_path, T3
     imd_england_sdf.createOrReplaceTempView('imd_england')
     buildings_sdf = sedona.read.format("geoparquet").load(str(buildings_path))
     buildings_sdf.createOrReplaceTempView("buildings")
+    spectral_indexes_sdf = sedona.createDataFrame(spectral_indexes_gdf)
+    spectral_indexes_sdf.createOrReplaceTempView("spectral_indexes")
 
     t3_sdf = sedona.read.csv(str(T3_dir), header=True, inferSchema=True)
     t3_sdf.createOrReplaceTempView("t3")
@@ -35,22 +37,23 @@ def run_queries(sedona):
     ON ST_Contains(l.geometry, b.geometry)
     """
     )
-    buildings_lsoa_sdf.createOrReplaceTempView("buildings")
+    buildings_lsoa_sdf.createOrReplaceTempView("buildings2")
 
     t30_imd_lsoa_sdf = sedona.sql(
     """
     SELECT b.*, ROUND(ST_Area(b.geometry), 2) AS area, i.*, t.canopy_cover
     FROM boundaries b
-    LEFT JOIN imd_england i ON b.LSOA11CD = i.lsoa11cd
+    LEFT JOIN imd_england i ON b.LSOA11CD = i.LSOA11CD_imd
     LEFT JOIN t30 t ON b.LSOA11CD = t.LSOA11CD
     """
     )
+    t30_imd_lsoa_sdf = t30_imd_lsoa_sdf.drop("LSOA11CD_imd")
     t30_imd_lsoa_sdf.createOrReplaceTempView("t30_imd_lsoa")
 
     t3_300_building_sdf = sedona.sql(
     """
     SELECT b.*, t3.tree_count, t300.closest_park_access_id, t300.distance
-    FROM buildings b
+    FROM buildings2 b
     LEFT JOIN t3 ON b.verisk_premise_id = t3.verisk_premise_id
     LEFT JOIN t300 ON b.verisk_premise_id = t300.verisk_premise_id
     """
@@ -59,15 +62,18 @@ def run_queries(sedona):
 
     t3_300_lsoa_sdf = sedona.sql(
     """
-    SELECT LSOA11CD, ROUND(AVG(tree_count), 2) as tree_count, ROUND(AVG(distance), 2) as park_distance
+    SELECT LSOA11CD, ROUND(AVG(tree_count), 2) as tree_count, ROUND(AVG(distance), 2) as park_distance, ROUND(AVG(distance_water), 2) as water_distance
     FROM t3_300_building
     GROUP BY LSOA11CD
     """
     )
     t3_300_lsoa_sdf.createOrReplaceTempView("t3_300_lsoa")
 
-    t3_30_300_sdf = t30_imd_lsoa_sdf.join(t3_300_lsoa_sdf, on="LSOA11CD", how="inner")
-    t3_30_300_sdf = t3_30_300_sdf.drop("lsoa11cd")
+    t3_30_300_sdf = sedona.sql(
+    """
+    SELECT a.*, b.tree_count, b.park_distance, b.water_distance FROM t30_imd_lsoa a 
+    INNER JOIN t3_300_lsoa b ON a.LSOA11CD = b.LSOA11CD
+    """)
     t3_30_300_sdf.createOrReplaceTempView("t3_30_300")
     t3_30_300_sdf = sedona.sql(
     """
@@ -76,13 +82,19 @@ def run_queries(sedona):
     (Pop16_59 / TotPop) AS Pop16_59_ratio,
     (`Pop60+` / TotPop) AS Pop60_ratio,
     (WorkPop / TotPop) AS WorkPop_ratio
-    FROM t3_30_300
-    
+    FROM t3_30_300 
     """
     )
     t3_30_300_sdf.createOrReplaceTempView("t3_30_300")
+    
+    t3_30_300_spectral_sdf = sedona.sql(
+        """
+        SELECT t.*, s.NDVI, s.NDWI, s.NDBI FROM t3_30_300 t
+        LEFT JOIN spectral_indexes s ON t.LSOA11CD = s.LSOA11CD
+        """
+        )
 
-    return t3_30_300_sdf
+    return t3_30_300_spectral_sdf
 
 if __name__ == "__main__":
 
@@ -103,6 +115,7 @@ if __name__ == "__main__":
     imd_lsoa_bua_boundaries_path = VECTOR_OUT_DIR / "IMD" / "English_IMD_2019_BUA_filtered_boundaries.geojson"
     imd_england_path = VECTOR_IN_DIR / "IMD" / "English IMD 2019" / "IMD_2019.shp"
     buildings_path = VECTOR_IN_DIR / "EDINA" / "Buildings_6183" / "Buildings_6183.parquet"
+    spectral_indexes_path = T3_30_300_DIR / "spectral_indexes.geojson"
     log_path = Path("logs/3-30-300_aggregate.log")
 
     setup_logger(log_path=log_path, log_level=log_level)
@@ -115,7 +128,8 @@ if __name__ == "__main__":
                        'EmpScore', 'EmpRank', 'EmpDec', 'EduScore', 'EduRank', 'EduDec', 
                        'HDDScore', 'HDDRank', 'HDDDec', 'CriScore', 'CriRank', 'CriDec', 
                        'BHSScore', 'BHSRank', 'BHSDec', 'EnvScore', 'EnvRank', 'EnvDec']
-    imd_england_gdf = gpd.read_file(imd_england_path)[imd_england_columns]
+    imd_england_gdf = gpd.read_file(imd_england_path)[imd_england_columns].rename(columns={'lsoa11cd': 'LSOA11CD_imd'})
+    spectral_indexes_gdf = gpd.read_file(spectral_indexes_path)
     
     logging.debug("Setting up Apache Sedona")
     os.environ["JAVA_HOME"] = JAVA_HOME
@@ -123,7 +137,7 @@ if __name__ == "__main__":
     
     logging.debug("Running queries")
     
-    create_schemas(sedona, imd_lsoa_bua_gdf, imd_england_gdf, buildings_path, T3_dir, T30_dir, T300_dir)
+    create_schemas(sedona, imd_lsoa_bua_gdf, imd_england_gdf, spectral_indexes_gdf, buildings_path, T3_dir, T30_dir, T300_dir)
     t3_30_300_sdf = run_queries(sedona)
 
     logging.debug("Saving final output")
