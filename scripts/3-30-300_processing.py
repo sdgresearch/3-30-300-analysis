@@ -75,17 +75,17 @@ def run_queries(sedona):
     INNER JOIN t3_300_lsoa b ON a.LSOA11CD = b.LSOA11CD
     """)
     t3_30_300_sdf.createOrReplaceTempView("t3_30_300")
-    t3_30_300_sdf = sedona.sql(
-    """
-    SELECT *, (TotPop / area) AS TotPop_density,
-    (DepChi / TotPop) AS DepChi_ratio,
-    (Pop16_59 / TotPop) AS Pop16_59_ratio,
-    (`Pop60+` / TotPop) AS Pop60_ratio,
-    (WorkPop / TotPop) AS WorkPop_ratio
-    FROM t3_30_300 
-    """
-    )
-    t3_30_300_sdf.createOrReplaceTempView("t3_30_300")
+    # t3_30_300_sdf = sedona.sql(
+    # """
+    # SELECT *, (TotPop / area) AS TotPop_density,
+    # (DepChi / TotPop) AS DepChi_ratio,
+    # (Pop16_59 / TotPop) AS Pop16_59_ratio,
+    # (`Pop60+` / TotPop) AS Pop60_ratio,
+    # (WorkPop / TotPop) AS WorkPop_ratio
+    # FROM t3_30_300 
+    # """
+    # )
+    # t3_30_300_sdf.createOrReplaceTempView("t3_30_300")
     
     t3_30_300_spectral_sdf = sedona.sql(
         """
@@ -95,6 +95,33 @@ def run_queries(sedona):
         )
 
     return t3_30_300_spectral_sdf
+
+def process_population_data(population_estimates_df):
+
+    population_estimates_df.columns = population_estimates_df.columns.str.replace(' ', '_')
+    # Calculate the ratio of each column compared to Total
+    columns_to_calculate = ['F0_to_15', 'F16_to_29', 'F30_to_44', 'F45_to_64', 'F65_and_over', 
+                            'M0_to_15', 'M16_to_29', 'M30_to_44', 'M45_to_64', 'M65_and_over']
+    for column in columns_to_calculate:
+        population_estimates_df[f'{column}_ratio'] = population_estimates_df[column] / population_estimates_df['Total']
+
+    # Calculate the ratio of total F and total M
+    population_estimates_df['Total_F'] = population_estimates_df[['F0_to_15', 'F16_to_29', 'F30_to_44', 'F45_to_64', 'F65_and_over']].sum(axis=1)
+    population_estimates_df['Total_M'] = population_estimates_df[['M0_to_15', 'M16_to_29', 'M30_to_44', 'M45_to_64', 'M65_and_over']].sum(axis=1)
+    population_estimates_df['F_ratio'] = population_estimates_df['Total_F'] / population_estimates_df['Total']
+    population_estimates_df['M_ratio'] = population_estimates_df['Total_M'] / population_estimates_df['Total']
+
+    # Calculate the ratio per age range
+    age_ranges = ['0_to_15', '16_to_29', '30_to_44', '45_to_64', '65_and_over']
+    for age_range in age_ranges:
+        population_estimates_df[f'{age_range}_ratio'] = population_estimates_df[f'F{age_range}'] + population_estimates_df[f'M{age_range}']
+        population_estimates_df[f'{age_range}_ratio'] /= population_estimates_df['Total']
+
+    # Keep only the required columns
+    columns_to_keep = ['LSOA_2021_Code', 'Total'] + [col for col in population_estimates_df.columns if col.endswith('_ratio')]
+    std_population_estimates_df = population_estimates_df.copy()[columns_to_keep]
+
+    return std_population_estimates_df
 
 if __name__ == "__main__":
 
@@ -116,6 +143,7 @@ if __name__ == "__main__":
     imd_england_path = VECTOR_IN_DIR / "IMD" / "English IMD 2019" / "IMD_2019.shp"
     buildings_path = VECTOR_IN_DIR / "EDINA" / "Buildings_6183" / "Buildings_6183.parquet"
     spectral_indexes_path = T3_30_300_DIR / "spectral_indexes.geojson"
+    population_estimates_path = TABULAR_IN_DIR / "ONS" / "sapelsoabroadage20112022.xlsx"
     log_path = Path("logs/3-30-300_aggregate.log")
 
     setup_logger(log_path=log_path, log_level=log_level)
@@ -130,7 +158,9 @@ if __name__ == "__main__":
                        'BHSScore', 'BHSRank', 'BHSDec', 'EnvScore', 'EnvRank', 'EnvDec']
     imd_england_gdf = gpd.read_file(imd_england_path)[imd_england_columns].rename(columns={'lsoa11cd': 'LSOA11CD_imd'})
     spectral_indexes_gdf = gpd.read_file(spectral_indexes_path)
-    
+    population_estimates_df = pd.read_excel(population_estimates_path, sheet_name='Mid-2022 LSOA 2021', skiprows=3)
+    std_population_estimates_df = process_population_data(population_estimates_df)
+
     logging.debug("Setting up Apache Sedona")
     os.environ["JAVA_HOME"] = JAVA_HOME
     sedona = get_spark()
@@ -146,6 +176,8 @@ if __name__ == "__main__":
     t3_30_300_df = t3_30_300_df.replace([float('inf'), float('-inf')], -99)
     t3_30_300_gdf = t3_30_300_df.set_geometry('geometry')
     t3_30_300_gdf = t3_30_300_gdf.set_crs(project_crs)
+    t3_30_300_gdf = t3_30_300_gdf.merge(std_population_estimates_df, left_on='LSOA21CD', right_on='LSOA_2021_Code', how='left')
+    t3_30_300_gdf['Pop_density'] = t3_30_300_gdf['Total'] / t3_30_300_gdf['area']
     t3_30_300_gdf.to_file(t3_30_300_path)
 
     end_time = time.time()
