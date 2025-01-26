@@ -6,10 +6,13 @@ library(sf)
 library(scales)
 library(patchwork)
 library(ggbump)
+library(GGally)
+library(ggbeeswarm)
+library(ggstatsplot)
 library(corrplot)
 library(factoextra)
 
-source("constants.R")
+source("scripts/constants.R")
 
 
 # Paths -------------------------------------------------------------------
@@ -20,33 +23,110 @@ t3_30_300_path <-  here(T3_30_300_DIR, "T3_30_300.geojson")
 
 # Variables ---------------------------------------------------------------
 
-t3_30_300_vars <- list('3' = list('plot_label' = 'Tree Count', 'number' = 3, 'variable' = 'tree_count'),
-                       '30' = list('plot_label' = 'Canopy Cover (%)', 'number' = 30, 'variable' = 'canopy_cover'),
-                       '300' = list('plot_label' = 'Distance to Closest Park (m)', 'number' = 300, 'variable' = 'park_distance'))
+t3_30_300_vars <- list('3' = list('plot_label' = '3 \nTree Count',
+                                  'number' = 3, 'variable' = 'tree_count',
+                                  'breaks' = c(1, 3, 10, 100, 500, 2000)),
+                       '30' = list('plot_label' = '30 \nCanopy Cover (%)',
+                                   'number' = 30, 'variable' = 'canopy_cover',
+                                   'breaks' = c(1, 5, 10, 30, 60)),
+                       '300' = list('plot_label' = '300 \nDistance to Park (m)',
+                                    'number' = 300, 'variable' = 'park_distance',
+                                    'breaks' = c(50, 150, 300 , 500, 1000, 2000, 
+                                                 5000, 10000, 25000)))
 
 plot_theme <- theme_bw(base_size = 12, base_family = "Helvetica") +
     theme(
         plot.title = element_text(size = 16, face = "bold"),
-        axis.text = element_text(size = 10),
-        axis.title = element_text(size = 12),
+        axis.text = element_text(size = 7),
+        axis.title = element_text(size = 8),
         panel.grid.minor = element_blank()
     )
 
 # Processing --------------------------------------------------------------
 
 t3_30_300_gdf <- read_sf(t3_30_300_path) |> 
-    filter(RGN22CD != 'E12000007')
+    # filter(RGN22CD != 'E12000007') |> # London = E12000007
+    select(-c("TotPop", "DepChi", "Pop16_59", "Pop60+", "WorkPop")) |> 
+    mutate(park_distance = if_else(park_distance == -99, NA, park_distance),
+           IMD_Decile = as_factor(IMD_Decile),
+           RGN22NM = fct_relevel(RGN22NM, c('North West', 'North East',
+                                            'Yorkshire and The Humber',
+                                            'West Midlands', 'East Midlands',
+                                            'East of England', 'South West',
+                                            'South East', 'London', NA))) 
 
-green_metric <- '300'
+t3_30_300_long_df <- t3_30_300_gdf |> 
+    st_drop_geometry() |> 
+    pivot_longer(cols = NDVI:NDBI, names_to = 'spectral', values_to = 'spectral_value') |> 
+    pivot_longer(cols = canopy_cover:park_distance, names_to = 't3_metric', values_to = 't3_value') #|>
+    # pivot_longer(cols = Total:Pop_density, names_to = 'population', values_to = 'pop_value') |> 
+    # pivot_longer(cols = contains('Score'), names_to = 'IMD_metric', values_to = 'IMD_score') |>
+    # pivot_longer(cols = contains('Dec'), names_to = 'IMD_decile', values_to = 'IMD_decile_value') |>
+    # pivot_longer(cols = contains('Rank'), names_to = 'IMD_rank', values_to = 'IMD_rank_value')
 
+green_metric <- '3'
+spectral_metric <- 'NDVI'
+population_metric <- 'Total'
+imd_metric <- 'IMDScore'
+
+esquisse::esquisser()
+
+plot_boxplots_3_30_300 <- function(green_metric, plot_legend = T, x_axis = T) {
+    
+    res_plot <- t3_30_300_gdf |> 
+        filter(!is.na(RGN22NM)) |> 
+        ggplot() +
+        aes(x = RGN22NM, y = !!sym(t3_30_300_vars[[green_metric]][['variable']]), fill = IMD_Decile) +
+        geom_boxplot() +
+        geom_hline(aes(yintercept = t3_30_300_vars[[green_metric]][['number']]),
+                   linetype = 'dashed') +
+        scale_fill_brewer(palette = "RdYlBu", direction = 1) +
+        scale_y_continuous(trans = "log", breaks = t3_30_300_vars[[green_metric]][['breaks']]) +
+        scale_x_discrete(labels = function(x) str_wrap(x, width = 8)) +
+        labs(
+            x = NULL,
+            y = t3_30_300_vars[[green_metric]][['plot_label']],
+            fill = "IMD Decile"
+        ) + 
+        guides(fill = guide_legend(nrow = 1)) +
+        plot_theme +
+        theme(
+            legend.position = ifelse(plot_legend, "bottom", 'none')
+            )
+    
+    if (!x_axis) {
+        res_plot <- res_plot +
+            theme(
+                axis.title.x = element_blank(),
+                axis.text.x = element_blank(),
+                axis.ticks.x = element_blank()
+            )
+    } else {
+        res_plot <- res_plot +
+            theme(
+                axis.title.x = element_text(size = 8),
+                axis.text.x = element_text(size = 7, hjust = 0.5, vjust = 0.5),
+                axis.ticks.x = element_line(linewidth = 0.5)
+            )
+    }
+        return(res_plot)
+}
+
+t3_region_boxplots <- plot_boxplots_3_30_300('3', plot_legend = F, x_axis = F)
+t30_region_boxplots <- plot_boxplots_3_30_300('30', plot_legend = F, x_axis = F)
+t300_region_boxplots <- plot_boxplots_3_30_300('300', plot_legend = T, x_axis = T)
+
+t3_30_300_region_boxplots <- t3_region_boxplots / t30_region_boxplots / t300_region_boxplots
+
+ggsave("images/t3_30_300_region_boxplots.png", t3_30_300_region_boxplots, 
+       width = 180, height = 170, units = 'mm', dpi = 300)
 
 t3_30_300_gdf |> 
-    # filter(!is.na(tree_count), park_distance >= 0) |>
-    # mutate(!!sym(t3_30_300_vars[[green_metric]][['variable']]) := log(!!sym(t3_30_300_vars[[green_metric]][['variable']]))) |> 
+    filter(!is.na(!!sym(t3_30_300_vars[[green_metric]][['variable']]))) |>
 ggplot() +
     geom_point(aes(x = !!sym(t3_30_300_vars[[green_metric]][['variable']]),
-                   y = IncScore,
-                   colour = factor(IMD_Decile)), alpha = .5) +
+                   y = IMDScore,
+                   colour = IMD_Decile), alpha = .5) +
     geom_vline(aes(xintercept = t3_30_300_vars[[green_metric]][['number']]),
                linetype = 'dashed') +
     scale_x_continuous(transform = 'log',
@@ -62,27 +142,30 @@ ggplot() +
 t3_30_300_gdf |> 
     filter(!is.na(!!sym(t3_30_300_vars[[green_metric]][['variable']]))) |>
     ggplot() +
-    geom_boxplot(aes(x = factor(IMD_Decile), 
-                     y = area),
-                     fill = factor(IMD_Decile)) +
+    geom_quasirandom(method = 'frowney', aes(x = factor(IMD_Decile),
+                    y = !!sym(t3_30_300_vars[[green_metric]][['variable']]),
+                    # y = NDBI,
+                    color = IMD_Decile), alpha = .5) +
+    geom_violin(aes(x = factor(IMD_Decile),
+                    y = !!sym(t3_30_300_vars[[green_metric]][['variable']])),
+                fill = 'transparent', draw_quantiles = c(0.5)) +
     geom_hline(aes(yintercept = t3_30_300_vars[[green_metric]][['number']]),
                linetype = 'dashed') +
     scale_y_continuous(transform = 'log',
                        breaks = trans_breaks("log", function(x) exp(x)),
                        labels = trans_format("log", function(x) format(exp(x),
-                                                                       digits = 1, 
+                                                                       digits = 1,
                                                                        scientific = F))) +
     scale_fill_brewer(palette = 'RdYlBu') +
-    labs(y = area, x = 'IMD Score',
-         fill = 'IMD Decile') +
-    plot_theme
+    scale_color_brewer(palette = 'RdYlBu') +
+    labs(y = t3_30_300_vars[[green_metric]][['plot_label']], x = 'IMD Decile') +
+    plot_theme + theme(legend.position = 'none')
 
 t3_30_300_gdf |> 
-    filter(!is.na(!!sym(t3_30_300_vars[[green_metric]][['variable']]))) |>
-ggplot() +
-    geom_boxplot(aes(x = factor(IncDec), 
-                     y = !!sym(t3_30_300_vars[[green_metric]][['variable']]),
-                     fill = factor(IncDec))) +
+    ggplot() +
+    geom_point(aes(x = NDVI, 
+               y = !!sym(t3_30_300_vars[[green_metric]][['variable']]),
+               color = IMD_Decile), alpha = .5) +
     geom_hline(aes(yintercept = t3_30_300_vars[[green_metric]][['number']]),
                linetype = 'dashed') +
     scale_y_continuous(transform = 'log',
@@ -90,11 +173,10 @@ ggplot() +
                        labels = trans_format("log", function(x) format(exp(x),
                                                                        digits = 1, 
                                                                        scientific = F))) +
-    scale_fill_brewer(palette = 'RdYlBu') +
-    labs(y = t3_30_300_vars[[green_metric]][['plot_label']], x = 'IMD Score',
-         fill = 'IMD Decile') +
+    scale_color_brewer(palette = 'RdYlBu') +
+    labs(y = t3_30_300_vars[[green_metric]][['plot_label']], x = 'NDVI',
+         color = 'IMD Decile') +
     plot_theme
-
 
 plot_scatter <- function(gdf, x_var, y_var, colour_var, intercept, alpha, legend = T) {
     
