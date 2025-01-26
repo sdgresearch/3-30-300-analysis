@@ -71,6 +71,8 @@ imd_metric <- 'IMDScore'
 
 esquisse::esquisser()
 
+# Box Plots ---------------------------------------------------------------
+
 plot_boxplots_3_30_300 <- function(green_metric, plot_legend = T, x_axis = T) {
     
     res_plot <- t3_30_300_gdf |> 
@@ -121,49 +123,12 @@ t3_30_300_region_boxplots <- t3_region_boxplots / t30_region_boxplots / t300_reg
 ggsave("images/t3_30_300_region_boxplots.png", t3_30_300_region_boxplots, 
        width = 180, height = 170, units = 'mm', dpi = 300)
 
-t3_30_300_gdf |> 
-    filter(!is.na(!!sym(t3_30_300_vars[[green_metric]][['variable']]))) |>
-ggplot() +
-    geom_point(aes(x = !!sym(t3_30_300_vars[[green_metric]][['variable']]),
-                   y = IMDScore,
-                   colour = IMD_Decile), alpha = .5) +
-    geom_vline(aes(xintercept = t3_30_300_vars[[green_metric]][['number']]),
-               linetype = 'dashed') +
-    scale_x_continuous(transform = 'log',
-                       breaks = trans_breaks("log", function(x) exp(x)),
-                       labels = trans_format("log", function(x) format(exp(x),
-                                                                       digits = 1, 
-                                                                       scientific = F))) +
-    scale_color_brewer(palette = 'RdYlBu') +
-    labs(x = t3_30_300_vars[[green_metric]][['plot_label']], y = 'IMD Score',
-         colour = 'IMD Decile') +
-    plot_theme
 
-t3_30_300_gdf |> 
-    filter(!is.na(!!sym(t3_30_300_vars[[green_metric]][['variable']]))) |>
-    ggplot() +
-    geom_quasirandom(method = 'frowney', aes(x = factor(IMD_Decile),
-                    y = !!sym(t3_30_300_vars[[green_metric]][['variable']]),
-                    # y = NDBI,
-                    color = IMD_Decile), alpha = .5) +
-    geom_violin(aes(x = factor(IMD_Decile),
-                    y = !!sym(t3_30_300_vars[[green_metric]][['variable']])),
-                fill = 'transparent', draw_quantiles = c(0.5)) +
-    geom_hline(aes(yintercept = t3_30_300_vars[[green_metric]][['number']]),
-               linetype = 'dashed') +
-    scale_y_continuous(transform = 'log',
-                       breaks = trans_breaks("log", function(x) exp(x)),
-                       labels = trans_format("log", function(x) format(exp(x),
-                                                                       digits = 1,
-                                                                       scientific = F))) +
-    scale_fill_brewer(palette = 'RdYlBu') +
-    scale_color_brewer(palette = 'RdYlBu') +
-    labs(y = t3_30_300_vars[[green_metric]][['plot_label']], x = 'IMD Decile') +
-    plot_theme + theme(legend.position = 'none')
+# Scatter Plots -----------------------------------------------------------
 
 t3_30_300_gdf |> 
     ggplot() +
-    geom_point(aes(x = NDVI, 
+    geom_point(aes(x = !!sym(spectral_metric), 
                y = !!sym(t3_30_300_vars[[green_metric]][['variable']]),
                color = IMD_Decile), alpha = .5) +
     geom_hline(aes(yintercept = t3_30_300_vars[[green_metric]][['number']]),
@@ -229,12 +194,13 @@ t3_30_300_cor |>
 
 t3_30_300_rank_gdf <- t3_30_300_gdf |> 
     st_drop_geometry() |> 
-    select(RGN22CD, ends_with('Score'), area:WorkPop, tree_count, canopy_cover, park_distance) |> 
+    select(RGN22CD, ends_with('Score'), Total:Pop_density, tree_count, canopy_cover, park_distance,
+           water_distance, NDVI, NDBI, NDWI) |> 
+    filter(!is.na(RGN22CD), RGN22CD != 'W92000004') |> 
     group_by(RGN22CD) |> 
     summarise(across(ends_with('Score'), mean, .names = '{.col}'),
-              across(area:WorkPop, sum, .names = '{.col}'),
-              across(tree_count:park_distance, ~ mean(.x, na.rm = TRUE), .names = '{.col}')) |> 
-    filter(!is.na(RGN22CD), RGN22CD != 'W92000004') |> 
+              across(Total:Pop_density, sum, .names = '{.col}'),
+              across(canopy_cover:water_distance, ~ mean(.x, na.rm = TRUE), .names = '{.col}')) |> 
     mutate(across(IMDScore:park_distance, function(x) {rank(-x)}, .names = '{.col}_rank')) |> 
     mutate(across(tree_count_rank:canopy_cover_rank, function(x) {n() + 1 - x}, .names = '{.col}')) |>
     mutate(IMD = as.character(IMDScore_rank)) |> 
