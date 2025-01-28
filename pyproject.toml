@@ -27,6 +27,7 @@ earthengine-api = "^1.4.3"
 geemap = "^0.35.1"
 eemont = "^0.3.6"
 spyndex = "^0.6.0"
+earthpy = "^0.9.4"
 
 
 [build-system]
