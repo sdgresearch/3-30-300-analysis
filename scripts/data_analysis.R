@@ -472,30 +472,4 @@ for (i in seq_along(scatter_vars)) {
 ggsave("images/t3_30_300_scatter_plots.png", t3_30_300_scatter_plots, 
        width = 180, height = 180, units = 'mm', dpi = 300)
 
-t3_30_300_standard_df <- t3_30_300_gdf |> 
-    st_drop_geometry() |> 
-    mutate(`3` = log(tree_count + 1),
-           `30` = log(canopy_cover + 1),
-           `300` = log(park_distance + 1),
-           water = log(water_distance + 1),
-           across(ends_with('Score'), scale, .names = "{.col}"),
-           EnvDec = as_factor(EnvDec)) |> 
-    select(EnvDec, `3`, `30`, `300`, water, NDVI, NDWI, NDBI, Pop_density)
-    # select(ends_with('Score'), `3`, `30`, `300`, water, NDVI, NDWI, NDBI, Pop_density,
-    #        # area, ends_with('ratio')
-    #        ) |>
-    # select(-IMDScore) |>
-    drop_na() 
 
-t3_30_300_pca <- t3_30_300_standard_df |>
-    prcomp(scale. = T)
-
-t3_30_300_pca |> 
-    fviz_pca_var()
-
-t3_30_300_cor <- t3_30_300_standard_df |>
-    cor(method = 'spearman') 
-
-t3_30_300_cor |> 
-    corrplot(method = "circle", type = "upper",# order = "hclust",
-             tl.col = "black", tl.srt = 45)
