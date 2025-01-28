@@ -39,8 +39,10 @@ t3_30_300_vars <- list('3' = list('plot_label' = '3 \nTree Count',
 plot_theme <- theme_bw(base_size = 12, base_family = "Helvetica") +
     theme(
         plot.title = element_text(size = 16, face = "bold"),
-        axis.text = element_text(size = 7),
-        axis.title = element_text(size = 8),
+        axis.text = element_text(size = 9),
+        axis.title = element_text(size = 10, face = 'bold'),
+        legend.title = element_text(size = 10, face = 'bold'),
+        legend.text = element_text(size = 9),
         panel.grid.minor = element_blank()
     )
 
@@ -81,7 +83,7 @@ plot_boxplots_3_30_300 <- function(green_metric, plot_legend = T, x_axis = T) {
         filter(!is.na(RGN22NM)) |> 
         ggplot() +
         aes(x = RGN22NM, y = !!sym(t3_30_300_vars[[green_metric]][['variable']]), fill = IMD_Decile) +
-        geom_boxplot() +
+        geom_boxplot(outlier.alpha = 0.3, outlier.size = 1, notch = T) +
         geom_hline(aes(yintercept = t3_30_300_vars[[green_metric]][['number']]),
                    linetype = 'dashed') +
         scale_fill_brewer(palette = "RdYlBu", direction = 1) +
@@ -95,30 +97,29 @@ plot_boxplots_3_30_300 <- function(green_metric, plot_legend = T, x_axis = T) {
         guides(fill = guide_legend(nrow = 1)) +
         plot_theme +
         theme(
-            legend.position = ifelse(plot_legend, "bottom", 'none')
+            legend.position = ifelse(plot_legend, "top", 'none'),
+            axis.title.x = element_blank()
             )
     
     if (!x_axis) {
         res_plot <- res_plot +
             theme(
-                axis.title.x = element_blank(),
                 axis.text.x = element_blank(),
                 axis.ticks.x = element_blank()
             )
     } else {
         res_plot <- res_plot +
             theme(
-                axis.title.x = element_text(size = 8),
-                axis.text.x = element_text(size = 7, hjust = 0.5, vjust = 0.5),
+                axis.text.x = element_text(size = 9, hjust = 0.5, vjust = 0.5),
                 axis.ticks.x = element_line(linewidth = 0.5)
             )
     }
         return(res_plot)
 }
 
-t3_region_boxplots <- plot_boxplots_3_30_300('3', plot_legend = F, x_axis = F)
+t3_region_boxplots <- plot_boxplots_3_30_300('3', plot_legend = T, x_axis = F)
 t30_region_boxplots <- plot_boxplots_3_30_300('30', plot_legend = F, x_axis = F)
-t300_region_boxplots <- plot_boxplots_3_30_300('300', plot_legend = T, x_axis = T)
+t300_region_boxplots <- plot_boxplots_3_30_300('300', plot_legend = F, x_axis = T)
 
 t3_30_300_region_boxplots <- t3_region_boxplots / t30_region_boxplots / t300_region_boxplots
 
@@ -212,11 +213,11 @@ t3_30_300_spectral_rank_map <- t3_30_300_rank_rgn_gdf |>
     geom_point(aes(x = x_start + x_span * 7, y = IMDScore_rank, color = IMD)) +
     
     geom_text(aes(x = x_start + x_span * 7 + .5, y = IMDScore_rank, 
-                  label = str_wrap(RGN22NM, width = 15)), size = 2, hjust = 0) +
+                  label = str_wrap(RGN22NM, width = 15)), size = 3, hjust = 0) +
     
-    geom_text(data = text_labels_df, aes(x = x, y = y, label = metric_names), size = 2) +
-    scale_x_continuous(limits = c(-5.5, 18)) +
-    scale_color_brewer(palette = "RdYlBu") +
+    geom_text(data = text_labels_df, aes(x = x, y = y, label = metric_names), size = 3) +
+    scale_x_continuous(limits = c(-5.5, 19)) +
+    scale_color_brewer(palette = "PRGn") +
     guides(color = guide_legend(nrow = 1)) +
     theme_void() +
     theme(plot.background = element_rect(fill = "white", color = 'transparent'),
@@ -228,90 +229,273 @@ ggsave("images/t3_30_300_spectral_rank_map.png", t3_30_300_spectral_rank_map,
        width = 180, height = 90, units = 'mm', dpi = 300)
 
 
-t3_30_300_rank_long_gdf |> 
-    filter(Metric %in% c('tree_count_rank', 'canopy_cover_rank',
-                         'park_distance_rank', 'water_distance_rank', 
-                         'NDVI_rank', 'NDBI_rank', 'NDWI_rank', 'IMDScore_rank')) |> 
-    left_join(t3_30_300_gdf |> 
-                  st_drop_geometry() |> 
-                  select(RGN22CD, RGN22NM), by = 'RGN22CD') |> 
-    ggplot(aes(x = Metric, y = Rank, group = RGN22CD, colour = IMD)) + 
-    geom_point(size = 3) +
-    geom_bump(size = 2, smooth = 8) +
-    # geom_text(aes(label = RGN22NM)) +
-    # scale_y_reverse() +
-    scale_y_continuous(breaks = 1:10) +
-    scale_color_brewer(palette = 'RdYlBu') +
-    labs(x = 'Metric', y = 'Rank') +
-    plot_theme
-
+# t3_30_300_rank_long_gdf |> 
+#     filter(Metric %in% c('tree_count_rank', 'canopy_cover_rank',
+#                          'park_distance_rank', 'water_distance_rank', 
+#                          'NDVI_rank', 'NDBI_rank', 'NDWI_rank', 'IMDScore_rank')) |> 
+#     left_join(t3_30_300_gdf |> 
+#                   st_drop_geometry() |> 
+#                   select(RGN22CD, RGN22NM), by = 'RGN22CD') |> 
+#     ggplot(aes(x = Metric, y = Rank, group = RGN22CD, colour = IMD)) + 
+#     geom_point(size = 3) +
+#     geom_bump(size = 2, smooth = 8) +
+#     # geom_text(aes(label = RGN22NM)) +
+#     # scale_y_reverse() +
+#     scale_y_continuous(breaks = 1:10) +
+#     scale_color_brewer(palette = 'RdYlBu') +
+#     labs(x = 'Metric', y = 'Rank') +
+#     plot_theme
 
 # Low Scors -> High Ranking -> Low Deprivation
 # High Score -> Low Ranking -> High Deprivation
 
 # Scatter Plots -----------------------------------------------------------
-
 t3_30_300_gdf |> 
-    ggplot() +
-    geom_point(aes(x = !!sym(spectral_metric), 
-               y = !!sym(t3_30_300_vars[[green_metric]][['variable']]),
-               color = IMD_Decile), alpha = .5) +
-    geom_hline(aes(yintercept = t3_30_300_vars[[green_metric]][['number']]),
-               linetype = 'dashed') +
-    scale_y_continuous(transform = 'log',
-                       breaks = trans_breaks("log", function(x) exp(x)),
-                       labels = trans_format("log", function(x) format(exp(x),
-                                                                       digits = 1, 
-                                                                       scientific = F))) +
+    select(tree_count, canopy_cover, park_distance, water_distance,
+           NDVI, NDWI, NDBI, IMD_Decile) |> 
+    mutate(across(tree_count:water_distance, ~ log(. + 1))) |>
+    drop_na() |> 
+    ggpairs(columns = 1:7, 
+            mapping = aes(color = IMD_Decile), 
+            lower = list(continuous = "points", combo = "facetdensity"),
+            diag = list(continuous = "barDiag"),
+            axisLabels = "internal") +
     scale_color_brewer(palette = 'RdYlBu') +
-    labs(y = t3_30_300_vars[[green_metric]][['plot_label']], x = 'NDVI',
-         color = 'IMD Decile') +
     plot_theme
 
-plot_scatter <- function(gdf, x_var, y_var, colour_var, intercept, alpha, legend = T) {
-    
-    x_var <- !!sym(x_var)
-    y_var <- !!sym(y_var)
-    colour_var <- !!sym(colour_var)
-    
-    scatter_plot <- ggplot() +
-        geom_point(aes(x = x_var,
-                       y = y_var,
-                       colour = factor(colour_var)), alpha = alpha) +
-        geom_vline(aes(xintercept = intercept)) +
-        scale_x_continuous(transform = 'log',
-                           breaks = trans_breaks("log", function(x) exp(x)),
-                           labels = trans_format("log", function(x) format(exp(x),
-                                                                           digits = 1, 
-                                                                           scientific = F))) +
-        scale_color_brewer(palette = 'RdYlBu') +
-        labs(x = t3_30_300_vars[[green_metric]][['plot_label']], y = 'IMD Score',
-             colour = 'IMD Decile') +
-        plot_theme
-    
-    return(scatter_plot)
+format_number <- function(x) {
+    case_when(
+        x < 1000 ~ paste0(x),
+        x == 1000 ~ "1K",
+        x < 1000000 ~ paste0(as.integer(format(x / 1000L)), "K"),
+        # abs(x) >= 1e6 ~ paste0(format(x / 1e6, digits = 1, nsmall = 1), "M"),
+        # abs(x) >= 1e3 ~ paste0(format(x / 1e3, digits = 1, nsmall = 1), "K"),
+        TRUE ~ as.character(x)
+    )
 }
+
+plot_scatter_3_30_300 <- function(x_var, y_var, color_var, 
+                                  x_axis_scale, y_axis_scale,
+                                  x_breaks, y_breaks, x_label, y_label, 
+                                  x_threshold, y_threshold, 
+                                  x_axis = T, y_axis = T, 
+                                  x_text_position = 'bottom', y_text_position = 'left',
+                                  alpha_val = .5, size_val =.5) {
+
+    res_plot <- t3_30_300_gdf |> 
+        ggplot() +
+        geom_point(aes(x = !!sym(x_var), y = !!sym(y_var), color = !!sym(color_var)),
+                   alpha = .5, size = size_val) +
+        # geom_smooth(aes(x = !!sym(x_var), y = !!sym(y_var), !!sym(color_var)),
+        #             method = 'lm', se = F, size = .5) +
+        scale_x_continuous(transform = x_axis_scale, breaks = x_breaks,
+                           labels = format_number, position = x_text_position) +
+        scale_y_continuous(transform = y_axis_scale, breaks = y_breaks,
+                           labels = format_number, position = y_text_position) +
+        scale_color_brewer(palette = 'RdYlBu') +
+        labs(x = x_label, y = y_label,
+             color = 'IMD Decile') +
+        plot_theme + theme(legend.position = 'none')
+    
+    if (x_threshold) {
+        res_plot <- res_plot +
+            geom_vline(aes(xintercept = x_threshold), linetype = 'dashed')
+    }
+    
+    if (y_threshold) {
+        res_plot <- res_plot +
+            geom_hline(aes(yintercept = y_threshold), linetype = 'dashed')
+    }
+    
+    if (!x_axis) {
+        res_plot <- res_plot +
+            theme(
+                axis.title.x = element_blank(),
+                axis.text.x = element_blank(),
+                axis.ticks.x = element_blank()
+            )
+    } else {
+        res_plot <- res_plot +
+            theme(
+                axis.text.x = element_text(size = 7),
+                axis.ticks.x = element_line(linewidth = 0.5)
+            )
+    }
+    
+    if (!y_axis) {
+        res_plot <- res_plot +
+            theme(
+                axis.title.y = element_blank(),
+                axis.text.y = element_blank(),
+                axis.ticks.y = element_blank()
+            )
+    } else {
+        res_plot <- res_plot +
+            theme(
+                axis.text.y = element_text(size = 7),
+                axis.ticks.y = element_line(linewidth = 0.5)
+            )
+    }
+    
+    return(res_plot)
+}
+
+scatter_vars <- c('tree_count', 'canopy_cover', 'park_distance', 
+                  'water_distance', 'NDVI', 'NDWI', 'NDBI')
+scatter_labels <- list('tree_count' = '3', 'canopy_cover' = '30 (%)',
+                       'park_distance' = '300 (m)', 'water_distance' = 'Water Distance (m)',
+                       'NDVI' = 'NDVI', 'NDWI' = 'NDWI', 'NDBI' = 'NDBI')
+scatter_breaks <- list('tree_count' = c(1, 3, 100, 2000), 
+                       'canopy_cover' = c(1, 5, 30), 
+                       'park_distance' = c(50, 300, 2000, 5000, 20000), 
+                       'water_distance' = c(20, 100, 500, 2000, 5000),
+                       'NDVI' = seq(-.5, 1, .25),
+                       'NDWI' = seq(-.75, .5, .25),
+                       'NDBI' = seq(-.5, .25, .25))
+scatter_thresholds <- c('tree_count' = 3, 'canopy_cover' = 30, 'park_distance' = 300)
+
+x_var = 'tree_count'
+y_var = 'canopy_cover'
+x_breaks = scatter_breaks[[x_var]]
+x_label = scatter_labels[[x_var]]
+y_breaks = scatter_breaks[[y_var]]
+y_label = scatter_labels[[y_var]]
+x_axis_scale = 'log'
+x_threshold = scatter_thresholds[[x_var]]
+y_axis_scale = 'log'
+y_threshold = scatter_thresholds[[y_var]]
+x_axis = F
+y_axis = T
+x_text_position = 'bottom'
+y_text_position = 'left'
+first_plot <- plot_scatter_3_30_300(x_var, y_var, 'IMD_Decile',
+                                    x_axis_scale, y_axis_scale, x_breaks, y_breaks,
+                                    x_label, y_label,
+                                    x_threshold, y_threshold, 
+                                    x_axis, y_axis,
+                                    x_text_position, y_text_position,
+                                    alpha_val = .5, size_val =.5)
+(scatter_plots <- first_plot)
+
+for (i in seq_along(scatter_vars)) {
+    for (j in seq_along(scatter_vars)) {
+        
+        x_var = scatter_vars[i]
+        y_var = scatter_vars[j]
+            
+        x_breaks = scatter_breaks[[x_var]]
+        x_label = scatter_labels[[x_var]]
+        y_breaks = scatter_breaks[[y_var]]
+        y_label = scatter_labels[[y_var]]
+        
+        if (x_var %in% c('tree_count', 'canopy_cover', 'park_distance')) {
+            x_axis_scale = 'log'
+            # x_threshold = T
+            x_threshold <- scatter_thresholds[[x_var]]
+        } else if (x_var == 'water_distance') {
+            x_axis_scale = 'log'
+            x_threshold = F
+            # y_threshold_val <- NULL
+        } else {
+            x_axis_scale = 'identity'
+            x_threshold = F
+            # y_threshold_val <- NULL
+        }
+        
+        if (y_var %in% c('tree_count', 'canopy_cover', 'park_distance')) {
+            y_axis_scale = 'log'
+            # y_threshold = T
+            y_threshold <- scatter_thresholds[[y_var]]
+        } else if (y_var == 'water_distance') {
+            y_axis_scale = 'log'
+            y_threshold = F
+            # y_threshold_val <- NULL
+        } else {
+            y_axis_scale = 'identity'
+            y_threshold = F
+            # y_threshold_val <- NULL
+        }
+        
+        if (j == length(scatter_vars)) {
+            x_axis = T
+        } else {
+            x_axis = F
+        }
+        
+        if (i == 1) {
+            y_axis = T
+        } else {
+            y_axis = F
+        }
+        
+        # if (i + 1 == j) {
+        #     x_text_position = 'top'
+        #     y_text_position = 'right'
+        #     x_axis = T
+        #     x_label = NULL
+        #     y_axis = T
+        #     y_label = NULL
+        # } else {
+        #     x_text_position = 'bottom'
+        #     y_text_position = 'left'
+        # }
+        
+
+        if ((i == 1 && j == 2) || i == j) {
+            next
+        }
+        if (i == length(scatter_vars)) {
+            next
+        }
+        
+        if (i > j) {
+            temp_plot <- plot_spacer()
+        }
+        else {
+            print(paste0('x = ', x_var, ' y = ', y_var, ' x_thres =', x_threshold_val, ' y_thres =', y_threshold_val))
+            temp_plot <- plot_scatter_3_30_300(x_var, y_var, 'IMD_Decile',
+                                               x_axis_scale, y_axis_scale, x_breaks, y_breaks,
+                                               x_label, y_label,
+                                               x_threshold, y_threshold, 
+                                               x_axis, y_axis,
+                                               x_text_position, y_text_position,
+                                               alpha_val = .5, size_val =.5)
+        }
+        scatter_plots <- scatter_plots + temp_plot
+    }
+}
+
+(t3_30_300_scatter_plots <- scatter_plots + 
+    plot_layout(ncol = length(scatter_vars), nrow = length(scatter_vars), byrow = F) & 
+    theme(plot.margin = unit(c(1, .5, 1, .5), "mm")))
+
+ggsave("images/t3_30_300_scatter_plots.png", t3_30_300_scatter_plots, 
+       width = 180, height = 180, units = 'mm', dpi = 300)
 
 t3_30_300_standard_df <- t3_30_300_gdf |> 
     st_drop_geometry() |> 
-    mutate(park_distance = if_else(park_distance == -99, NA, park_distance)) |> 
     mutate(`3` = log(tree_count + 1),
            `30` = log(canopy_cover + 1),
-           `300` = log(park_distance + 1)) |> 
-    select(ends_with('Score'), ends_with('ratio'), area, TotPop_density,  starts_with('3')) |> 
-    select(-IMDScore) |> 
+           `300` = log(park_distance + 1),
+           water = log(water_distance + 1),
+           across(ends_with('Score'), scale, .names = "{.col}"),
+           EnvDec = as_factor(EnvDec)) |> 
+    select(EnvDec, `3`, `30`, `300`, water, NDVI, NDWI, NDBI, Pop_density)
+    # select(ends_with('Score'), `3`, `30`, `300`, water, NDVI, NDWI, NDBI, Pop_density,
+    #        # area, ends_with('ratio')
+    #        ) |>
+    # select(-IMDScore) |>
     drop_na() 
 
 t3_30_300_pca <- t3_30_300_standard_df |>
     prcomp(scale. = T)
-    
-t3_30_300_cor <- t3_30_300_standard_df |>
-    cor(method = 'spearman') 
 
 t3_30_300_pca |> 
     fviz_pca_var()
 
+t3_30_300_cor <- t3_30_300_standard_df |>
+    cor(method = 'spearman') 
+
 t3_30_300_cor |> 
     corrplot(method = "circle", type = "upper",# order = "hclust",
              tl.col = "black", tl.srt = 45)
-
