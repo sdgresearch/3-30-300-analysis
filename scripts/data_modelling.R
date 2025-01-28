@@ -2,6 +2,7 @@
 # Packages ----------------------------------------------------------------
 
 library(tidyverse)
+library(forcats)
 library(sf)
 library(tidymodels)
 library(ranger)  # for random forest
@@ -32,22 +33,22 @@ t3_30_300_standard_df <- read_sf(t3_30_300_path) |>
 # select(-IMDScore) |>
     drop_na() 
 
-t3_30_300_pca <- t3_30_300_standard_df |>
-    prcomp(scale. = T)
+# t3_30_300_pca <- t3_30_300_standard_df |>
+#     prcomp(scale. = T)
 
-t3_30_300_pca |> 
-    fviz_pca_var()
+# t3_30_300_pca |> 
+#     fviz_pca_var()
 
-t3_30_300_cor <- t3_30_300_standard_df |>
-    cor(method = 'spearman') 
+# t3_30_300_cor <- t3_30_300_standard_df |>
+#     cor(method = 'spearman') 
 
-t3_30_300_cor |> 
-    corrplot(method = "circle", type = "upper",# order = "hclust",
-             tl.col = "black", tl.srt = 45)
+# t3_30_300_cor |> 
+#     corrplot(method = "circle", type = "upper",# order = "hclust",
+#              tl.col = "black", tl.srt = 45)
 
 # Split the data into training and testing sets
 set.seed(123)  # for reproducibility
-data_split <- initial_split(t3_30_300_standard_df, prop = 0.75, strata = EnvDec)
+data_split <- initial_split(t3_30_300_standard_df, prop = .8, strata = EnvDec)
 train_data <- training(data_split)
 test_data  <- testing(data_split)
 
@@ -73,7 +74,7 @@ rf_grid <- grid_regular(
     min_n(range = c(5, 20)),
     levels = 5
 )
-
+print('Running model')
 rf_tune_results <- rf_workflow_tune %>%
     tune_grid(
         resamples = vfold_cv(train_data, v = 5),
@@ -87,3 +88,5 @@ final_rf <- finalize_workflow(rf_workflow_tune, best_rf)
 
 final_rf_fit <- final_rf %>%
     fit(train_data)
+
+saveRDS(final_rf_fit, "final_rf_fit.rds")
