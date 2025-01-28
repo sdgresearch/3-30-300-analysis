@@ -121,7 +121,7 @@ t3_region_boxplots <- plot_boxplots_3_30_300('3', plot_legend = T, x_axis = F)
 t30_region_boxplots <- plot_boxplots_3_30_300('30', plot_legend = F, x_axis = F)
 t300_region_boxplots <- plot_boxplots_3_30_300('300', plot_legend = F, x_axis = T)
 
-t3_30_300_region_boxplots <- t3_region_boxplots / t30_region_boxplots / t300_region_boxplots
+(t3_30_300_region_boxplots <- t3_region_boxplots / t30_region_boxplots / t300_region_boxplots)
 
 ggsave("images/t3_30_300_region_boxplots.png", t3_30_300_region_boxplots, 
        width = 180, height = 170, units = 'mm', dpi = 300)
@@ -246,7 +246,7 @@ ggsave("images/t3_30_300_spectral_rank_map.png", t3_30_300_spectral_rank_map,
 #     labs(x = 'Metric', y = 'Rank') +
 #     plot_theme
 
-# Low Scors -> High Ranking -> Low Deprivation
+# Low Score -> High Ranking -> Low Deprivation
 # High Score -> Low Ranking -> High Deprivation
 
 # Scatter Plots -----------------------------------------------------------
