@@ -3,15 +3,10 @@
 
 library(tidyverse)
 library(sf)
-library(scales)
 library(patchwork)
 library(ggbump)
-library(GGally)
-library(ggbeeswarm)
-library(ggstatsplot)
 library(BBmisc)
-library(corrplot)
-library(factoextra)
+library(esquisse)
 
 source("scripts/constants.R")
 
@@ -51,13 +46,16 @@ plot_theme <- theme_bw(base_size = 12, base_family = "Helvetica") +
 t3_30_300_gdf <- read_sf(t3_30_300_path) |> 
     # filter(RGN22CD != 'E12000007') |> # London = E12000007
     select(-c("TotPop", "DepChi", "Pop16_59", "Pop60+", "WorkPop")) |> 
-    mutate(park_distance = if_else(park_distance == -99, NA, park_distance),
+    mutate(
+        # park_distance = if_else(park_distance == -99, max(park_distance, na.rm = T), park_distance),
            IMD_Decile = as_factor(IMD_Decile),
+           across(ends_with('Dec'), as_factor, .names = "{.col}"),
            RGN22NM = fct_relevel(RGN22NM, c('North West', 'North East',
                                             'Yorkshire and The Humber',
                                             'West Midlands', 'East Midlands',
                                             'East of England', 'South West',
-                                            'South East', 'London', NA))) 
+                                            'South East', 'London', NA))) |> 
+    distinct(LSOA11CD, .keep_all = T)
 
 t3_30_300_long_df <- t3_30_300_gdf |> 
     st_drop_geometry() |> 
@@ -73,7 +71,8 @@ spectral_metric <- 'NDVI'
 population_metric <- 'Total'
 imd_metric <- 'IMDScore'
 
-esquisse::esquisser()
+# Run for interactive plotting
+# esquisser()
 
 # Box Plots ---------------------------------------------------------------
 
@@ -148,15 +147,16 @@ rgn22_gdf <- lad_to_bua_gdf |>
 t3_30_300_rank_gdf <- t3_30_300_gdf |> 
     st_drop_geometry() |> 
     select(RGN22CD, ends_with('Score'), park_distance, water_distance,
-           tree_count, canopy_cover, NDVI, NDBI, NDWI, area, Total) |> 
+           tree_count, canopy_cover, NDVI, NDWI, NDBI, area, Total) |> 
     filter(!is.na(RGN22CD), RGN22CD != 'W92000004') |> 
     group_by(RGN22CD) |> 
     summarise(across(ends_with('Score'), mean, .names = '{.col}'),
               across(area:Total, sum, .names = '{.col}'),
-              across(park_distance:NDWI, ~ mean(.x, na.rm = TRUE), .names = '{.col}')) |>
-    mutate(across(IMDScore:water_distance, function(x) {rank(-x)}, .names = '{.col}_rank')) |> 
-    mutate(across(tree_count:NDWI, function(x) {rank(x)}, .names = '{.col}_rank')) |> 
-    mutate(IMD = as.character(IMDScore_rank)) |> 
+              across(park_distance:NDBI, ~ mean(.x, na.rm = TRUE), .names = '{.col}')) |>
+    mutate(across(IMDScore:water_distance, function(x) {rank(-x)}, .names = '{.col}_rank'),
+           across(tree_count:NDWI, function(x) {rank(x)}, .names = '{.col}_rank'),
+           NDBI_rank = rank(-NDBI),
+           IMD = as_factor(IMDScore_rank)) |> 
     select(RGN22CD, IMD, ends_with('rank'))
 
 t3_30_300_rank_long_gdf <- t3_30_300_rank_gdf |> 
@@ -171,9 +171,9 @@ t3_30_300_rank_long_gdf <- t3_30_300_rank_gdf |>
 
 x_start <- 2
 x_span <- 2
-metric_names <- c('3', '30', '300', 'Water \nDistance', 'NDVI', 'NDWI', 'NDBI', 'IMD')
+metric_names <- c('3', '30', '300', 'Water \nDistance', 'NDVI', 'NDWI', 'NDBI', 'Env \nDeprivation')
 text_labels_df <- tibble(metric_names, y = 56.3,
-                         x = seq(x_start, x_start + x_span * (nrow(text_labels_df) - 1), x_span))
+                         x = seq(x_start, x_start + x_span * (length(metric_names) - 1), x_span))
 
 t3_30_300_rank_rgn_gdf <- t3_30_300_rank_gdf |> 
     left_join(st_geometry(rgn22_gdf) |> 
@@ -209,21 +209,24 @@ t3_30_300_spectral_rank_map <- t3_30_300_rank_rgn_gdf |>
     geom_sigmoid(aes(x = x_start + x_span * 5, y = NDWI_rank, xend = x_start + x_span * 6, yend = NDBI_rank, group = RGN22CD, color = IMD)) +
     geom_point(aes(x = x_start + x_span * 6, y = NDBI_rank, color = IMD)) +
     
-    geom_sigmoid(aes(x = x_start + x_span * 6, y = NDBI_rank, xend = x_start + x_span * 7, yend = IMDScore_rank, group = RGN22CD, color = IMD)) +
-    geom_point(aes(x = x_start + x_span * 7, y = IMDScore_rank, color = IMD)) +
+    geom_sigmoid(aes(x = x_start + x_span * 6, y = NDBI_rank, xend = x_start + x_span * 7, yend = EnvScore_rank, group = RGN22CD, color = IMD)) +
+    geom_point(aes(x = x_start + x_span * 7, y = EnvScore_rank, color = IMD)) +
     
-    geom_text(aes(x = x_start + x_span * 7 + .5, y = IMDScore_rank, 
+    geom_text(aes(x = x_start + x_span * 7 + .5, y = EnvScore_rank, 
                   label = str_wrap(RGN22NM, width = 15)), size = 3, hjust = 0) +
     
     geom_text(data = text_labels_df, aes(x = x, y = y, label = metric_names), size = 3) +
     scale_x_continuous(limits = c(-5.5, 19)) +
-    scale_color_brewer(palette = "PRGn") +
+    scale_color_brewer(palette = "PiYG") +
+    labs(color = 'IMD Ranking') +
     guides(color = guide_legend(nrow = 1)) +
     theme_void() +
     theme(plot.background = element_rect(fill = "white", color = 'transparent'),
-          legend.position = "none",
-          legend.title = element_text(size = 20),
-          legend.text = element_text(size = 15))
+          legend.position = "bottom",
+          legend.title = element_text(size = 10, face = 'bold'),
+          legend.text = element_text(size = 9))
+
+t3_30_300_spectral_rank_map
 
 ggsave("images/t3_30_300_spectral_rank_map.png", t3_30_300_spectral_rank_map, 
        width = 180, height = 90, units = 'mm', dpi = 300)
@@ -250,26 +253,12 @@ ggsave("images/t3_30_300_spectral_rank_map.png", t3_30_300_spectral_rank_map,
 # High Score -> Low Ranking -> High Deprivation
 
 # Scatter Plots -----------------------------------------------------------
-t3_30_300_gdf |> 
-    select(tree_count, canopy_cover, park_distance, water_distance,
-           NDVI, NDWI, NDBI, IMD_Decile) |> 
-    mutate(across(tree_count:water_distance, ~ log(. + 1))) |>
-    drop_na() |> 
-    ggpairs(columns = 1:7, 
-            mapping = aes(color = IMD_Decile), 
-            lower = list(continuous = "points", combo = "facetdensity"),
-            diag = list(continuous = "barDiag"),
-            axisLabels = "internal") +
-    scale_color_brewer(palette = 'RdYlBu') +
-    plot_theme
 
 format_number <- function(x) {
     case_when(
         x < 1000 ~ paste0(x),
         x == 1000 ~ "1K",
         x < 1000000 ~ paste0(as.integer(format(x / 1000L)), "K"),
-        # abs(x) >= 1e6 ~ paste0(format(x / 1e6, digits = 1, nsmall = 1), "M"),
-        # abs(x) >= 1e3 ~ paste0(format(x / 1e3, digits = 1, nsmall = 1), "K"),
         TRUE ~ as.character(x)
     )
 }
@@ -356,6 +345,7 @@ scatter_thresholds <- c('tree_count' = 3, 'canopy_cover' = 30, 'park_distance' =
 
 x_var = 'tree_count'
 y_var = 'canopy_cover'
+color_var = 'IMD_Decile'
 x_breaks = scatter_breaks[[x_var]]
 x_label = scatter_labels[[x_var]]
 y_breaks = scatter_breaks[[y_var]]
@@ -368,13 +358,15 @@ x_axis = F
 y_axis = T
 x_text_position = 'bottom'
 y_text_position = 'left'
-first_plot <- plot_scatter_3_30_300(x_var, y_var, 'IMD_Decile',
+alpha_val = .5
+size_val =.5
+first_plot <- plot_scatter_3_30_300(x_var, y_var, color_var,
                                     x_axis_scale, y_axis_scale, x_breaks, y_breaks,
                                     x_label, y_label,
                                     x_threshold, y_threshold, 
                                     x_axis, y_axis,
                                     x_text_position, y_text_position,
-                                    alpha_val = .5, size_val =.5)
+                                    alpha_val, size_val)
 (scatter_plots <- first_plot)
 
 for (i in seq_along(scatter_vars)) {
@@ -450,26 +442,42 @@ for (i in seq_along(scatter_vars)) {
         
         if (i > j) {
             temp_plot <- plot_spacer()
+            
+            # if (i %in% 5:6 && j == 2) {
+            #     legend_df <- tibble(EnvDec = as_factor(1:10), 
+            #                         x = 1:10,
+            #                         y = 1,
+            #                         brewer_color = brewer.pal(10, 'RdYlBu'))
+            #     
+            #     if (i == 5) {
+            #         legend_clip_df <- legend_df |> filter(x %in% 1:5)
+            #     } else if (i == 6) {
+            #         legend_clip_df <- legend_df |> filter(x %in% 6:10)
+            #     }
+            #     temp_plot <- legend_clip_df |> 
+            #         ggplot(aes(x = x, y = y, colour = EnvDec, colour = brewer_color)) + 
+            #         geom_point(size = 2, alpha = alpha_val) + 
+            #         geom_text(aes(label = EnvDec, y = y + .3), colour = 'black') +
+            #         scale_colour_identity() + 
+            #         theme_void() + theme(legend.position = 'none')
+            # }
         }
         else {
-            print(paste0('x = ', x_var, ' y = ', y_var, ' x_thres =', x_threshold_val, ' y_thres =', y_threshold_val))
-            temp_plot <- plot_scatter_3_30_300(x_var, y_var, 'IMD_Decile',
+            temp_plot <- plot_scatter_3_30_300(x_var, y_var, color_var,
                                                x_axis_scale, y_axis_scale, x_breaks, y_breaks,
                                                x_label, y_label,
                                                x_threshold, y_threshold, 
                                                x_axis, y_axis,
                                                x_text_position, y_text_position,
-                                               alpha_val = .5, size_val =.5)
+                                               alpha_val, size_val)
         }
         scatter_plots <- scatter_plots + temp_plot
     }
 }
 
 (t3_30_300_scatter_plots <- scatter_plots + 
-    plot_layout(ncol = length(scatter_vars), nrow = length(scatter_vars), byrow = F) & 
+    plot_layout(ncol = length(scatter_vars) - 1, nrow = length(scatter_vars) - 1, byrow = F) & 
     theme(plot.margin = unit(c(1, .5, 1, .5), "mm")))
 
 ggsave("images/t3_30_300_scatter_plots.png", t3_30_300_scatter_plots, 
        width = 180, height = 180, units = 'mm', dpi = 300)
-
-
