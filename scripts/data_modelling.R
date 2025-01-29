@@ -27,13 +27,13 @@ t3_30_300_standard_df <- read_sf(t3_30_300_path) |>
            water = log(water_distance + 1),
            across(ends_with('Score'), scale, .names = "{.col}"),
            Pop_density = round(Pop_density * 1000, 2)) |> 
+    distinct(LSOA11CD, .keep_all = T) |>
     select(EnvDec, `3`, `30`, `300`, water, NDVI, NDWI, NDBI, Pop_density) |> 
 # select(ends_with('Score'), `3`, `30`, `300`, water, NDVI, NDWI, NDBI, Pop_density,
 #        # area, ends_with('ratio')
 #        ) |>
 # select(-IMDScore) |>
-    distinct(LSOA11CD, .keep_all = T)
-
+    drop_na()
 # t3_30_300_pca <- t3_30_300_standard_df |>
 #     prcomp(scale. = T)
 
