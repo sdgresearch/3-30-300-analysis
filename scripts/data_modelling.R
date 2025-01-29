@@ -5,7 +5,9 @@ library(tidyverse)
 library(forcats)
 library(sf)
 library(tidymodels)
-library(ranger)  # for random forest
+library(ranger)
+library(corrplot)
+library(factoextra)
 
 source("scripts/constants.R")
 
@@ -61,7 +63,7 @@ rf_model_tune <- rand_forest(
     trees = tune(),
     min_n = tune()
 ) %>%
-    set_engine("ranger") %>%
+    set_engine("ranger", importance = "impurity") %>%
     set_mode("classification")
 
 rf_workflow_tune <- workflow() %>%
@@ -82,7 +84,7 @@ rf_tune_results <- rf_workflow_tune %>%
     )
 
 best_rf <- rf_tune_results %>%
-    select_best("accuracy")
+    select_best(metric = "roc_auc")
 
 final_rf <- finalize_workflow(rf_workflow_tune, best_rf)
 
