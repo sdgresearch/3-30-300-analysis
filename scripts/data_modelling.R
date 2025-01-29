@@ -1,4 +1,3 @@
-
 # Packages ----------------------------------------------------------------
 
 library(tidyverse)
@@ -33,7 +32,7 @@ t3_30_300_standard_df <- read_sf(t3_30_300_path) |>
 #        # area, ends_with('ratio')
 #        ) |>
 # select(-IMDScore) |>
-    drop_na() 
+    distinct(LSOA11CD, .keep_all = T)
 
 # t3_30_300_pca <- t3_30_300_standard_df |>
 #     prcomp(scale. = T)
@@ -53,6 +52,9 @@ set.seed(123)  # for reproducibility
 data_split <- initial_split(t3_30_300_standard_df, prop = .8, strata = EnvDec)
 train_data <- training(data_split)
 test_data  <- testing(data_split)
+
+# Start timing the script
+start_time <- Sys.time()
 
 rf_recipe <- recipe(EnvDec ~ ., data = train_data) %>%
     step_dummy(all_nominal(), -all_outcomes()) %>%
@@ -92,3 +94,8 @@ final_rf_fit <- final_rf %>%
     fit(train_data)
 
 saveRDS(final_rf_fit, "final_rf_fit.rds")
+
+# End timing the script
+end_time <- Sys.time()
+execution_time <- end_time - start_time
+print(paste("Execution time:", execution_time))
