@@ -28,6 +28,10 @@ geemap = "^0.35.1"
 eemont = "^0.3.6"
 spyndex = "^0.6.0"
 earthpy = "^0.9.4"
+torch = "^2.6.0"
+torchvision = "^0.21.0"
+torchaudio = "^2.6.0"
+xbatcher = "^0.4.0"
 
 
 [build-system]
