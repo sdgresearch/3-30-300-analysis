@@ -18,7 +18,7 @@ from tqdm import tqdm
 
 def classify_vom_type(file_name: str|Path) -> str:
     """
-    Classifies the type of VOM (Volatile Organic Matter) based on the file name.
+    Classifies the type of VOM (Vegetation Object Model) based on the file name.
     Parameters:
         file_name (str | Path): The name of the file to classify.
     Returns:
@@ -102,7 +102,7 @@ def generate_tiles_paths(geo_level: str, geo_code: str, imd_lsoa_bua_gdf: gpd.Ge
             - tif_paths_df (pd.DataFrame): A DataFrame containing paths to .tif files, along with their year, tile name, and file type.
     """
 
-    logging.debug("Generating tile paths")
+    logging.warning("Generating tile paths")
 
     subgeo_filt_gdf = imd_lsoa_bua_gdf.copy()[imd_lsoa_bua_gdf[geo_level].isin([geo_code])].reset_index(drop=True)
 
@@ -123,7 +123,7 @@ def select_chm_files(geo_vom_tiles_df: pd.DataFrame, geo_selected_vom_tiles_df: 
         list: A list of Path objects pointing to the selected CHM files.
     """
 
-    logging.debug("Selecting CHM files")
+    logging.warning("Selecting CHM files")
 
     selected_chm_path_lst = []
     for row in geo_selected_vom_tiles_df.itertuples():
@@ -165,9 +165,15 @@ def binarise_tiles(selected_chm_path_lst, low_threshold, high_threshold) -> xr.D
         xr.DataArray: A binary xarray DataArray where values are 1 if within the threshold range, and 0 otherwise.
     """
 
-    logging.debug("Binarising tiles")
+    logging.warning(f"Binarising {len(selected_chm_path_lst)} VOM tiles")
 
-    chm_xr_lst = [rxr.open_rasterio(file) for file in selected_chm_path_lst]
+    # chm_xr_lst = [rxr.open_rasterio(file) for file in selected_chm_path_lst]
+    chm_xr_lst = []
+    for file in selected_chm_path_lst:
+        try:
+            chm_xr_lst.append(rxr.open_rasterio(file))
+        except Exception as e:
+            logging.error(f"Error reading file: {file} - {e}")
     merged_chm_xr = merge_arrays(chm_xr_lst)
 
     binary_merged_chm_xr = (merged_chm_xr >= low_threshold) & (merged_chm_xr <= high_threshold)
@@ -185,7 +191,7 @@ def get_canopy_cover(subgeo_filt_gdf: gpd.GeoDataFrame, binary_merged_chm_xr: xr
         pd.DataFrame: A DataFrame containing the original geometries and their corresponding canopy cover percentages.
     """
 
-    logging.debug("Calculating canopy cover")
+    logging.warning("Calculating canopy cover")
 
     zs_categorical = zonal_stats(subgeo_filt_gdf, binary_merged_chm_xr[0].values, 
                                 affine=binary_merged_chm_xr.rio.transform(), categorical=True)
@@ -219,7 +225,7 @@ def process_geo_code(geo_level: str, geo_code: str, imd_lsoa_bua_gdf: gpd.GeoDat
     T30_dir.mkdir(parents=True, exist_ok=True)
     canopy_cover_path = T30_dir / f"T30_{geo_code}.csv"
 
-    logging.info(f"Processing data for {geo_code}")
+    logging.warning(f"Processing data for {geo_code}")
 
     subgeo_filt_gdf, geo_vom_tiles_df, geo_selected_vom_tiles_df = generate_tiles_paths(geo_level, geo_code, imd_lsoa_bua_gdf)
     selected_chm_path_lst = select_chm_files(geo_vom_tiles_df, geo_selected_vom_tiles_df, tif_paths_df)
@@ -228,14 +234,14 @@ def process_geo_code(geo_level: str, geo_code: str, imd_lsoa_bua_gdf: gpd.GeoDat
 
     subgeo_canopy_cover_df.to_csv(canopy_cover_path)
 
-    logging.info(f"Saving file for {geo_code} with {len(subgeo_canopy_cover_df)} records")
+    logging.warning(f"Saving file for {geo_code} with {len(subgeo_canopy_cover_df)} records")
 
     end_time = time.time()
-    logging.info(f"Processing for {geo_code} took {end_time - start_time:.2f} seconds")
+    logging.warning(f"Processing for {geo_code} took {end_time - start_time:.2f} seconds")
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(description='Description of your script.')
+    parser = argparse.ArgumentParser(description='This script calculates the canopy cover (30) for a given geographical level (i.e. LSOA or LAD)')
     parser.add_argument('--geo_level', type=str, required=True, default='LAD22CD', help='Name/Code of the desired geography')
     parser.add_argument('--geo_code', type=str, required=False, default='E07000008', help='Geographical variable name')
     parser.add_argument('--parallel', action='store_true', help='Run job in parallel')
@@ -259,8 +265,8 @@ if __name__ == "__main__":
 
     log_path = Path("logs/T30_calculation.log")
     setup_logger(log_path=log_path, log_level=log_level)
-    logging.info("Calculating the 30 metric for all geographies")
-    logging.debug("Reading files")
+    logging.warning("Calculating the 30 metric for all geographies")
+    logging.warning("Reading files")
 
     imd_lsoa_bua_gdf = gpd.read_file(imd_lsoa_bua_boundaries_path).sort_values(by=geo_level)
     geo_level_codes = imd_lsoa_bua_gdf[geo_level].unique()
@@ -271,7 +277,7 @@ if __name__ == "__main__":
     tif_paths_df = pd.DataFrame(tif_paths_lst, columns=['year', 'TILE_NAME', 'file_type', 'path']).sort_values(['TILE_NAME', 'year']).reset_index(drop=True)
 
     if parallel:
-        logging.debug("Running in parallel")
+        logging.warning("Running in parallel")
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=n_workers) as executor:
             futures = [executor.submit(process_geo_code, geo_level, geo_code, imd_lsoa_bua_gdf) for geo_code in geo_level_codes]
@@ -283,7 +289,7 @@ if __name__ == "__main__":
                     logging.error(f"Error processing: {e}")
 
     else:
-        logging.debug("Running sequentially")
+        logging.warning("Running sequentially")
 
         for geo_code in tqdm(geo_level_codes, desc='Regions Processed'):   
             process_geo_code(geo_level, geo_code, imd_lsoa_bua_gdf)
