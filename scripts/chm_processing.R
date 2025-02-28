@@ -1,4 +1,3 @@
-
 # Packages ----------------------------------------------------------------
 
 library(logger)
@@ -24,18 +23,6 @@ trees_dir <- here(VECTOR_OUT_DIR, "3-30-300", "VOM_Trees")
 chm_lad_tiles_path <- here(vom_lad_dir, "LAD_CHM_tiles_paths.json")
 chm_lad_tiles_lst <- jsonlite::read_json(chm_lad_tiles_path, simplifyVector = T)
 chm_tif_paths <- sort(unique(unlist(chm_lad_tiles_lst)), decreasing = F)
-
-# geo_code <- 'E09000013'
-# crowns_path <- here(T3_dir, paste0("T3_", geo_code, ".geojson"))
-# chm_tif_paths <- chm_lad_tiles_lst[[geo_code]]
-# valid_rasters <- list()
-# for (path in chm_tif_paths) {
-#     r <- rast(path)
-#     if (!is.null(r)) {
-#         valid_rasters[[length(valid_rasters) + 1]] <- r
-#     }
-# }
-# chm_spat_rast <- merge(sprc(valid_rasters))
 
 extract_trees <- function(chm_spat_rast) {
 
@@ -70,7 +57,7 @@ extract_trees <- function(chm_spat_rast) {
         return(size)
     }
 
-    log_debug('Locating Trees')
+    log_warn('Locating Trees')
     ttops_chm_smoothed <- locate_trees(chm_smoothed, lmf(f))
     if (nrow(ttops_chm_smoothed) == 0) {
         ttops_chm_smoothed <- locate_trees(chm_spat_rast, lmf(f))
@@ -80,7 +67,7 @@ extract_trees <- function(chm_spat_rast) {
     # write_rds(ttops_chm_smoothed, "temp/ttops_chm_smoothed.rds")
     # write_rds(chm_smoothed, "temp/chm_smoothed.rds")
 
-    log_debug('Segmenting Trees')
+    log_warn('Segmenting Trees')
     algo <- dalponte2016(chm_smoothed_rast, ttops_chm_smoothed)
     crowns <- algo()
     crowns_spat_rast <- as(crowns, 'SpatRaster')
@@ -88,7 +75,7 @@ extract_trees <- function(chm_spat_rast) {
     crowns_vect <- as.polygons(crowns_spat_rast)
     names(crowns_vect) <- 'treeID'
 
-    log_debug('Saving Crowns')
+    log_warn('Saving Crowns')
     crowns_vect <- merge(crowns_vect, ttops_chm_smoothed_spat_vect, by = 'treeID')
     crowns_vect$area <- expanse(crowns_vect, unit = "m")
     
@@ -104,16 +91,16 @@ process_vom_tile <- function(chm_path) {
         # Extract the specific part of the filename (two uppercase letters followed by four numbers)
         tile_name <- str_match(chm_path, "VOM_([A-Z]{2}\\d{4})_")[,2]
         
-        # log_info(paste("Processing tile", tile_name, "from", year))
+        log_warn(paste("Processing tile", tile_name, "from", year))
 
         crowns_path <- here(trees_dir, paste0("VOM_trees_", tile_name, "_", year, ".gpkg"))
 
-        if (!file.exists(crowns_path)) {
+        # if (!file.exists(crowns_path)) {
             chm_spat_rast <- rast(chm_path)
             crowns_vect <- extract_trees(chm_spat_rast)
 
             writeVector(crowns_vect, crowns_path, overwrite = T)
-        }
+        # }
     },
     error = function(e) {
         message("Error with file: ", chm_path)
@@ -128,32 +115,35 @@ process_vom_tile <- function(chm_path) {
     # }
     )
 }
-# Set the log format
-log_appender(appender_console)
-log_formatter(formatter_glue)
-log_layout(layout_glue_generator("{time} - {level} - {msg}"))
-log_threshold(DEBUG)
-# NU2035 from 2018
 # Create a parser object
-parser <- ArgumentParser(description = "Example script with argparse")
+parser <- ArgumentParser(description = "Tree Segmentation from VOM files")
 
 # Add arguments
-parser$add_argument("--parallel", type = "logical", default=F, help = "Run job in parallel")
+parser$add_argument("--parallel", type = "logical", default = F, help = "Run job in parallel")
 parser$add_argument("--n_workers", type = "integer", default = 2, help = "Number of workers")
+parser$add_argument('--log_level', type = "character", default = 'WARN', help = "Logging level")
 
 # Parse the arguments
 args <- parser$parse_args()
 
 parallel <- args$parallel
 n_workers <- args$n_workers
+log_level <- args$log_level
+
+# Set the log format
+log_appender(appender_console)
+log_appender(appender_file("logs/chm_processing.log"))  # Add this line to log to a file
+log_formatter(formatter_glue)
+log_layout(layout_glue_generator("{time} - {level} - {msg}"))
+log_threshold(log_level)
 
 if (parallel) {
     
-    log_debug("Running in parallel")
+    log_warn("Running in parallel")
 
     # cl <- makeCluster(n_workers)
     # clusterExport(cl, varlist = c("process_vom_tile", "extract_trees", "rast", "here", "str_match",
-    #                               "log_info", "log_debug", "writeVector", "trees_dir", "chm_lad_tiles_lst",
+    #                               "log_info", "log_warn", "writeVector", "trees_dir", "chm_lad_tiles_lst",
     #                               "chm_tif_paths"))
     # pboptions(type = "timer")
     # pblapply(chm_tif_paths, process_vom_tile, cl = cl)
@@ -164,7 +154,7 @@ if (parallel) {
 } else {
 
     pb <- progress::progress_bar$new(format = "[:bar] :current/:total (:percent)", total = length(chm_tif_paths))
-    log_debug("Running sequentially")
+    log_warn("Running sequentially")
 
     for (chm_path in chm_tif_paths) {
         
