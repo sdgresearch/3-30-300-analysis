@@ -43,11 +43,18 @@ plot_theme <- theme_bw(base_size = 12, base_family = "Helvetica") +
 
 # Processing --------------------------------------------------------------
 
+lsoa_2021_df <- lad_to_bua_gdf |>
+    full_join(lsoa_to_bua_df, by = c('LAD22CD', 'LAD22NM')) |> 
+    select(LSOA21CD, LSOA21NM, LAD22CD, LAD22NM, BUA22CD, BUA22NM, RGN22CD, RGN22NM, geometry) |> 
+    filter(RGN22CD != 'W92000004') |> 
+    st_drop_geometry()
+
 t3_30_300_gdf <- read_sf(t3_30_300_path) |> 
     # filter(RGN22CD != 'E12000007') |> # London = E12000007
-    select(-c("TotPop", "DepChi", "Pop16_59", "Pop60+", "WorkPop")) |> 
+    select(-c("TotPop", "DepChi", "Pop16_59", "Pop60+", "WorkPop", LSOA21NM:RGN22NM)) |> 
+    left_join(lsoa_2021_df, by = 'LSOA21CD') |> 
     mutate(
-        # park_distance = if_else(park_distance == -99, max(park_distance, na.rm = T), park_distance),
+           park_distance = if_else(park_distance == -99, NA, park_distance),
            IMD_Decile = as_factor(IMD_Decile),
            across(ends_with('Dec'), as_factor, .names = "{.col}"),
            RGN22NM = fct_relevel(RGN22NM, c('North West', 'North East',
@@ -56,6 +63,8 @@ t3_30_300_gdf <- read_sf(t3_30_300_path) |>
                                             'East of England', 'South West',
                                             'South East', 'London', NA))) |> 
     distinct(LSOA11CD, .keep_all = T)
+
+t3_30_300_gdf |> write_sf(here(T3_30_300_DIR, "T3_30_300_cleaned.geojson"))
 
 t3_30_300_long_df <- t3_30_300_gdf |> 
     st_drop_geometry() |> 
@@ -251,6 +260,55 @@ ggsave("images/t3_30_300_spectral_rank_map.png", t3_30_300_spectral_rank_map,
 
 # Low Score -> High Ranking -> Low Deprivation
 # High Score -> Low Ranking -> High Deprivation
+
+
+# 3-30-300 LAD Maps -------------------------------------------------------
+
+lad22_gdf <- lad_to_bua_gdf |> 
+    left_join(lsoa_to_bua_df |> 
+                  select(LAD22CD, RGN22CD, RGN22NM), by = c('LAD22CD' = 'LAD22CD')) |>
+    select(LAD22CD, LAD22NM, geometry) |> 
+    group_by(LAD22CD, LAD22NM) |> 
+    summarise()
+
+t3_30_300_lad_gdf <- lad22_gdf |> 
+    right_join(t3_30_300_gdf |> 
+                   st_drop_geometry() |> 
+                   filter(!is.na(RGN22CD), RGN22CD != 'W92000004') |> 
+                   select(LAD22CD, ends_with('Score'), park_distance, water_distance,
+                          tree_count, canopy_cover, NDVI, NDWI, NDBI, area, Total) |> 
+                   group_by(LAD22CD) |> 
+                   summarise(across(ends_with('Score'), mean, .names = '{.col}'),
+                             across(area:Total, sum, .names = '{.col}'),
+                             across(park_distance:NDBI, ~ mean(.x, na.rm = TRUE), .names = '{.col}')), 
+               by = 'LAD22CD')
+
+(t3_lad22_map <- ggplot(t3_30_300_lad_gdf) + 
+        geom_sf(aes(fill = tree_count)) +
+        scale_fill_distiller(palette = "Greens", direction = 1) +
+        labs(title = '3 Visible Trees', fill = NULL) + 
+        theme_void() +
+        theme(legend.position = 'bottom'))
+
+(t30_lad22_map <- ggplot(t3_30_300_lad_gdf) + 
+        geom_sf(aes(fill = canopy_cover)) +
+        scale_fill_distiller(palette = "Greens", direction = 1) +
+        labs(title = '30% Canopy Cover', fill = NULL) + 
+        theme_void() +
+        theme(legend.position = 'bottom'))
+
+(t300_lad22_map <- ggplot(t3_30_300_lad_gdf) + 
+        geom_sf(aes(fill = park_distance)) +
+        scale_fill_distiller(palette = "Greens", direction = -1) +
+        labs(title = '300 m from Public Park', fill = NULL) + 
+        theme_void() +
+        theme(legend.position = 'bottom'))
+
+
+t3_30_300_lad22_map <- t3_lad22_map | t30_lad22_map | t300_lad22_map
+
+ggsave("images/t3_30_300_lad22_map.png", t3_30_300_lad22_map, 
+       width = 180, height = 90, units = 'mm', dpi = 300)
 
 # Scatter Plots -----------------------------------------------------------
 
