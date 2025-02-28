@@ -1,3 +1,4 @@
+
 # Packages ----------------------------------------------------------------
 
 library(logger)
@@ -26,19 +27,13 @@ chm_tif_paths <- sort(unique(unlist(chm_lad_tiles_lst)), decreasing = F)
 
 extract_trees <- function(chm_spat_rast) {
 
-    kernel <- matrix(1, 5, 5)
+    kernel <- matrix(1,3,3)
     chm_smoothed <- focal(chm_spat_rast, w = kernel, fun = median, na.rm = T)
     current_crs <- terra::crs(chm_smoothed)
 
     chm_smoothed_rast <- raster::raster(chm_smoothed)
     terra::crs(chm_smoothed_rast) <- current_crs
 
-    # f <- function(x) {
-    #     y <- 2.6 * (-(exp(-0.08 * (x - 2)) - 1)) + 3
-    #     y[x < 2] <- 3
-    #     y[x > 20] <- 5
-    #     return(y)
-    # }
     f <- function(z) {
         z[z < 3] <- 3  # Ignore very low vegetation
         
@@ -64,8 +59,6 @@ extract_trees <- function(chm_spat_rast) {
     }
     ttops_chm_smoothed_spat_vect <- vect(ttops_chm_smoothed)
     names(ttops_chm_smoothed_spat_vect)[2] <- 'height'
-    # write_rds(ttops_chm_smoothed, "temp/ttops_chm_smoothed.rds")
-    # write_rds(chm_smoothed, "temp/chm_smoothed.rds")
 
     log_warn('Segmenting Trees')
     algo <- dalponte2016(chm_smoothed_rast, ttops_chm_smoothed)
@@ -91,20 +84,19 @@ process_vom_tile <- function(chm_path) {
         # Extract the specific part of the filename (two uppercase letters followed by four numbers)
         tile_name <- str_match(chm_path, "VOM_([A-Z]{2}\\d{4})_")[,2]
         
-        log_warn(paste("Processing tile", tile_name, "from", year))
+        # log_warn(paste("Processing tile", tile_name, "from", year))
 
         crowns_path <- here(trees_dir, paste0("VOM_trees_", tile_name, "_", year, ".gpkg"))
 
-        # if (!file.exists(crowns_path)) {
+        if (!file.exists(crowns_path)) {
             chm_spat_rast <- rast(chm_path)
             crowns_vect <- extract_trees(chm_spat_rast)
 
             writeVector(crowns_vect, crowns_path, overwrite = T)
-        # }
+        }
     },
     error = function(e) {
-        message("Error with file: ", chm_path)
-        message("Error message: ", e$message)
+        log_error("Error processing: ", e$message)
 
         return(NULL)
     }
@@ -115,11 +107,14 @@ process_vom_tile <- function(chm_path) {
     # }
     )
 }
+# Set the log format
+
+
 # Create a parser object
-parser <- ArgumentParser(description = "Tree Segmentation from VOM files")
+parser <- ArgumentParser(description = "This script segments trees from CHM tiles")
 
 # Add arguments
-parser$add_argument("--parallel", type = "logical", default = F, help = "Run job in parallel")
+parser$add_argument("--parallel", type = "logical", default=F, help = "Run job in parallel")
 parser$add_argument("--n_workers", type = "integer", default = 2, help = "Number of workers")
 parser$add_argument('--log_level', type = "character", default = 'WARN', help = "Logging level")
 
@@ -130,9 +125,8 @@ parallel <- args$parallel
 n_workers <- args$n_workers
 log_level <- args$log_level
 
-# Set the log format
 log_appender(appender_console)
-log_appender(appender_file("logs/chm_processing.log"))  # Add this line to log to a file
+log_appender(appender_file("logs/VOM_Trees_calculation.log"))
 log_formatter(formatter_glue)
 log_layout(layout_glue_generator("{time} - {level} - {msg}"))
 log_threshold(log_level)
@@ -143,7 +137,7 @@ if (parallel) {
 
     # cl <- makeCluster(n_workers)
     # clusterExport(cl, varlist = c("process_vom_tile", "extract_trees", "rast", "here", "str_match",
-    #                               "log_info", "log_warn", "writeVector", "trees_dir", "chm_lad_tiles_lst",
+    #                               "log_warn", "log_warn", "writeVector", "trees_dir", "chm_lad_tiles_lst",
     #                               "chm_tif_paths"))
     # pboptions(type = "timer")
     # pblapply(chm_tif_paths, process_vom_tile, cl = cl)
