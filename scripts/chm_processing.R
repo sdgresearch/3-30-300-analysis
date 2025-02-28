@@ -39,18 +39,35 @@ chm_tif_paths <- sort(unique(unlist(chm_lad_tiles_lst)), decreasing = F)
 
 extract_trees <- function(chm_spat_rast) {
 
-    kernel <- matrix(1,3,3)
+    kernel <- matrix(1, 5, 5)
     chm_smoothed <- focal(chm_spat_rast, w = kernel, fun = median, na.rm = T)
     current_crs <- terra::crs(chm_smoothed)
 
     chm_smoothed_rast <- raster::raster(chm_smoothed)
     terra::crs(chm_smoothed_rast) <- current_crs
 
-    f <- function(x) {
-        y <- 2.6 * (-(exp(-0.08 * (x - 2)) - 1)) + 3
-        y[x < 2] <- 3
-        y[x > 20] <- 5
-        return(y)
+    # f <- function(x) {
+    #     y <- 2.6 * (-(exp(-0.08 * (x - 2)) - 1)) + 3
+    #     y[x < 2] <- 3
+    #     y[x > 20] <- 5
+    #     return(y)
+    # }
+    f <- function(z) {
+        z[z < 3] <- 3  # Ignore very low vegetation
+        
+        # Wider Gaussian function to prevent over-segmentation
+        mu <- 18  # Focus on taller trees
+        sigma <- 7  # Wider spread to avoid excessive detections
+        size <- round(6 + 18 * exp(-((z - mu)^2) / (2 * sigma^2)))  
+        
+        # Larger window constraints to prevent too many detections
+        min_size <- 7  # Minimum window size increased
+        max_size <- 0.7 * quantile(z, 0.95, na.rm = TRUE)  # 70% of tallest trees
+        
+        size[size < min_size] <- min_size
+        size[size > max_size] <- max_size
+        
+        return(size)
     }
 
     log_debug('Locating Trees')
