@@ -23,11 +23,11 @@ vom_lad_dir <- here(vom_dir, "LADs")
 trees_dir <- here(VECTOR_OUT_DIR, "3-30-300", "VOM_Trees")
 chm_lad_tiles_path <- here(vom_lad_dir, "LAD_CHM_tiles_paths.json")
 chm_lad_tiles_lst <- jsonlite::read_json(chm_lad_tiles_path, simplifyVector = T)
-chm_tif_paths <- sort(unique(unlist(chm_lad_tiles_lst)), decreasing = F)
+chm_tif_paths <- sort(unique(unlist(chm_lad_tiles_lst)))
 
 extract_trees <- function(chm_spat_rast) {
 
-    kernel <- matrix(1,3,3)
+    kernel <- matrix(1, 5, 5)
     chm_smoothed <- focal(chm_spat_rast, w = kernel, fun = median, na.rm = T)
     current_crs <- terra::crs(chm_smoothed)
 
@@ -84,7 +84,7 @@ process_vom_tile <- function(chm_path) {
         # Extract the specific part of the filename (two uppercase letters followed by four numbers)
         tile_name <- str_match(chm_path, "VOM_([A-Z]{2}\\d{4})_")[,2]
         
-        # log_warn(paste("Processing tile", tile_name, "from", year))
+        log_warn(paste("Processing tile", tile_name, "from", year))
 
         crowns_path <- here(trees_dir, paste0("VOM_trees_", tile_name, "_", year, ".gpkg"))
 
@@ -107,8 +107,6 @@ process_vom_tile <- function(chm_path) {
     # }
     )
 }
-# Set the log format
-
 
 # Create a parser object
 parser <- ArgumentParser(description = "This script segments trees from CHM tiles")
@@ -125,6 +123,7 @@ parallel <- args$parallel
 n_workers <- args$n_workers
 log_level <- args$log_level
 
+# Set the log format
 log_appender(appender_console)
 log_appender(appender_file("logs/VOM_Trees_calculation.log"))
 log_formatter(formatter_glue)
