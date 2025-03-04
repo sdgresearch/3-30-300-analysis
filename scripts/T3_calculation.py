@@ -120,12 +120,14 @@ def get_overlapping_tiles(imd_lsoa_bua_buffer_gdf, os_5km_boundaries_gdf, geo_le
 
 def get_vom_trees_paths(overlapping_tiles_lst: list, vom_tree_pair_dict: dict) -> list:
 
-    vom_trees_path_lst = [path_pair[1] for _,v in vom_tree_pair_dict.items() for path_pair in v if path_pair[1] is not None]
+    vom_trees_path_lst = list(set([path_pair[1] for _,v in vom_tree_pair_dict.items() for path_pair in v if path_pair[1] is not None]))
+    trees_path_lst = []
     for tile_name in overlapping_tiles_lst:
         translated_tile_name = translate_tile_name(tile_name).upper()
-        trees_path_lst = [path for path in vom_trees_path_lst if translated_tile_name in path]
+        tile_path = [path for path in vom_trees_path_lst if translated_tile_name in path]
+        trees_path_lst.append(tile_path[0])
 
-        return trees_path_lst
+    return trees_path_lst
 
 
 def process_geo_code(geo_level: str, geo_code: str, vom_tree_pair_dict: dict,
