@@ -76,7 +76,11 @@ extract_trees <- function(chm_spat_rast) {
 }
 
 process_vom_tile <- function(chm_path) {
-
+    library(logger)
+    log_appender(appender_file("logs/VOM_Trees_calculation.log"))
+    log_formatter(formatter_glue)
+    log_layout(layout_glue_generator("{time} - {level} - {msg}"))
+    log_threshold(log_level)
     tryCatch({   
         # Extract the parent folder (2023)
         year <- str_match(chm_path, ".*/(\\d{4})/.*")[,2]
@@ -124,7 +128,7 @@ n_workers <- args$n_workers
 log_level <- args$log_level
 
 # Set the log format
-log_appender(appender_console)
+# log_appender(appender_console)
 log_appender(appender_file("logs/VOM_Trees_calculation.log"))
 log_formatter(formatter_glue)
 log_layout(layout_glue_generator("{time} - {level} - {msg}"))
