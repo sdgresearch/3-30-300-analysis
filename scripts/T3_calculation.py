@@ -50,7 +50,7 @@ def check_tree_vom_pair(chm_path: str|Path, trees_dir: str|Path) -> bool:
     
 def process_vom_tiles(trees_path_lst: list, tree_area: int=10, tree_height: int=3) -> gpd.GeoDataFrame:
 
-    logging.info(f"Reading {len(trees_path_lst)} VOM tiles")
+    logging.warning(f"Reading {len(trees_path_lst)} VOM tiles")
     if len(trees_path_lst) > 1:
         
         trees_gdf_lst = [gpd.read_file(tree_path) for tree_path in trees_path_lst]
@@ -68,7 +68,7 @@ def process_vom_tiles(trees_path_lst: list, tree_area: int=10, tree_height: int=
 
 def process_buildings(geo_level: str, geo_code: str) -> None:
 
-    logging.info(f"Filtering buildings for {geo_code}")
+    logging.warning(f"Filtering buildings for {geo_code}")
 
     geo_boundary_sdf = sedona.sql(
         f"""
@@ -94,7 +94,7 @@ def process_buildings(geo_level: str, geo_code: str) -> None:
 
 def count_trees(geo_level: str, geo_code: str) -> pd.DataFrame:
 
-    logging.debug(f"Counting trees for each building in {geo_code}")
+    logging.warning(f"Counting trees for each building in {geo_code}")
 
     trees_within_buffer_sdf = sedona.sql(
         """
@@ -108,12 +108,6 @@ def count_trees(geo_level: str, geo_code: str) -> pd.DataFrame:
     trees_within_buffer_df = trees_within_buffer_sdf.toPandas()
 
     return trees_within_buffer_df
-
-# def get_vom_trees_paths(geo_code: str, vom_tree_pair_dict: dict) -> list:
-
-#     trees_path_lst = [tree_path for _, tree_path in vom_tree_pair_dict[geo_code] if tree_path is not None]
-
-#     return trees_path_lst
 
 def get_overlapping_tiles(imd_lsoa_bua_buffer_gdf, os_5km_boundaries_gdf, geo_level, geo_code):
     # Select one feature from imd_lsoa_bua_buffer_gdf
@@ -159,17 +153,17 @@ def process_geo_code(geo_level: str, geo_code: str, vom_tree_pair_dict: dict,
 
             trees_within_buffer_df.to_csv(tree_count_path, index=False)
             
-            logging.info(f"Saving file for {geo_code} with {len(trees_within_buffer_df)} records")
+            logging.warning(f"Saving file for {geo_code} with {len(trees_within_buffer_df)} records")
 
             end_time = time.time()
-            logging.info(f"Processing for {geo_code} took {end_time - start_time:.2f} seconds")
+            logging.warning(f"Processing for {geo_code} took {end_time - start_time:.2f} seconds")
 
         except Exception as e:
             logging.error(f"Error processing {geo_code}: {e}")
     
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(description='Description of your script.')
+    parser = argparse.ArgumentParser(description='This script calculates the tree count (3) for all buildings in a given geographical level (i.e. LSOA or LAD)')
     parser.add_argument('--geo_level', type=str, required=True, default='LAD22CD', help='Name/Code of the desired geography')
     parser.add_argument('--geo_code', type=str, required=False, default='E07000008', help='Geographical variable name')
     parser.add_argument('--parallel', action='store_true', help='Run job in parallel')
@@ -199,10 +193,10 @@ if __name__ == "__main__":
     imd_lsoa_bua_boundaries_path = VECTOR_OUT_DIR / "IMD" / "English_IMD_2019_BUA_filtered_boundaries.geojson"
     buildings_path = VECTOR_IN_DIR / "EDINA" / "Buildings_6183" / "Buildings_6183.parquet"
 
-    log_path = Path("logs/T3_calculation_sequential.log")
+    log_path = Path("logs/T3_calculation.log")
     setup_logger(log_path=log_path, log_level=log_level)
-    logging.info("Calculating the 3 metric for all geographies")
-    logging.debug("Reading files")
+    logging.warning("Calculating the 3 metric for all geographies")
+    logging.warning("Reading files")
 
     chm_lad_tiles_dict = json.load(open(chm_lad_tiles_path))
     os_5km_boundaries_gdf = gpd.read_file(os_5km_boundaries_path).to_crs(project_crs)
@@ -210,8 +204,8 @@ if __name__ == "__main__":
     imd_lsoa_bua_buffer_gdf = imd_lsoa_bua_gdf.copy()
     imd_lsoa_bua_buffer_gdf['geometry'] = imd_lsoa_bua_buffer_gdf['geometry'].buffer(buffer)
     geo_level_codes = imd_lsoa_bua_gdf[geo_level].unique()
-    geo_level_codes = geo_level_codes[::-1]
-    logging.debug("Setting up Apache Sedona")
+  
+    logging.warning("Setting up Apache Sedona")
     os.environ["JAVA_HOME"] = JAVA_HOME
     sedona = get_spark()
 
@@ -223,7 +217,7 @@ if __name__ == "__main__":
     buildings_sdf.createOrReplaceTempView("buildings")
 
     if parallel:
-        logging.debug("Running in parallel")
+        logging.warning("Running in parallel")
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=n_workers) as executor:
             futures = [executor.submit(process_geo_code, geo_level, geo_code, vom_tree_pair_dict, imd_lsoa_bua_buffer_gdf, os_5km_boundaries_gdf) for geo_code in geo_level_codes]
@@ -235,7 +229,7 @@ if __name__ == "__main__":
                     logging.error(f"Error processing: {e}")
 
     else:
-        logging.debug("Running sequentially")
+        logging.warning("Running sequentially")
 
         for geo_code in tqdm(geo_level_codes, desc='Regions Processed'):   
             process_geo_code(geo_level, geo_code, vom_tree_pair_dict, imd_lsoa_bua_buffer_gdf, os_5km_boundaries_gdf)
