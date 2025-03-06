@@ -64,6 +64,8 @@ def process_vom_tiles(trees_path_lst: list, tree_area: int=10, tree_height: int=
     geo_trees_gdf = merged_trees_gdf[(merged_trees_gdf.area > tree_area) & (merged_trees_gdf.height > tree_height)].reset_index(drop=True)
     geo_trees_gdf['treeID'] = range(len(geo_trees_gdf))
 
+    geo_trees_gdf['geometry'] = geo_trees_gdf['geometry'].centroid
+
     return geo_trees_gdf
 
 def process_buildings(geo_level: str, geo_code: str) -> None:
