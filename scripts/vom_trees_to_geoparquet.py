@@ -136,12 +136,15 @@ if __name__ == '__main__':
     trees_dir = T3_30_300_DIR / "VOM_Trees" 
     trees_geoparquet_dir = T3_30_300_DIR / "VOM_Trees_geoparquet"
     trees_geoparquet_dir.mkdir(parents=True, exist_ok=True)
-
+    vom_trees_tiles_path = T3_30_300_DIR / "VOM_Trees_tiles.csv"
+    
     log_path = Path("logs/VOM_trees_geoparquet.log")
     setup_logger(log_path=log_path, log_level=log_level)
     logging.warning("Converting VOM Trees to Geoparquet")
     
     trees_unique_df = create_vom_trees_dataframe(trees_dir)
+
+    trees_unique_df.to_csv(vom_trees_tiles_path)
     tile_level_names = trees_unique_df[tile_level].unique()    
     # tile_level_names = ['TLNW']
 
