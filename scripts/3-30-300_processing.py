@@ -89,8 +89,8 @@ def run_queries(sedona):
     
     t3_30_300_spectral_sdf = sedona.sql(
         """
-        SELECT t.*, s.NDVI, s.NDWI, s.NDBI FROM t3_30_300 t
-        LEFT JOIN spectral_indexes s ON t.LSOA11CD = s.LSOA11CD
+        SELECT t.*, s.NDVI_2016, s.NDWI_2016, s.NDBI_2016, s.NDVI_2024, s.NDWI_2024, s.NDBI_2024 FROM t3_30_300 t
+        LEFT JOIN spectral_indexes s ON t.LSOA11CD = s.LSOA11CD_2016
         """
         )
 
@@ -142,7 +142,7 @@ if __name__ == "__main__":
     imd_lsoa_bua_boundaries_path = VECTOR_OUT_DIR / "IMD" / "English_IMD_2019_BUA_filtered_boundaries.geojson"
     imd_england_path = VECTOR_IN_DIR / "IMD" / "English IMD 2019" / "IMD_2019.shp"
     buildings_path = VECTOR_IN_DIR / "EDINA" / "Buildings_6183" / "Buildings_6183.parquet"
-    spectral_indexes_path = T3_30_300_DIR / "spectral_indexes.geojson"
+    spectral_indexes_paths = [T3_30_300_DIR / "spectral_indexes_2016-01-01_2017-01-01.geojson", T3_30_300_DIR / "spectral_indexes_2024-01-01_2025-01-01.geojson"]
     population_estimates_path = TABULAR_IN_DIR / "ONS" / "sapelsoabroadage20112022.xlsx"
     log_path = Path("logs/3-30-300_aggregate.log")
 
@@ -151,13 +151,15 @@ if __name__ == "__main__":
     logging.debug("Reading files")
     start_time = time.time()
     imd_lsoa_bua_gdf = gpd.read_file(imd_lsoa_bua_boundaries_path).sort_values(by='RGN22CD').drop_duplicates(subset='LSOA11CD', keep='first')
-    imd_england_columns = ['lsoa11cd', 'TotPop', 'DepChi', 'Pop16_59', 'Pop60+', 'WorkPop',
+    imd_england_columns = ['lsoa11cd', #'TotPop', 'DepChi', 'Pop16_59', 'Pop60+', 'WorkPop',
                        'IMD_Rank', 'IMD_Decile', 'IMDScore', 'IncScore', 'IncRank', 'IncDec', 
                        'EmpScore', 'EmpRank', 'EmpDec', 'EduScore', 'EduRank', 'EduDec', 
                        'HDDScore', 'HDDRank', 'HDDDec', 'CriScore', 'CriRank', 'CriDec', 
                        'BHSScore', 'BHSRank', 'BHSDec', 'EnvScore', 'EnvRank', 'EnvDec']
     imd_england_gdf = gpd.read_file(imd_england_path)[imd_england_columns].rename(columns={'lsoa11cd': 'LSOA11CD_imd'})
-    spectral_indexes_gdf = gpd.read_file(spectral_indexes_path)
+    spectral_indexes_2016_gdf = gpd.read_file(spectral_indexes_paths[0])
+    spectral_indexes_2024_gdf = gpd.read_file(spectral_indexes_paths[1])
+    spectral_indexes_gdf = spectral_indexes_2016_gdf.merge(spectral_indexes_2024_gdf, on='LSOA21CD', suffixes=('_2016', '_2024'))
     population_estimates_df = pd.read_excel(population_estimates_path, sheet_name='Mid-2022 LSOA 2021', skiprows=3)
     std_population_estimates_df = process_population_data(population_estimates_df)
 
