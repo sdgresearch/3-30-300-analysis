@@ -29,8 +29,8 @@ def get_spark():
         # desired.
         # https://spark.apache.org/docs/latest/sql-performance-tuning.html#adaptive-query-execution
         .config("spark.sql.adaptive.coalescePartitions.enabled", False)
-        .config("spark.executor.memory", "8g")
-        .config("spark.driver.memory", "32g")
+        .config("spark.executor.memory", "32g")
+        .config("spark.driver.memory", "64g")
         .config("spark.driver.maxResultSize", "15g")  # Increase the max result size to 2g
         # Configure max number of concurrent tasks and allowable task failures
         # for spark in local mode.
