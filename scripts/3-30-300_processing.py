@@ -11,6 +11,8 @@ import geopandas as gpd
 
 def create_schemas(sedona, imd_lsoa_bua_gdf, imd_england_gdf, spectral_indexes_gdf, buildings_path, T3_dir, T30_dir, T300_dir) -> None:
 
+    logging.debug("Creating schemas")
+
     boundaries_sdf = sedona.createDataFrame(imd_lsoa_bua_gdf.drop(columns=['LSOA21NMW', 'LAD22NMW', 'BUA22NMG', 'BUA22NMW', 'RGN22NMW'], axis=1))
     boundaries_sdf.createOrReplaceTempView('boundaries')
     imd_england_sdf = sedona.createDataFrame(imd_england_gdf)
@@ -28,6 +30,8 @@ def create_schemas(sedona, imd_lsoa_bua_gdf, imd_england_gdf, spectral_indexes_g
     t300_sdf.createOrReplaceTempView("t300")
 
 def run_queries(sedona):
+
+    logging.debug("Running queries")
 
     buildings_lsoa_sdf = sedona.sql(
     """
@@ -98,6 +102,8 @@ def run_queries(sedona):
 
 def process_population_data(population_estimates_df):
 
+    logging.debug("Processing population data")
+
     population_estimates_df.columns = population_estimates_df.columns.str.replace(' ', '_')
     # Calculate the ratio of each column compared to Total
     columns_to_calculate = ['F0_to_15', 'F16_to_29', 'F30_to_44', 'F45_to_64', 'F65_and_over', 
@@ -122,6 +128,48 @@ def process_population_data(population_estimates_df):
     std_population_estimates_df = population_estimates_df.copy()[columns_to_keep]
 
     return std_population_estimates_df
+
+def read_vom_trees_geoparquet(sedona):
+
+    logging.debug("Reading VOM trees geoparquet")
+
+    vom_trees_dir = T3_30_300_DIR / "VOM_Trees_geoparquet"
+    vom_trees_paths = [str(path) for path in vom_trees_dir.glob("*.geoparquet")]
+    geo_trees_sdf = sedona.read.format("geoparquet").load(vom_trees_paths)
+    geo_trees_sdf.createOrReplaceTempView("geo_trees")
+
+    return geo_trees_sdf
+
+def create_spatial_rdds(t3_30_300_spectral_sdf, geo_trees_sdf):
+
+    logging.debug("Creating spatial RDDs")
+
+    t3_30_300_spectral_rdd  = Adapter.toSpatialRdd(t3_30_300_spectral_sdf, 'geometry')
+    geo_trees_rdd = Adapter.toSpatialRdd(geo_trees_sdf, 'geometry')
+    
+    t3_30_300_spectral_rdd.analyze()
+    geo_trees_rdd.analyze()
+
+    return t3_30_300_spectral_rdd, geo_trees_rdd
+
+def count_trees_rdd(sedona, t3_30_300_spectral_rdd, geo_trees_rdd, build_on_spatial_partitioned_rdd = True, using_index = True):
+
+    logging.debug("Counting trees in RDD")
+
+    geo_trees_rdd.spatialPartitioning(GridType.KDBTREE)
+    t3_30_300_spectral_rdd.spatialPartitioning(geo_trees_rdd.getPartitioner())
+    
+    t3_30_300_spectral_rdd.buildIndex(IndexType.QUADTREE, build_on_spatial_partitioned_rdd)
+
+    query_result = JoinQueryRaw.SpatialJoinQueryFlat(geo_trees_rdd, t3_30_300_spectral_rdd, using_index, True)
+
+    query_result_sdf = Adapter.toDf(query_result, ["LSOA21CD"], ["treeID"], sedona)
+
+    query_result_df = query_result_sdf.toPandas().sort_values(by='LSOA21CD')
+
+    trees_within_area_df = query_result_df.groupby('LSOA21CD').size().reset_index(name='total_trees')
+
+    return trees_within_area_df
 
 if __name__ == "__main__":
 
@@ -170,16 +218,31 @@ if __name__ == "__main__":
     logging.debug("Running queries")
     
     create_schemas(sedona, imd_lsoa_bua_gdf, imd_england_gdf, spectral_indexes_gdf, buildings_path, T3_dir, T30_dir, T300_dir)
-    t3_30_300_sdf = run_queries(sedona)
+    t3_30_300_spectral_sdf = run_queries(sedona)
+    geo_trees_sdf = read_vom_trees_geoparquet(sedona)
+    
 
     logging.debug("Saving final output")
 
-    t3_30_300_df = t3_30_300_sdf.toPandas()
+    t3_30_300_df = t3_30_300_spectral_sdf.toPandas()
     t3_30_300_df = t3_30_300_df.replace([float('inf'), float('-inf')], -99)
     t3_30_300_gdf = t3_30_300_df.set_geometry('geometry')
     t3_30_300_gdf = t3_30_300_gdf.set_crs(project_crs)
     t3_30_300_gdf = t3_30_300_gdf.merge(std_population_estimates_df, left_on='LSOA21CD', right_on='LSOA_2021_Code', how='left')
     t3_30_300_gdf['Pop_density'] = t3_30_300_gdf['Total'] / t3_30_300_gdf['area']
+    t3_30_300_gdf.drop(columns=['LSOA_2021_Code'], inplace=True)
+    t3_30_300_gdf.drop_duplicates(subset=["LSOA21CD"], keep="first", inplace=True)
+    lsoa11_sdf = sedona.createDataFrame(t3_30_300_gdf[['LSOA21CD', 'geometry']])
+
+    try:
+    
+        t3_30_300_spectral_rdd, geo_trees_rdd = create_spatial_rdds(lsoa11_sdf, geo_trees_sdf)
+        trees_within_area_df = count_trees_rdd(sedona, t3_30_300_spectral_rdd, geo_trees_rdd)
+
+        t3_30_300_gdf = t3_30_300_gdf.merge(trees_within_area_df, left_on='LSOA21CD', right_on='LSOA21CD', how='left')
+    except Exception as e:
+        logging.error(f"Error in counting trees: {e}")
+        
     t3_30_300_gdf.to_file(t3_30_300_path)
 
     end_time = time.time()
