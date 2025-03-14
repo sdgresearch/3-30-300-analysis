@@ -195,9 +195,9 @@ def count_trees_rdd(sedona, geo_buildings_buffer_rdd, geo_trees_rdd, build_on_sp
 
     query_result = JoinQueryRaw.SpatialJoinQueryFlat(geo_trees_rdd, geo_buildings_buffer_rdd, using_index, True)
 
-    query_result_df = Adapter.toDf(query_result, ["verisk_premise_id"], ["treeID"], sedona)
+    query_result_sdf = Adapter.toDf(query_result, ["verisk_premise_id"], ["treeID"], sedona)
 
-    query_result_df = query_result_df.toPandas().sort_values(by='verisk_premise_id')
+    query_result_df = query_result_sdf.toPandas().sort_values(by='verisk_premise_id')
 
     trees_within_buffer_df = query_result_df.groupby('verisk_premise_id').size().reset_index(name='tree_count')
 
