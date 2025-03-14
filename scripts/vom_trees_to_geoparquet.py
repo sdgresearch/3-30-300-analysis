@@ -10,6 +10,7 @@ from sedona_config import *
 import pandas as pd
 import geopandas as gpd
 from tqdm import tqdm
+from pyspark.sql.functions import monotonically_increasing_id
 
 def translate_tile_name(tile_name: str) -> str:
     """
@@ -136,32 +137,43 @@ if __name__ == '__main__':
     trees_dir = T3_30_300_DIR / "VOM_Trees" 
     trees_geoparquet_dir = T3_30_300_DIR / "VOM_Trees_geoparquet"
     trees_geoparquet_dir.mkdir(parents=True, exist_ok=True)
+    trees_geoparquet_part_dir = T3_30_300_DIR / "VOM_Trees_part"
+    trees_geoparquet_part_dir.mkdir(parents=True, exist_ok=True)
     vom_trees_tiles_path = T3_30_300_DIR / "VOM_Trees_tiles.csv"
     
     log_path = Path("logs/VOM_trees_geoparquet.log")
     setup_logger(log_path=log_path, log_level=log_level)
     logging.warning("Converting VOM Trees to Geoparquet")
     
-    trees_unique_df = create_vom_trees_dataframe(trees_dir)
+    # trees_unique_df = create_vom_trees_dataframe(trees_dir)
 
-    trees_unique_df.to_csv(vom_trees_tiles_path)
-    tile_level_names = trees_unique_df[tile_level].unique()    
-    # tile_level_names = ['TLNW']
+    # trees_unique_df.to_csv(vom_trees_tiles_path)
+    # tile_level_names = trees_unique_df[tile_level].unique()    
+    # # tile_level_names = ['TLNW']
 
-    if parallel:
-        logging.warning("Running in parallel")
+    # if parallel:
+    #     logging.warning("Running in parallel")
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=n_workers) as executor:
-            futures = [executor.submit(process_grid_tiles, trees_unique_df, tile_level, tile_name) for tile_name in tile_level_names]
+    #     with concurrent.futures.ThreadPoolExecutor(max_workers=n_workers) as executor:
+    #         futures = [executor.submit(process_grid_tiles, trees_unique_df, tile_level, tile_name) for tile_name in tile_level_names]
             
-            for future in tqdm(concurrent.futures.as_completed(futures), total=len(futures), desc="Regions Processed"):
-                try:
-                    future.result()                
-                except Exception as e:
-                    logging.error(f"Error processing: {e}")
+    #         for future in tqdm(concurrent.futures.as_completed(futures), total=len(futures), desc="Regions Processed"):
+    #             try:
+    #                 future.result()                
+    #             except Exception as e:
+    #                 logging.error(f"Error processing: {e}")
 
-    else:
-        logging.warning("Running sequentially")
+    # else:
+    #     logging.warning("Running sequentially")
 
-        for tile_name in tqdm(tile_level_names, desc='Regions Processed'):   
-            process_grid_tiles(trees_unique_df, tile_level, tile_name)
+    #     for tile_name in tqdm(tile_level_names, desc='Regions Processed'):   
+    #         process_grid_tiles(trees_unique_df, tile_level, tile_name)
+
+    logging.debug("Setting up Apache Sedona")
+    os.environ["JAVA_HOME"] = JAVA_HOME
+    sedona = get_spark()
+
+    geo_trees_sdf = sedona.read.format("geoparquet").load(str(trees_geoparquet_dir))
+    geo_trees_sdf.withColumn("treeID", monotonically_increasing_id()).createOrReplaceTempView("geo_trees")
+
+    geo_trees_sdf.write.format("geoparquet").mode("overwrite").save(str(trees_geoparquet_part_dir))
