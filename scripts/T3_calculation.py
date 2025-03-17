@@ -296,6 +296,7 @@ if __name__ == "__main__":
     imd_lsoa_bua_buffer_gdf['geometry'] = imd_lsoa_bua_buffer_gdf['geometry'].buffer(buffer)
     geo_level_codes = imd_lsoa_bua_gdf[geo_level].unique()
     # geo_level_codes = ['E09000005', 'E09000006']
+
     logging.warning("Setting up Apache Sedona")
     os.environ["JAVA_HOME"] = JAVA_HOME
     sedona = get_spark()

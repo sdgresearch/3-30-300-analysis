@@ -171,7 +171,9 @@ def binarise_tiles(selected_chm_path_lst, low_threshold, high_threshold) -> xr.D
     chm_xr_lst = []
     for file in selected_chm_path_lst:
         try:
-            chm_xr_lst.append(rxr.open_rasterio(file))
+            temp_rast = rxr.open_rasterio(file)
+            temp_rast.values
+            chm_xr_lst.append(temp_rast)
         except Exception as e:
             logging.error(f"Error reading file: {file} - {e}")
     merged_chm_xr = merge_arrays(chm_xr_lst)
@@ -219,25 +221,32 @@ def process_geo_code(geo_level: str, geo_code: str, imd_lsoa_bua_gdf: gpd.GeoDat
         None
     """
 
-    start_time = time.time()
+    try:
 
-    T30_dir = VECTOR_OUT_DIR / "3-30-300" / "T30"
-    T30_dir.mkdir(parents=True, exist_ok=True)
-    canopy_cover_path = T30_dir / f"T30_{geo_code}.csv"
+        start_time = time.time()
 
-    logging.warning(f"Processing data for {geo_code}")
+        T30_dir = VECTOR_OUT_DIR / "3-30-300" / "T30"
+        T30_dir.mkdir(parents=True, exist_ok=True)
+        canopy_cover_path = T30_dir / f"T30_{geo_code}.csv"
 
-    subgeo_filt_gdf, geo_vom_tiles_df, geo_selected_vom_tiles_df = generate_tiles_paths(geo_level, geo_code, imd_lsoa_bua_gdf)
-    selected_chm_path_lst = select_chm_files(geo_vom_tiles_df, geo_selected_vom_tiles_df, tif_paths_df)
-    binary_merged_chm_xr = binarise_tiles(selected_chm_path_lst, low_threshold, high_threshold)
-    subgeo_canopy_cover_df = get_canopy_cover(subgeo_filt_gdf, binary_merged_chm_xr)
+        logging.warning(f"Processing data for {geo_code}")
 
-    subgeo_canopy_cover_df.to_csv(canopy_cover_path)
+        subgeo_filt_gdf, geo_vom_tiles_df, geo_selected_vom_tiles_df = generate_tiles_paths(geo_level, geo_code, imd_lsoa_bua_gdf)
+        selected_chm_path_lst = select_chm_files(geo_vom_tiles_df, geo_selected_vom_tiles_df, tif_paths_df)
+        binary_merged_chm_xr = binarise_tiles(selected_chm_path_lst, low_threshold, high_threshold)
+        subgeo_canopy_cover_df = get_canopy_cover(subgeo_filt_gdf, binary_merged_chm_xr)
 
-    logging.warning(f"Saving file for {geo_code} with {len(subgeo_canopy_cover_df)} records")
+        subgeo_canopy_cover_df.to_csv(canopy_cover_path)
 
-    end_time = time.time()
-    logging.warning(f"Processing for {geo_code} took {end_time - start_time:.2f} seconds")
+        logging.warning(f"Saving file for {geo_code} with {len(subgeo_canopy_cover_df)} records")
+
+        end_time = time.time()
+        logging.warning(f"Processing for {geo_code} took {end_time - start_time:.2f} seconds")
+
+        return subgeo_canopy_cover_df
+
+    except Exception as e:
+        logging.error(f"Error processing {geo_code}: {e}")
 
 if __name__ == "__main__":
 
@@ -261,7 +270,6 @@ if __name__ == "__main__":
     vom_dir = RASTER_IN_DIR / "Defra" / "VOM"
     vom_lad_dir = vom_dir / "LADs"
     vom_unzipped_dir = vom_dir / "unzipped_tiles"
-    vom_zipped_dir = vom_dir / "zipped_tiles"
 
     log_path = Path("logs/T30_calculation.log")
     setup_logger(log_path=log_path, log_level=log_level)
@@ -270,6 +278,7 @@ if __name__ == "__main__":
 
     imd_lsoa_bua_gdf = gpd.read_file(imd_lsoa_bua_boundaries_path).sort_values(by=geo_level)
     geo_level_codes = imd_lsoa_bua_gdf[geo_level].unique()
+    geo_level_codes = ['E07000065', 'E07000215', 'E07000114', 'E07000228']
 
     tif_paths = list(vom_unzipped_dir.rglob("*.tif"))
     tif_paths_lst = [[path.parent.name, extract_grid_reference(path.name), classify_vom_type(path.name), str(path)] for path in tif_paths]
@@ -283,10 +292,7 @@ if __name__ == "__main__":
             futures = [executor.submit(process_geo_code, geo_level, geo_code, imd_lsoa_bua_gdf) for geo_code in geo_level_codes]
             
             for future in tqdm(concurrent.futures.as_completed(futures), total=len(futures), desc="Regions Processed"):
-                try:
                     future.result()                
-                except Exception as e:
-                    logging.error(f"Error processing: {e}")
 
     else:
         logging.warning("Running sequentially")
