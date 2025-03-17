@@ -150,9 +150,7 @@ def format_os_national_grid(os_5km_boundaries_gdf, tile_level):
     
     return os_tile_boundaries_gdf
 
-def get_overlapping_grid_tiles(imd_lsoa_bua_buffer_gdf, os_tile_boundaries_gdf, geo_level, geo_code, tile_level):
-    # Select one feature from imd_lsoa_bua_buffer_gdf
-    # selected_feature = imd_lsoa_bua_buffer_gdf[imd_lsoa_bua_buffer_gdf[geo_level] == geo_code]
+def get_overlapping_grid_tiles(imd_lsoa_bua_buffer_gdf, os_tile_boundaries_gdf, tile_level):
 
     overlapping_tiles_gdf = gpd.overlay(imd_lsoa_bua_buffer_gdf, os_tile_boundaries_gdf, how='intersection')
     overlapping_tiles_lst = overlapping_tiles_gdf[tile_level].unique().tolist()
@@ -204,26 +202,28 @@ def process_geo_code(geo_level, geo_code, tile_level, t3_30_300_gdf, os_5km_boun
 
     logging.debug(f"Counting total trees for {geo_code}")
 
-    start_time = time.time()
+    try:
 
-    # geo_level_sdf = sedona.sql(f"SELECT * FROM lsoa11 WHERE {geo_level} = '{geo_code}'")
-    # geo_level_gdf = geo_level_sdf.toPandas().set_geometry('geometry').set_crs(project_crs)
-    geo_level_gdf = t3_30_300_gdf[t3_30_300_gdf[geo_level] == geo_code][['LSOA11CD', 'geometry']]
-    geo_level_sdf = sedona.createDataFrame(geo_level_gdf)
-    os_tile_boundaries_gdf = format_os_national_grid(os_5km_boundaries_gdf, tile_level)
-    overlapping_tiles_lst = get_overlapping_grid_tiles(geo_level_gdf, os_tile_boundaries_gdf, geo_level, geo_code, tile_level)
+        start_time = time.time()
 
-    geo_trees_sdf = read_vom_trees_geoparquet(sedona, overlapping_tiles_lst)
-    t3_30_300_spectral_rdd, geo_trees_rdd = create_spatial_rdds(geo_level_sdf, geo_trees_sdf)
-    trees_within_area_df = count_trees_rdd(sedona, t3_30_300_spectral_rdd, geo_trees_rdd)
-    # trees_within_area_df = trees_within_area_df[['LSOA11CD', 'total_trees']]
+        geo_level_gdf = t3_30_300_gdf[t3_30_300_gdf[geo_level] == geo_code][['LSOA11CD', 'geometry']]
+        geo_level_sdf = sedona.createDataFrame(geo_level_gdf)
+        os_tile_boundaries_gdf = format_os_national_grid(os_5km_boundaries_gdf, tile_level)
+        overlapping_tiles_lst = get_overlapping_grid_tiles(geo_level_gdf, os_tile_boundaries_gdf, tile_level)
 
-    logging.warning(f"Regions processed: {len(trees_within_area_df)}")
+        geo_trees_sdf = read_vom_trees_geoparquet(sedona, overlapping_tiles_lst)
+        t3_30_300_spectral_rdd, geo_trees_rdd = create_spatial_rdds(geo_level_sdf, geo_trees_sdf)
+        trees_within_area_df = count_trees_rdd(sedona, t3_30_300_spectral_rdd, geo_trees_rdd)
 
-    end_time = time.time()
-    logging.warning(f"Processing for {geo_code} took {end_time - start_time:.2f} seconds")
-    
-    return trees_within_area_df
+        logging.warning(f"Regions processed: {len(trees_within_area_df)}")
+
+        end_time = time.time()
+        logging.warning(f"Processing for {geo_code} took {end_time - start_time:.2f} seconds")
+        
+        return trees_within_area_df
+
+    except Exception as e:
+        logging.error(f"Error in counting trees: {e}")
 
 
 if __name__ == "__main__":
@@ -287,7 +287,6 @@ if __name__ == "__main__":
     
     create_schemas(sedona, imd_lsoa_bua_gdf, imd_england_gdf, spectral_indexes_gdf, buildings_path, T3_dir, T30_dir, T300_dir)
     t3_30_300_spectral_sdf = run_queries(sedona)
-    # geo_trees_sdf = read_vom_trees_geoparquet(sedona)
     
     logging.debug("Saving final output")
 
@@ -300,38 +299,27 @@ if __name__ == "__main__":
     t3_30_300_gdf.drop(columns=['LSOA_2021_Code'], inplace=True)
     t3_30_300_gdf.drop_duplicates(subset=["LSOA11CD"], keep="first", inplace=True)
     t3_30_300_gdf.sort_values(by='LSOA11CD').reset_index(drop=True, inplace=True)
-    # lsoa11_sdf = sedona.createDataFrame(t3_30_300_gdf[['LSOA11CD', 'geometry']])
-    # lsoa11_sdf.createOrReplaceTempView('lsoa11')
 
-    try:
+    total_trees_lst = []
 
-        total_trees_lst = []
+    if parallel:
+        logging.warning("Running in parallel")
 
-        if parallel:
-            logging.warning("Running in parallel")
+        with concurrent.futures.ThreadPoolExecutor(max_workers=n_workers) as executor:
+            futures = [executor.submit(process_geo_code, geo_level, geo_code, tile_level, t3_30_300_gdf, os_5km_boundaries_gdf) for geo_code in geo_level_codes]
+            
+            for future in tqdm(concurrent.futures.as_completed(futures), total=len(futures), desc="Regions Processed"):
+                total_trees_lst.append(future.result())                
 
-            with concurrent.futures.ThreadPoolExecutor(max_workers=n_workers) as executor:
-                futures = [executor.submit(process_geo_code, geo_level, geo_code, tile_level, t3_30_300_gdf, os_5km_boundaries_gdf) for geo_code in geo_level_codes]
-                
-                for future in tqdm(concurrent.futures.as_completed(futures), total=len(futures), desc="Regions Processed"):
-                    total_trees_lst.append(future.result())                
+    else:
+        logging.warning("Running sequentially")
 
-        else:
-            logging.warning("Running sequentially")
+        for geo_code in tqdm(geo_level_codes, desc='Regions Processed'):   
+            trees_within_area_df = process_geo_code(geo_level, geo_code, tile_level, t3_30_300_gdf, os_5km_boundaries_gdf)
+            total_trees_lst.append(trees_within_area_df)
 
-            for geo_code in tqdm(geo_level_codes, desc='Regions Processed'):   
-                trees_within_area_df = process_geo_code(geo_level, geo_code, tile_level, t3_30_300_gdf, os_5km_boundaries_gdf)
-                total_trees_lst.append(trees_within_area_df)
-
-        total_trees_df = pd.concat(total_trees_lst)
-        t3_30_300_gdf = t3_30_300_gdf.merge(total_trees_df, on='LSOA11CD', how='outer')
-
-    #     t3_30_300_spectral_rdd, geo_trees_rdd = create_spatial_rdds(lsoa11_sdf, geo_trees_sdf)
-    #     trees_within_area_df = count_trees_rdd(sedona, t3_30_300_spectral_rdd, geo_trees_rdd)
-        # t3_30_300_gdf = t3_30_300_gdf.merge(trees_within_area_df, left_on='LSOA21CD', right_on='LSOA21CD', how='left')
-
-    except Exception as e:
-        logging.error(f"Error in counting trees: {e}")
+    total_trees_df = pd.concat(total_trees_lst)
+    t3_30_300_gdf = t3_30_300_gdf.merge(total_trees_df, on='LSOA11CD', how='outer')
         
     t3_30_300_gdf.to_file(t3_30_300_path)
 
