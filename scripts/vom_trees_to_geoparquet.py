@@ -175,5 +175,6 @@ if __name__ == '__main__':
 
     geo_trees_sdf = sedona.read.format("geoparquet").load(str(trees_geoparquet_dir))
     geo_trees_sdf.withColumn("treeID", monotonically_increasing_id()).createOrReplaceTempView("geo_trees")
+    geo_trees_sdf = sedona.sql(f"""SELECT treeID, ROUND(area, 1) AS area, ROUND(height, 1) AS height, ST_Transform(geometry, "{project_crs}", "EPSG:4326") AS geometry FROM geo_trees""")
 
     geo_trees_sdf.write.format("geoparquet").mode("overwrite").save(str(trees_geoparquet_part_dir))
