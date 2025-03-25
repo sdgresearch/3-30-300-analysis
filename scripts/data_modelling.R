@@ -7,7 +7,9 @@ library(tidymodels)
 library(ranger)
 library(vip)
 library(corrplot)
+library(FactoMineR)
 library(factoextra)
+library(DescTools)
 
 source("scripts/constants.R")
 
@@ -18,31 +20,154 @@ t3_30_300_path <-  here(T3_30_300_DIR, "T3_30_300.geojson")
 
 # Variables ---------------------------------------------------------------
 
-t3_30_300_standard_df <- read_sf(t3_30_300_path) |> 
+z_score_normalize <- function(x) {
+    (x - mean(x)) / sd(x)
+}
+
+t3_30_300_standard_df <- t3_30_300_gdf |> 
     st_drop_geometry() |> 
-    mutate(park_distance = if_else(park_distance == -99, NA, park_distance),
-           EnvDec = as_factor(EnvDec),
-           `3` = log(tree_count + 1),
+    mutate(`3` = log(tree_count + 1),
            `30` = log(canopy_cover + 1),
-           `300` = log(park_distance + 1),
-           water = log(water_distance + 1),
+           `300` = -log(park_distance + 1),
+           water = -log(water_distance + 1),
+           tree_person_ratio = log(tree_person_ratio + 1),
            across(ends_with('Score'), scale, .names = "{.col}"),
            Pop_density = round(Pop_density * 1000, 2)) |> 
     distinct(LSOA11CD, .keep_all = T) |>
     # select(EnvDec, `3`, `30`, `300`, water, NDVI, NDWI, NDBI, Pop_density) |> 
-select(ends_with('Score'), Pop_density, `3`, `30`, `300`, water, NDVI, NDWI, NDBI,
-#        # area, ends_with('ratio')
-       ) |>
-# select(-IMDScore) |>
-    drop_na()
+    # select(ends_with('Score'), Pop_density, `3`, `30`, `300`,
+    #        water, NDVI_2024, NDWI_2024, NDBI_2024) |>
+    select(`3`, `30`, `300`, tree_person_ratio, 
+           water, NDVI_2024, NDWI_2024, NDBI_2024,
+           LSOA11CD, LAD22CD, RGN22CD, Pop_density, Urban_rural_flag, EnvDec
+           ) |> 
+    drop_na() |> 
+    mutate(across(is.numeric, z_score_normalize))
+
+
+# PCA ---------------------------------------------------------------------
+
 t3_30_300_pca <- t3_30_300_standard_df |>
-    prcomp(scale. = T)
+    select(-c(LSOA11CD, LAD22CD, RGN22CD, EnvDec, Urban_rural_flag)) |>
+    prcomp(center = T, scale. = T)
+
+explained_variance <- t3_30_300_pca$sdev^2 / sum(t3_30_300_pca$sdev^2)
+
+# Select top k PCs that explain 90% variance
+k <- which(cumsum(explained_variance) >= 0.70)[1]
+
+# Extract loadings for the top k PCs
+loadings <- abs(t3_30_300_pca$rotation[, 1:k])
+
+# Weight by explained variance
+weighted_loadings <- sweep(loadings, 2, explained_variance[1:k], "*")
+
+# Sum across selected PCs
+final_weights <- rowSums(weighted_loadings)
+
+# Normalize weights to sum to 1
+final_weights <- final_weights / sum(final_weights)
+
+# Print final weights
+final_weights
+
 
 t3_30_300_pca |>
     fviz_pca_var()
 
+
+# FAMD --------------------------------------------------------------------
+
+t3_30_300_famd <- t3_30_300_standard_df |>
+    # mutate(EnvDec = as.numeric(EnvDec)) |>
+    select(-c(LSOA11CD, LAD22CD, RGN22CD, Pop_density, EnvDec)) |>
+    FAMD(graph = F)
+
+fviz_screeplot(t3_30_300_famd)
+fviz_contrib(t3_30_300_famd, "var", axes = 1)
+fviz_famd_var(t3_30_300_famd, repel = T)
+fviz_mfa_ind(t3_30_300_famd, habillage = 'Urban_rural_flag', label = 'none')
+
+t3_30_300_standard_df |> 
+    cbind(t3_30_300_famd$ind$coord) |> 
+    ggplot(aes(Dim.1, Dim.2, color = EnvDec, shape = Urban_rural_flag)) +
+    geom_point(alpha=.5) +
+    scale_color_brewer(palette = 'RdYlBu') +
+    facet_wrap(~Urban_rural_flag)
+
+
+# Get explained variance for each dimension
+explained_variance <- t3_30_300_famd$eig[, 2] / sum(t3_30_300_famd$eig[, 2])  # Normalize variance explained
+
+# View cumulative explained variance
+cumsum(explained_variance)
+
+# Extract contributions of variables to each dimension
+var_contrib <- as.data.frame(t3_30_300_famd$var$contrib)
+
+# Select top k dimensions explaining 90% variance
+k <- which(cumsum(explained_variance) >= 0.60)[1]
+
+# Extract only the top k dimensions
+selected_contributions <- var_contrib[, 1:k]
+
+# Multiply contributions by explained variance of each dimension
+weighted_contributions <- sweep(selected_contributions, 2, explained_variance[1:k], "*")
+
+# Sum across selected dimensions
+final_weights <- rowSums(weighted_contributions)
+
+# Normalize weights to sum to 1
+final_weights <- final_weights / sum(final_weights)
+
+# Print final weights
+final_weights
+
+# Convert categorical variables to numeric dummy variables
+df <- t3_30_300_standard_df |>
+    # mutate(EnvDec = as.numeric(EnvDec)) |>
+    select(-c(LSOA11CD, LAD22CD, RGN22CD, Pop_density, EnvDec))
+df_encoded <- model.matrix(~.-1, data = df)
+
+# Compute the final index
+df$Urban_Green_Index <- as.matrix(df_encoded)[,1:9] %*% final_weights
+
+min_value <- min(df$Urban_Green_Index)
+
+df_gini <- df |> 
+    cbind(t3_30_300_standard_df |> 
+              select(LSOA11CD, LAD22CD, RGN22CD, EnvDec)) |> 
+    mutate(Urban_Green_Index = Urban_Green_Index - min_value)
+
+df_gini_lad <- df_gini |> 
+    group_by(LAD22CD) |> 
+    summarise(Urban_Green_Index = Gini(Urban_Green_Index, unbiased = T))
+
+lad_gdf <- t3_30_300_gdf |> 
+    group_by(LAD22CD) |> 
+    summarise(geometry = st_union(geometry))
+
+# 0 is perfect equality and 1 is inequality
+
+lad_gdf |> 
+    left_join(df_gini_lad, by = 'LAD22CD') |> 
+    ggplot(aes(fill = Urban_Green_Index)) +
+    geom_sf() +
+    scale_fill_distiller(palette = 'RdYlBu') +
+    labs(fill = 'Green Gini Coefficient') +
+    theme_minimal() +
+    theme(legend.position = 'bottom')
+
+# Correlation -------------------------------------------------------------
+
 t3_30_300_cor <- t3_30_300_standard_df |>
+    select(-c(LSOA11CD, RGN22CD, Pop_density, EnvDec, Urban_rural_flag)) |>
     cor(method = 'pearson')
+p.mat <- cor_pmat(t3_30_300_cor, n = nrow(t3_30_300_standard_df) |> 
+                      select(-c(LSOA11CD, RGN22CD, Pop_density, EnvDec, Urban_rural_flag)))
+
+corrplot(t3_30_300_cor, method = 'circle', type = 'upper', 
+           tl.col = 'black', p.mat = p.mat, sig.level = 0.05)
 
 t3_30_300_cor_df <- as.data.frame(t3_30_300_cor) |> 
     mutate(IMD_var = colnames(t3_30_300_cor)) |>
