@@ -33,6 +33,10 @@ torchvision = "^0.21.0"
 torchaudio = "^2.6.0"
 xbatcher = "^0.4.0"
 owslib = "^0.32.1"
+sqlmodel = "^0.0.24"
+psycopg2-binary = "^2.9.10"
+duckdb = "^1.2.1"
+postgis = "^1.0.4"
 
 
 [build-system]
