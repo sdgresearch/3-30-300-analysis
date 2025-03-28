@@ -1,8 +1,20 @@
-#!/usr/bin/env python3
+"""
+Module: file_operations.py
+Description: Utility functions for file handling in My Project.
+Author: Your Name
+Date: YYYY-MM-DD
+"""
 
+import os, logging
 from sedona.spark import *
+from src.utils.constants import JAVA_HOME
 
 def get_spark():
+    
+    logging.debug("Setting up Apache Sedona")
+
+    os.environ["JAVA_HOME"] = JAVA_HOME
+
     config = (
         SedonaContext.builder()
         .config(
@@ -44,4 +56,5 @@ def get_spark():
         # N.b. Set max failures to 0 in development. Increase for deployment.
         .master("local[10,0]")
     ).getOrCreate()
+    
     return SedonaContext.create(config)

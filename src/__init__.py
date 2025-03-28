@@ -1,7 +1,11 @@
-# src/__init__.py
-from utils.constants import *
-from utils.install_jdk import *
-from utils.logging_config import *
+"""
+Package: src
+Description: This package contains the core modules for My Project.
+"""
+from src.utils.constants import *
+from src.utils.paths import *
+from src.utils.install_jdk import *
+from src.utils.logging_config import *
 from .t3 import *
 from .t30 import *
 from .t300 import *
