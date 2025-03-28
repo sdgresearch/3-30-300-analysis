@@ -1,3 +1,9 @@
+"""
+Module: file_operations.py
+Description: Utility functions for file handling in My Project.
+Author: Your Name
+Date: YYYY-MM-DD
+"""
 
 import logging
 from pathlib import Path
