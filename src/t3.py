@@ -8,8 +8,8 @@ Date: YYYY-MM-DD
 from src.utils.paths import *
 from src.utils.constants import *
 from src.utils.logging_config import *
-from src.utils.data_processing import translate_tile_name, get_overlapping_grid_tiles
-from src.utils.vom_processing import extract_grid_reference
+from src.utils.data_processing import generate_tile_paths, get_overlapping_grid_tiles
+# from src.utils.vom_processing import extract_grid_reference
 
 from sedona.utils.adapter import Adapter
 from sedona.core.enums import GridType
@@ -20,28 +20,41 @@ import time
 import pandas as pd
 import geopandas as gpd
 
-def check_tree_vom_pair(chm_path: str|Path, trees_dir: str|Path) -> bool:
-    """
-    Check if a CHM file has a corresponding tree file.
-    Parameters:
-        chm_path (str | Path): The path to the CHM file.
-        trees_dir (str | Path): The directory containing the tree files.
-    Returns:
-        bool: True if a corresponding tree file exists, otherwise False.
-    """
+# def check_tree_vom_pair(chm_path: str|Path, trees_dir: str|Path) -> bool:
+#     """
+#     Check if a CHM file has a corresponding tree file.
+#     Parameters:
+#         chm_path (str | Path): The path to the CHM file.
+#         trees_dir (str | Path): The directory containing the tree files.
+#     Returns:
+#         bool: True if a corresponding tree file exists, otherwise False.
+#     """
 
-    logging.debug(f"Checking if {chm_path} has a corresponding tree file in {trees_dir}")
+#     logging.debug(f"Checking if {chm_path} has a corresponding tree file in {trees_dir}")
 
-    tile_name = extract_grid_reference(chm_path)
-    chm_path = chm_path if isinstance(chm_path, Path) else Path(chm_path)
-    trees_dir = trees_dir if isinstance(trees_dir, Path) else Path(trees_dir)
-    year = chm_path.parent.name
+#     tile_name = extract_grid_reference(chm_path)
+#     chm_path = chm_path if isinstance(chm_path, Path) else Path(chm_path)
+#     trees_dir = trees_dir if isinstance(trees_dir, Path) else Path(trees_dir)
+#     year = chm_path.parent.name
 
-    trees_path = trees_dir / f"VOM_trees_{tile_name}_{year}.gpkg"
+#     trees_path = trees_dir / f"VOM_trees_{tile_name}_{year}.gpkg"
 
-    if trees_path.exists():
-        return str(trees_path)
+#     if trees_path.exists():
+#         return str(trees_path)
     
+# def get_vom_trees_paths(overlapping_tiles_lst: list, vom_tree_pair_dict: dict) -> list:
+
+#     logging.debug(f"Getting VOM trees paths for {len(overlapping_tiles_lst)} overlapping tiles")
+
+#     vom_trees_path_lst = list(set([path_pair[1] for _,v in vom_tree_pair_dict.items() for path_pair in v if path_pair[1] is not None]))
+#     trees_path_lst = []
+#     for tile_name in overlapping_tiles_lst:
+#         translated_tile_name = translate_tile_name(tile_name).upper()
+#         tile_path = [path for path in vom_trees_path_lst if translated_tile_name in path]
+#         trees_path_lst.append(tile_path[0])
+
+#     return trees_path_lst
+
 def process_vom_tiles(sedona, trees_path_lst: list, tree_area: int=10, tree_height: int=3) -> gpd.GeoDataFrame:
 
     logging.debug(f"Reading {len(trees_path_lst)} VOM tiles")
@@ -111,19 +124,6 @@ def count_trees(sedona, geo_code: str) -> pd.DataFrame:
 
     return trees_within_buffer_df
 
-def get_vom_trees_paths(overlapping_tiles_lst: list, vom_tree_pair_dict: dict) -> list:
-
-    logging.debug(f"Getting VOM trees paths for {len(overlapping_tiles_lst)} overlapping tiles")
-
-    vom_trees_path_lst = list(set([path_pair[1] for _,v in vom_tree_pair_dict.items() for path_pair in v if path_pair[1] is not None]))
-    trees_path_lst = []
-    for tile_name in overlapping_tiles_lst:
-        translated_tile_name = translate_tile_name(tile_name).upper()
-        tile_path = [path for path in vom_trees_path_lst if translated_tile_name in path]
-        trees_path_lst.append(tile_path[0])
-
-    return trees_path_lst
-
 def create_spatial_rdds(geo_buildings_buffer_sdf, geo_trees_sdf):
 
     logging.debug(f"Creating Spatial RDDs for buildings and trees")
@@ -162,8 +162,9 @@ def read_vom_trees_geoparquet(sedona, overlapping_tiles_lst):
     geo_trees_sdf = sedona.read.format("geoparquet").load(vom_trees_paths)
     geo_trees_sdf.createOrReplaceTempView("geo_trees")
 
-def process_geo_code(sedona, query_method: str, geo_level: str, geo_code: str, tile_level: str, vom_tree_pair_dict: dict,
+def process_geo_code(sedona, query_method: str, geo_level: str, geo_code: str, tile_level: str,
                      output_areas_boundaries_gdf: gpd.GeoDataFrame, os_tile_boundaries_gdf: gpd.GeoDataFrame,
+                     output_areas_os_tile_overlay_df, vom_raster_paths_df, tree_vector_paths_df,
                      tree_area: int=10, tree_height: int=3, buffer: int=100) -> None:
 
     start_time = time.time()
@@ -179,8 +180,10 @@ def process_geo_code(sedona, query_method: str, geo_level: str, geo_code: str, t
 
                 logging.debug(f"Executing query using SQL")
 
-                trees_path_lst = get_vom_trees_paths(overlapping_tiles_lst, vom_tree_pair_dict)
-                geo_trees_gdf = process_vom_tiles(sedona, trees_path_lst, tree_area=tree_area, tree_height=tree_height)
+                # trees_path_lst = get_vom_trees_paths(overlapping_tiles_lst, vom_tree_pair_dict)
+                geo_tiles_df = generate_tile_paths(geo_level, geo_code, output_areas_os_tile_overlay_df, vom_raster_paths_df, tree_vector_paths_df)
+                tree_paths_lst = geo_tiles_df.groupby('TILE_NAME').first().reset_index()['path_tree'].tolist()
+                geo_trees_gdf = process_vom_tiles(sedona, tree_paths_lst, tree_area=tree_area, tree_height=tree_height)
 
                 trees_within_buffer_df = count_trees(sedona, geo_level, geo_code)
             
