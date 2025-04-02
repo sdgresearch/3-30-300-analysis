@@ -41,7 +41,8 @@ def main(process, args_dict):
     elif process == "T300":
         process_geo_code_t300(**filtered_args)
     elif process == "Spectral":
-        process_spectral(**filtered_args)
+        pass
+        # process_spectral(**filtered_args)
 
 if __name__ == "__main__":                     
 
