@@ -84,3 +84,21 @@ def generate_vom_paths_df(sedona):
     vom_raster_paths_df.to_parquet(vom_raster_paths_parquet, index=False)
 
     return vom_raster_paths_df
+
+def generate_tree_paths_df(trees_dir):
+    
+    tree_paths = [x for x in trees_dir.glob("*.gpkg")]
+    tree_metadata = []
+    for path in tree_paths:
+        match = re.search(r'VOM_trees_([A-Z]{2}\d{4})_(\d{4})\.gpkg', path.name)
+        if match:
+            tile_name, year = match.groups()
+            tree_metadata.append({'TILE_NAME': tile_name, 'year': int(year), 'path': str(path)})
+
+    tree_vector_paths_df = pd.DataFrame(tree_metadata)
+    tree_vector_paths_df.sort_values(by=['TILE_NAME', 'year'], ascending=[True, False], inplace=True)
+    tree_vector_paths_df.reset_index(drop=True, inplace=True)
+
+    tree_vector_paths_df.to_parquet(vom_raster_paths_parquet, index=False)
+
+    return tree_vector_paths_df
