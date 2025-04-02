@@ -42,6 +42,7 @@ database_dir = T3_30_300_DIR / "database"
 
 ## Parquet files
 vom_raster_paths_parquet = database_dir / "vom_raster_paths.parquet"
+tree_vector_paths_parquet = database_dir / "tree_vector_paths.parquet"
 os_tile_boundaries_parquet = database_dir / "os_tile_boundaries.parquet"
 output_areas_boundaries_parquet = database_dir / "output_areas_boundaries.parquet"
 output_areas_os_tile_overlay_parquet = database_dir / "output_areas_os_tile_overlay.parquet"

@@ -79,7 +79,8 @@ def load_tables(sedona):
     logging.debug("Loading tables from parquet files")
 
     TableData = namedtuple("TableData", [
-        "vom_raster_paths_sdf",
+        "vom_raster_paths_df",
+        "tree_vector_paths_df",
         "output_areas_boundaries_gdf",
         "output_areas_os_tile_overlay_df",
         "std_population_estimates_df",
@@ -94,6 +95,7 @@ def load_tables(sedona):
 
     return TableData(
         pd.read_parquet(vom_raster_paths_parquet),
+        pd.read_parquet(tree_vector_paths_parquet),
         gpd.read_parquet(output_areas_boundaries_parquet),
         pd.read_parquet(output_areas_os_tile_overlay_parquet),
         pd.read_parquet(std_population_estimates_parquet),
