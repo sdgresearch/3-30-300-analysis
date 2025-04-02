@@ -8,6 +8,7 @@ Date: YYYY-MM-DD
 import logging
 import pandas as pd
 import geopandas as gpd
+from collections import namedtuple
 from src.utils.constants import PROJECT_CRS
 from src.utils.paths import *
 from src.utils.data_processing import translate_tile_name
@@ -15,14 +16,14 @@ from src.utils.data_processing import translate_tile_name
 def setup_parquet_files():
 
     imd_england_columns = ['lsoa11cd', 'IMD_Rank', 'IMD_Decile', 'IMDScore', 'IncScore', 
-                       'IncRank', 'IncDec', 'EmpScore', 'EmpRank', 'EmpDec', 'EduScore',
-                       'EduRank', 'EduDec', 'HDDScore', 'HDDRank', 'HDDDec', 'CriScore', 
-                       'CriRank', 'CriDec', 'BHSScore', 'BHSRank', 'BHSDec', 'EnvScore', 
-                       'EnvRank', 'EnvDec']
+                           'IncRank', 'IncDec', 'EmpScore', 'EmpRank', 'EmpDec', 'EduScore',
+                           'EduRank', 'EduDec', 'HDDScore', 'HDDRank', 'HDDDec', 'CriScore', 
+                           'CriRank', 'CriDec', 'BHSScore', 'BHSRank', 'BHSDec', 'EnvScore', 
+                           'EnvRank', 'EnvDec']
     imd_england_2019_gdf = gpd.read_file(imd_england_2019_path)[imd_england_columns].rename(columns={'lsoa11cd': 'LSOA11CD'})
     lsoa_2011_2021_lookup_df = pd.read_csv(lsoa_2011_2021_lookup_path)
     oa_2021_lookup_df = pd.read_csv(oa_2021_lookup_path)
-    oa_2021_boundaries_gdf = gpd.read_file(oa_2021_boundaries_path)
+    oa_2021_boundaries_gdf = gpd.read_file(oa_2021_boundaries_path).to_crs(PROJECT_CRS)
     oa_rgn_lookup_df = pd.read_csv(oa_rgn_lookup_path)
     oa_rgn_lookup_df.columns = oa_rgn_lookup_df.columns.str.upper()
     population_estimates_df = pd.read_excel(population_estimates_path, sheet_name='Mid-2022 LSOA 2021', skiprows=3)
@@ -43,6 +44,7 @@ def setup_parquet_files():
     output_areas_boundaries_gdf = output_areas_boundaries_gdf[output_areas_boundaries_gdf.RGN22CD != 'W92000004']
     output_areas_boundaries_gdf['area'] = output_areas_boundaries_gdf.geometry.area / 1_000_000
     output_areas_boundaries_gdf = output_areas_boundaries_gdf[output_areas_boundaries_columns]
+    output_areas_boundaries_gdf
     std_population_estimates_df = process_population_data(population_estimates_df)
     imd_lsoa_gdf = imd_england_2019_gdf.merge(lsoa_2011_2021_lookup_df[["LSOA11CD", "LSOA21CD"]], on="LSOA11CD")
     imd_lsoa_gdf = imd_lsoa_gdf[["LSOA11CD", "LSOA21CD"] + imd_lsoa_gdf.columns[1:-1].tolist()]
@@ -58,6 +60,51 @@ def setup_parquet_files():
     road_nodes_gdf.to_parquet(road_nodes_parquet, index=False)
     buildings_gdf.to_parquet(buildings_parquet, index=False)
     logging.debug("Parquet files created successfully")
+
+def create_in_out_folders():
+    
+    INPUT_DIR.mkdir(parents=True, exist_ok=True)
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    T3_30_300_DIR.mkdir(parents=True, exist_ok=True)
+    T3_dir.mkdir(parents=True, exist_ok=True)
+    T30_dir.mkdir(parents=True, exist_ok=True)
+    T300_dir.mkdir(parents=True, exist_ok=True)
+    trees_dir.mkdir(parents=True, exist_ok=True)
+    vom_lad_dir.mkdir(parents=True, exist_ok=True)
+    vom_unzipped_dir.mkdir(parents=True, exist_ok=True)
+    vom_dir.mkdir(parents=True, exist_ok=True)
+
+def load_tables(sedona):
+
+    logging.debug("Loading tables from parquet files")
+
+    TableData = namedtuple("TableData", [
+        "vom_raster_paths_sdf",
+        "output_areas_boundaries_gdf",
+        "output_areas_os_tile_overlay_df",
+        "std_population_estimates_df",
+        "imd_lsoa_gdf",
+        "os_tile_boundaries_gdf",
+        "green_space_access_gdf",
+        "green_space_site_gdf",
+        "road_edges_gdf",
+        "road_nodes_gdf",
+        "buildings_sdf"
+    ])
+
+    return TableData(
+        pd.read_parquet(vom_raster_paths_parquet),
+        gpd.read_parquet(output_areas_boundaries_parquet),
+        pd.read_parquet(output_areas_os_tile_overlay_parquet),
+        pd.read_parquet(std_population_estimates_parquet),
+        gpd.read_parquet(imd_lsoa_parquet),
+        gpd.read_parquet(os_tile_boundaries_parquet),
+        gpd.read_parquet(green_space_access_parquet),
+        gpd.read_parquet(green_space_site_parquet),
+        gpd.read_parquet(road_edges_parquet),
+        gpd.read_parquet(road_nodes_parquet),
+        sedona.read.format("geoparquet").load(str(buildings_path))
+    )
 
 def process_population_data(population_estimates_df):
 
@@ -106,3 +153,25 @@ def expand_national_grid(os_5km_boundaries_gdf):
     os_tile_boundaries_gdf = os_tile_boundaries_gdf[['TILE_NAME_5KM', 'TILE_NAME_5KM_int', 'TILE_NAME_10KM', 'TILE_NAME_50KM', 'TILE_NAME_100KM', 'geometry']]
     
     return os_tile_boundaries_gdf
+
+def overlay_output_areas_with_os_tiles(output_areas_boundaries_gdf, os_tile_boundaries_gdf):
+    """
+    Overlays output areas with OS tiles and returns the resulting GeoDataFrame.
+    Parameters:
+        output_areas_boundaries_gdf (gpd.GeoDataFrame): GeoDataFrame containing output area boundaries.
+        os_tile_boundaries_gdf (gpd.GeoDataFrame): GeoDataFrame containing OS tile boundaries.
+    Returns:
+        gpd.GeoDataFrame: GeoDataFrame containing the overlayed data.
+    """
+
+    logging.warning("Overlaying output areas with OS tiles")
+
+    # Perform spatial join
+    overlay_columns = ['OA21CD', 'LSOA21CD', 'MSOA21CD', 'LAD22CD', 'RGN22CD', 'TILE_NAME_5KM_int',
+                       'TILE_NAME_5KM', 'TILE_NAME_10KM', 'TILE_NAME_50KM', 'TILE_NAME_100KM']
+    output_areas_os_tile_overlay_df = output_areas_boundaries_gdf.copy().sjoin(os_tile_boundaries_gdf, how='left')[overlay_columns]
+
+    output_areas_os_tile_overlay_df.to_parquet(output_areas_os_tile_overlay_parquet, index=False)
+
+    
+    return output_areas_os_tile_overlay_df
