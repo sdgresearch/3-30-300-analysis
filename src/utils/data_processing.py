@@ -6,7 +6,7 @@ Author: Your Name
 Date: YYYY-MM-DD
 """
 
-import re
+import re, logging
 import pandas as pd
 import geopandas as gpd
 from pathlib import Path
@@ -50,7 +50,9 @@ def translate_tile_name(tile_name: str) -> str:
 
     return trans_tile_name
 
-def get_overlapping_grid_tiles(output_areas_boundaries_gdf, os_tile_boundaries_gdf, geo_level, geo_code, tile_level):
+def get_overlapping_grid_tiles(output_areas_boundaries_gdf: gpd.GeoDataFrame, os_tile_boundaries_gdf: gpd.GeoDataFrame, geo_level: str, geo_code: str, tile_level: str):
+
+    logging.debug(f"Getting overlapping grid tiles for {geo_code} and {tile_level}")
     
     selected_feature = output_areas_boundaries_gdf[output_areas_boundaries_gdf[geo_level] == geo_code]
 
@@ -58,3 +60,16 @@ def get_overlapping_grid_tiles(output_areas_boundaries_gdf, os_tile_boundaries_g
     overlapping_tiles_lst = gpd.overlay(selected_feature, os_tile_boundaries_gdf, how='intersection')[tile_level].unique().tolist()
 
     return overlapping_tiles_lst
+
+def generate_tile_paths(geo_level: str, geo_code: str, output_areas_os_tile_overlay_df: gpd.GeoDataFrame, vom_raster_paths_df: pd.DataFrame, tree_vector_paths_df: pd.DataFrame) -> tuple:
+
+    logging.debug(f"Generating tile (vom and tree) paths for {geo_code}")
+
+    geo_output_areas_os_tile_overlay_df = output_areas_os_tile_overlay_df[output_areas_os_tile_overlay_df[geo_level] == geo_code]
+    vom_raster_paths_df['TILE_NAME_5KM_int'] = vom_raster_paths_df.TILE_NAME.apply(lambda x: x.lower())
+    geo_vom_tiles_df = geo_output_areas_os_tile_overlay_df.merge(vom_raster_paths_df, on='TILE_NAME', how='left')[['TILE_NAME', 'year', 'path']].drop_duplicates().sort_values(['TILE_NAME', 'year'], ascending=[True, False]).reset_index(drop=True)
+    geo_tree_tiles_df = geo_output_areas_os_tile_overlay_df.merge(tree_vector_paths_df, on='TILE_NAME', how='left')[['TILE_NAME', 'year', 'path']].drop_duplicates().sort_values(['TILE_NAME', 'year'], ascending=[True, False]).reset_index(drop=True)
+
+    geo_tiles_df = geo_vom_tiles_df.merge(geo_tree_tiles_df, on=['TILE_NAME', 'year'], suffixes=['_vom', '_tree'])
+
+    return geo_tiles_df
