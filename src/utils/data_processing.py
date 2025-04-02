@@ -7,24 +7,9 @@ Date: YYYY-MM-DD
 """
 
 import re
-
-def extract_grid_reference(filename: str) -> str|None:
-    """
-    Extracts a grid reference from a given filename.
-    The function searches for a pattern in the filename that matches 'VOM' or 'VOM_HS'
-    followed by an underscore, a two-letter code, a four-digit number, and another underscore.
-    If such a pattern is found, it returns the grid reference (the two-letter code and the four-digit number).
-    If no match is found, it returns None.
-    Parameters:
-        filename (str | Path): The name of the file from which to extract the grid reference.
-    Returns:
-        str | None: The extracted grid reference if a match is found, otherwise None.
-    """
-
-    match = re.search(r'VOM_([A-Z]{2}\d{4})_', filename)
-    if match:
-        return match.group(1)
-    return None
+import pandas as pd
+import geopandas as gpd
+from pathlib import Path
 
 def translate_tile_name(tile_name: str) -> str:
     """
@@ -64,3 +49,12 @@ def translate_tile_name(tile_name: str) -> str:
         trans_tile_name = tile_name[:2].lower() + number_code
 
     return trans_tile_name
+
+def get_overlapping_grid_tiles(output_areas_boundaries_gdf, os_tile_boundaries_gdf, geo_level, geo_code, tile_level):
+    
+    selected_feature = output_areas_boundaries_gdf[output_areas_boundaries_gdf[geo_level] == geo_code]
+
+    # Get the overlapping features
+    overlapping_tiles_lst = gpd.overlay(selected_feature, os_tile_boundaries_gdf, how='intersection')[tile_level].unique().tolist()
+
+    return overlapping_tiles_lst
