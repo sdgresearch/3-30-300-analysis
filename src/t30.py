@@ -1,14 +1,14 @@
 """
 Module: data_processing.py
 Description: Functions for cleaning and transforming data in My Project.
-Author: Your Name
-Date: YYYY-MM-DD
+Author: Andrés C. Zúñiga-González
+Date: 2025-04-03
 """
 
-from src.utils.paths import *
-from src.utils.constants import *
-from src.utils.logging_config import *
-from src.utils.data_processing import generate_tile_paths
+from utils.paths import *
+from utils.constants import *
+from utils.logging_config import *
+from utils.data_processing import generate_tile_paths, get_geometries
 
 import time, logging
 import pandas as pd
@@ -18,7 +18,7 @@ import rioxarray as rxr
 from rioxarray.merge import merge_arrays
 from rasterstats import zonal_stats
 
-
+# TODO: Do the zonal statistics with sedona
 def binarise_tiles(vom_paths_lst, low_threshold, high_threshold) -> xr.DataArray:
     """
     Binarise the canopy height model (CHM) tiles based on given thresholds.
@@ -35,7 +35,7 @@ def binarise_tiles(vom_paths_lst, low_threshold, high_threshold) -> xr.DataArray
         xr.DataArray: A binary xarray DataArray where values are 1 if within the threshold range, and 0 otherwise.
     """
 
-    logging.warning(f"Binarising {len(vom_paths_lst)} VOM tiles")
+    logging.info(f"Binarising {len(vom_paths_lst)} VOM tiles")
 
     chm_xr_lst = []
     for file in vom_paths_lst:
@@ -63,7 +63,7 @@ def get_canopy_cover(subgeo_filt_gdf: gpd.GeoDataFrame, binary_merged_chm_xr: xr
         pd.DataFrame: A DataFrame containing the original geometries and their corresponding canopy cover percentages.
     """
 
-    logging.warning("Calculating canopy cover")
+    logging.debug("Calculating canopy cover")
 
     zs_categorical = zonal_stats(subgeo_filt_gdf, binary_merged_chm_xr[0].values, 
                                 affine=binary_merged_chm_xr.rio.transform(), categorical=True)
@@ -71,47 +71,37 @@ def get_canopy_cover(subgeo_filt_gdf: gpd.GeoDataFrame, binary_merged_chm_xr: xr
     subgeo_filt_gdf['canopy_cover'] = [round(100 * z.get(1, 0) / (z.get(0, 0) + z.get(1, 0)), 3) for z in zs_categorical]
     subgeo_filt_gdf['total_pixels'] = [z.get(0, 0) + z.get(1, 0) for z in zs_categorical]
 
-    subgeo_canopy_cover_df = subgeo_filt_gdf.copy()
+    geo_canopy_cover_df = subgeo_filt_gdf.copy()
     
-    return subgeo_canopy_cover_df
+    return geo_canopy_cover_df
 
-def process_geo_code(geo_level: str, geo_code: str, output_areas_boundaries_gdf: gpd.GeoDataFrame, 
-                     output_areas_os_tile_overlay_df, vom_raster_paths_df, tree_vector_paths_df,
-                     low_threshold: int=3, high_threshold: int=60) -> None:
-    """
-    Processes geographical data for a given geographical code and level, and calculates the canopy cover.
+def process_geo_code(sedona, geo_level: str, geo_code: str, output_areas_os_tile_overlay_df: pd.DataFrame, 
+                     vom_raster_paths_df: pd.DataFrame, tree_vector_paths_df: pd.DataFrame,
+                     low_threshold: int=3, high_threshold: int=60, overwrite: bool=True) -> pd.DataFrame:
 
-    Parameters:
-        geo_level (str): The geographical level (e.g., LSOA, BUA).
-        geo_code (str): The geographical code corresponding to the geo_level.
-        output_areas_boundaries_gdf (gpd.GeoDataFrame): A GeoDataFrame containing geographical data.
-        low_threshold (int, optional): The lower threshold for binarizing canopy height model tiles. Default is 3.
-        high_threshold (int, optional): The upper threshold for binarizing canopy height model tiles. Default is 60.
-
-    Returns:
-        None
-    """
     start_time = time.time()
     logging.info(f"Processing data for {geo_code}")
 
-    canopy_cover_path = T30_dir / f"T30_{geo_code}.csv"
+    geo_canopy_cover_path = T30_dir / f"T30_{geo_code}.csv"
 
-    try:
-        subgeo_filt_gdf = output_areas_boundaries_gdf.copy()[output_areas_boundaries_gdf[geo_level].isin([geo_code])].reset_index(drop=True)
-        geo_tiles_df = generate_tile_paths(geo_level, geo_code, output_areas_os_tile_overlay_df, vom_raster_paths_df, tree_vector_paths_df)
-        vom_paths_lst = geo_tiles_df.groupby('TILE_NAME').first().reset_index()['path_vom'].tolist()
-        binary_merged_chm_xr = binarise_tiles(vom_paths_lst, low_threshold, high_threshold)
-        subgeo_canopy_cover_df = get_canopy_cover(subgeo_filt_gdf, binary_merged_chm_xr)
-        subgeo_canopy_cover_df = subgeo_canopy_cover_df[['OA21CD', 'LSOA21CD', 'MSOA21CD', 'LAD22CD', 'RGN22CD', 'canopy_cover', 'total_pixels']]
+    if not geo_canopy_cover_path.exists() or overwrite:
+        try:
+            # subgeo_filt_gdf = output_areas_boundaries_gdf.copy()[output_areas_boundaries_gdf[geo_level].isin([geo_code])].reset_index(drop=True)
+            geo_boundary_sdf = get_geometries(sedona, geo_level, geo_code, False)
+            geo_boundary_gdf = gpd.GeoDataFrame(geo_boundary_sdf.toPandas(), geometry='geometry', crs=PROJECT_CRS)
+            geo_tiles_df = generate_tile_paths(geo_level, geo_code, output_areas_os_tile_overlay_df, vom_raster_paths_df, tree_vector_paths_df)
+            vom_paths_lst = geo_tiles_df.groupby('TILE_NAME').first().reset_index()['path_vom'].tolist()
+            binary_merged_chm_xr = binarise_tiles(vom_paths_lst, low_threshold, high_threshold)
+            geo_canopy_cover_df = get_canopy_cover(geo_boundary_gdf, binary_merged_chm_xr)
+            geo_canopy_cover_df = geo_canopy_cover_df[['OA21CD', 'LSOA21CD', 'MSOA21CD', 'LAD22CD', 'RGN22CD', 'canopy_cover', 'total_pixels']]
 
-        subgeo_canopy_cover_df.to_csv(canopy_cover_path)
+            geo_canopy_cover_df.to_csv(geo_canopy_cover_path)
 
-        logging.info(f"Saving file for {geo_code} with {len(subgeo_canopy_cover_df)} records")
+            end_time = time.time()
+            logging.info(f"Processing for {geo_code} with {len(geo_canopy_cover_df)} records took {end_time - start_time:.2f} seconds")
 
-        end_time = time.time()
-        logging.info(f"Processing for {geo_code} took {end_time - start_time:.2f} seconds")
+            return geo_canopy_cover_df
 
-        return subgeo_canopy_cover_df
-
-    except Exception as e:
-        logging.error(f"Error processing {geo_code}: {e}")
+        except Exception as e:
+            logging.error(f"Error processing {geo_code}: {e}")
+            

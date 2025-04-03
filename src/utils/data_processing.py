@@ -2,14 +2,13 @@
 """
 Module: file_operations.py
 Description: Utility functions for file handling in My Project.
-Author: Your Name
-Date: YYYY-MM-DD
+Author: Andrés C. Zúñiga-González
+Date: 2025-04-03
 """
 
-import re, logging
+import logging
 import pandas as pd
 import geopandas as gpd
-from pathlib import Path
 
 def translate_tile_name(tile_name: str) -> str:
     """
@@ -74,3 +73,43 @@ def generate_tile_paths(geo_level: str, geo_code: str, output_areas_os_tile_over
     geo_tiles_df = geo_vom_tiles_df.merge(geo_tree_tiles_df, on=['TILE_NAME', 'year'], suffixes=['_vom', '_tree'])
 
     return geo_tiles_df
+
+def filter_buffer_geometries(sedona, geo_level: str, geo_code: str, table_name: str, buffer: int=None):
+
+    logging.debug(f"Filtering {table_name} for {geo_code}")
+
+    geo_buildings_sdf = sedona.sql(
+        f"""
+            SELECT b.* FROM {table_name} b, geo_boundary g 
+            WHERE ST_Intersects(b.geometry, g.geometry)
+        """)
+    geo_buildings_sdf.createOrReplaceTempView(f"geo_{table_name}")
+
+    if buffer:
+
+        geo_buildings_buffer_sdf = sedona.sql(
+        f"""
+            SELECT ST_Buffer(b.geometry, {buffer}) AS geometry, b.verisk_premise_id
+            FROM geo_{table_name} b
+        """)
+        geo_buildings_buffer_sdf.createOrReplaceTempView(f"{table_name}_buffers")
+
+        return geo_buildings_buffer_sdf
+    
+    return geo_buildings_sdf
+
+def get_geometries(sedona, geo_level: str, geo_code: str, dissolve):
+
+    logging.debug(f"Dissolving geometries for {geo_level}:{geo_code}")
+
+    query = "ST_Union_Aggr(geometry) AS geometry" if dissolve else "*"
+
+    geo_boundary_sdf = sedona.sql(
+        f"""
+            SELECT {query}
+            FROM boundaries
+            WHERE {geo_level} = '{geo_code}'
+        """)
+    geo_boundary_sdf.createOrReplaceTempView("geo_boundary")
+
+    return geo_boundary_sdf

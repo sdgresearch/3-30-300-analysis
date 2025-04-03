@@ -1,17 +1,17 @@
 """
 Module: file_operations.py
 Description: Utility functions for file handling in My Project.
-Author: Your Name
-Date: YYYY-MM-DD
+Author: Andrés C. Zúñiga-González
+Date: 2025-04-03
 """
+
+from utils.constants import PROJECT_CRS
+from utils.paths import *
+from utils.data_processing import translate_tile_name
 
 import logging
 import pandas as pd
 import geopandas as gpd
-from collections import namedtuple
-from src.utils.constants import PROJECT_CRS
-from src.utils.paths import *
-from src.utils.data_processing import translate_tile_name
 
 def setup_parquet_files():
 
@@ -91,35 +91,32 @@ def load_tables(sedona):
 
     logging.debug("Loading tables from parquet files")
 
-    TableData = namedtuple("TableData", [
-        "vom_raster_paths_df",
-        "tree_vector_paths_df",
-        "output_areas_boundaries_gdf",
-        "output_areas_os_tile_overlay_df",
-        "std_population_estimates_df",
-        "imd_lsoa_gdf",
-        "os_tile_boundaries_gdf",
-        "green_space_access_gdf",
-        "green_space_site_gdf",
-        "road_edges_gdf",
-        "road_nodes_gdf",
-        "buildings_sdf"
-    ])
+    # TODO: Standardise output format: geopandas dataframe or spark dataframe
 
-    tables = TableData(
-        pd.read_parquet(vom_raster_paths_parquet),
-        pd.read_parquet(tree_vector_paths_parquet),
-        gpd.read_parquet(output_areas_boundaries_parquet),
-        pd.read_parquet(output_areas_os_tile_overlay_parquet),
-        pd.read_parquet(std_population_estimates_parquet),
-        pd.read_parquet(imd_lsoa_parquet),
-        gpd.read_parquet(os_tile_boundaries_parquet),
-        gpd.read_parquet(green_space_access_parquet),
-        gpd.read_parquet(green_space_site_parquet),
-        gpd.read_parquet(road_edges_parquet),
-        gpd.read_parquet(road_nodes_parquet),
-        sedona.read.format("geoparquet").load(str(buildings_parquet))
-    )
+    tables = {
+        "vom_raster_paths_df": pd.read_parquet(vom_raster_paths_parquet),
+        "tree_vector_paths_df": pd.read_parquet(tree_vector_paths_parquet),
+        "output_areas_boundaries_gdf": gpd.read_parquet(output_areas_boundaries_parquet),
+        "output_areas_os_tile_overlay_df": pd.read_parquet(output_areas_os_tile_overlay_parquet),
+        "std_population_estimates_df": pd.read_parquet(std_population_estimates_parquet),
+        "imd_lsoa_gdf": pd.read_parquet(imd_lsoa_parquet),
+        "os_tile_boundaries_gdf": gpd.read_parquet(os_tile_boundaries_parquet),
+        "green_space_access_gdf": gpd.read_parquet(green_space_access_parquet),
+        "green_space_site_gdf": gpd.read_parquet(green_space_site_parquet),
+        "road_edges_gdf": gpd.read_parquet(road_edges_parquet),
+        "road_nodes_gdf": gpd.read_parquet(road_nodes_parquet),
+        "buildings_sdf": sedona.read.format("geoparquet").load(str(buildings_parquet))
+    }
+
+    output_areas_boundaries_sdf = sedona.createDataFrame(tables["output_areas_boundaries_gdf"])
+    output_areas_boundaries_sdf.createOrReplaceTempView('boundaries')
+    tables["buildings_sdf"].createOrReplaceTempView("buildings")
+    public_park_site_gdf = tables["green_space_site_gdf"].copy()[tables["green_space_site_gdf"]['function'] == 'Public Park Or Garden'].reset_index(drop=True)
+    public_park_site_sdf = sedona.createDataFrame(public_park_site_gdf)
+    public_park_site_sdf.createOrReplaceTempView('public_park_sites')
+    public_park_access_gdf = tables["green_space_access_gdf"].copy()[tables["green_space_access_gdf"]['ref_to_greenspace_site'].isin(public_park_site_gdf.id)].reset_index(drop=True)
+    public_park_access_sdf = sedona.createDataFrame(public_park_access_gdf)
+    public_park_access_sdf.createOrReplaceTempView('public_park_accesses')
 
     return tables
 
