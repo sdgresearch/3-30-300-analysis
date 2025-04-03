@@ -102,7 +102,7 @@ def get_closest_park_manhattan(geo_graph: nx.MultiGraph, geo_buildings_gdf: gpd.
         closest_park_access_id = None
 
         # Iterate over each park access point
-        for park_access in tqdm(geo_public_park_accesses_gdf.itertuples(), desc='Parks checked'):
+        for park_access in tqdm(geo_public_park_accesses_gdf.itertuples(), desc='Parks checked', leave=False):
             park_access_node = park_access.nearest_road_node
             park_road_node_dist = park_access.nearest_road_node_distance
 
@@ -157,7 +157,7 @@ def process_geo_code(sedona, geo_level: str, geo_code: str, road_nodes_gdf: gpd.
                      road_edges_gdf: gpd.GeoDataFrame, overwrite: bool=True) -> pd.DataFrame:
 
     start_time = time.time()
-    logging.info(f"Processing {geo_code}")
+    logging.info(f"Processing data for {geo_code}")
 
     geo_park_distance_path = T300_dir / f"T300_{geo_code}.csv"
 
