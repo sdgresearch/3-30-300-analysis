@@ -5,11 +5,10 @@ Author: Andrés C. Zúñiga-González
 Date: 2025-04-03
 """
 
-from utils.paths import *
-from utils.constants import *
-from utils.logging_config import *
+from utils.paths import vom_raster_paths_parquet, tree_vector_paths_parquet, vom_unzipped_dir
 
 import re
+import logging
 import pandas as pd
 from pathlib import Path
 
@@ -75,6 +74,8 @@ def extract_year_udf(file_path: str) -> int:
 
 def generate_vom_paths_df(sedona):
 
+    logging.debug("Generating VOM paths DataFrame")
+
     vom_sdf = sedona.read.format("binaryFile").load(f"{str(vom_unzipped_dir)}/*/*.tif")
     vom_sdf.createOrReplaceTempView("vom")
 
@@ -93,6 +94,8 @@ def generate_vom_paths_df(sedona):
     return vom_raster_paths_df
 
 def generate_tree_paths_df(trees_dir):
+
+    logging.debug("Generating tree paths DataFrame")
     
     tree_paths = [x for x in trees_dir.glob("*.gpkg")]
     tree_metadata = []
@@ -106,6 +109,6 @@ def generate_tree_paths_df(trees_dir):
     tree_vector_paths_df.sort_values(by=['TILE_NAME', 'year'], ascending=[True, False], inplace=True)
     tree_vector_paths_df.reset_index(drop=True, inplace=True)
 
-    tree_vector_paths_df.to_parquet(vom_raster_paths_parquet, index=False)
+    tree_vector_paths_df.to_parquet(tree_vector_paths_parquet, index=False)
 
     return tree_vector_paths_df

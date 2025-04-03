@@ -5,16 +5,15 @@ Author: Andrés C. Zúñiga-González
 Date: 2025-04-03
 """
 
-from utils.paths import *
-from utils.constants import *
-from utils.logging_config import *
+from utils.paths import T3_30_300_DIR, T3_dir
 from utils.data_processing import generate_tile_paths, get_overlapping_grid_tiles, filter_buffer_geometries, get_geometries
 
 from sedona.utils.adapter import Adapter
 from sedona.core.enums import GridType, IndexType
 from sedona.core.spatialOperator import JoinQueryRaw
 
-import time, logging
+import time
+import logging
 import pandas as pd
 import geopandas as gpd
 
@@ -45,7 +44,7 @@ def process_vom_tiles(sedona, trees_path_lst: list, tree_area: int=10, tree_heig
 
 def create_spatial_rdds(geo_buildings_buffer_sdf, geo_trees_sdf):
 
-    logging.debug(f"Creating Spatial RDDs for buildings and trees")
+    logging.debug("Creating Spatial RDDs for buildings and trees")
 
     geo_buildings_buffer_rdd  = Adapter.toSpatialRdd(geo_buildings_buffer_sdf, 'geometry')
     geo_trees_rdd = Adapter.toSpatialRdd(geo_trees_sdf, 'geometry')
@@ -74,7 +73,7 @@ def count_trees(sedona, geo_code: str) -> pd.DataFrame:
 
 def count_trees_rdd(sedona, geo_buildings_buffer_rdd, geo_trees_rdd, buffer, build_on_spatial_partitioned_rdd = True, using_index = True):
 
-    logging.debug(f"Counting trees for each building using RDD")
+    logging.debug("Counting trees for each building using RDD")
 
     geo_trees_rdd.spatialPartitioning(GridType.KDBTREE)
     geo_buildings_buffer_rdd.spatialPartitioning(geo_trees_rdd.getPartitioner())
@@ -113,23 +112,23 @@ def process_geo_code(sedona, query_method: str, geo_level: str, geo_code: str, t
     
     if not geo_tree_count_path.exists() or overwrite:
         try:
-            geo_boundary_sdf = get_geometries(sedona, geo_level, geo_code, True)
+            get_geometries(sedona, geo_level, geo_code, True)
             geo_buildings_buffer_sdf = filter_buffer_geometries(sedona, geo_level, geo_code, 'buildings', buffer)
             overlapping_tiles_lst = get_overlapping_grid_tiles(output_areas_boundaries_gdf, os_tile_boundaries_gdf, geo_level, geo_code, tile_level)
             
             if query_method == 'sql':
 
-                logging.debug(f"Executing query using SQL")
+                logging.debug("Executing query using SQL")
 
                 geo_tiles_df = generate_tile_paths(geo_level, geo_code, output_areas_os_tile_overlay_df, vom_raster_paths_df, tree_vector_paths_df)
                 tree_paths_lst = geo_tiles_df.groupby('TILE_NAME').first().reset_index()['path_tree'].tolist()
-                geo_trees_gdf = process_vom_tiles(sedona, tree_paths_lst, tree_area=tree_area, tree_height=tree_height)
+                process_vom_tiles(sedona, tree_paths_lst, tree_area=tree_area, tree_height=tree_height)
 
                 geo_tree_count_df = count_trees(sedona, geo_level, geo_code)
             
             elif query_method == 'rdd':
 
-                logging.debug(f"Executing query using Spatial RDD")
+                logging.debug("Executing query using Spatial RDD")
                 
                 geo_trees_sdf = read_vom_trees_geoparquet(sedona, overlapping_tiles_lst)
                 geo_buildings_buffer_rdd, geo_trees_rdd = create_spatial_rdds(geo_buildings_buffer_sdf, geo_trees_sdf)

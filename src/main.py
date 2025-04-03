@@ -6,6 +6,7 @@ Description: Trains a machine learning model using scikit-learn.
 Author: Andrés C. Zúñiga-González
 Date: 2025-04-03
 """
+
 from tables_setup import load_tables
 from utils.logging_config import setup_logger
 from utils.sedona_config import get_spark
@@ -13,7 +14,10 @@ from t3 import process_geo_code as process_geo_code_t3
 from t30 import process_geo_code as process_geo_code_t30
 from t300 import process_geo_code as process_geo_code_t300
 
-import argparse, logging, inspect, concurrent.futures
+import argparse
+import logging
+import inspect
+import concurrent.futures
 from pathlib import Path
 from tqdm import tqdm
 

@@ -7,8 +7,9 @@ Date: 2025-04-03
 
 from utils.constants import JAVA_HOME
 
-import os, logging
-from sedona.spark import *
+import os
+import logging
+from sedona.spark import SedonaContext
 
 def get_spark():
     
