@@ -1,9 +1,15 @@
 """
 Module: data_processing.py
 Description: Functions for cleaning and transforming data in My Project.
-Author: Your Name
-Date: YYYY-MM-DD
+Author: Andrés C. Zúñiga-González
+Date: 2025-04-03
 """
+
+from utils.paths import *
+from utils.constants import *
+from utils.logging_config import *
+from utils.data_processing import filter_buffer_geometries, get_geometries
+
 import time
 import pandas as pd
 import geopandas as gpd
@@ -11,14 +17,8 @@ import networkx as nx
 import osmnx as ox
 from tqdm import tqdm
 
-from src.utils.paths import *
-from src.utils.constants import *
-from src.utils.logging_config import *
-
-
-def filter_features(road_nodes_gdf: gpd.GeoDataFrame, road_edges_gdf: gpd.GeoDataFrame, 
-                    public_park_site_gdf: gpd.GeoDataFrame, public_park_access_gdf: gpd.GeoDataFrame, 
-                    buildings_gdf: gpd.GeoDataFrame, geo_boundary_gdf: gpd.GeoDataFrame) -> dict:
+def filter_features(sedona, geo_level, geo_code, road_nodes_gdf: gpd.GeoDataFrame, 
+                    road_edges_gdf: gpd.GeoDataFrame, geo_boundary_gdf) -> dict:
     """
     Filters various GeoDataFrames by performing spatial joins with a given geographic boundary.
     Parameters:
@@ -47,34 +47,46 @@ def filter_features(road_nodes_gdf: gpd.GeoDataFrame, road_edges_gdf: gpd.GeoDat
     geo_road_nodes_gdf['x'] = geo_road_nodes_gdf.geometry.x
     geo_road_nodes_gdf['y'] = geo_road_nodes_gdf.geometry.y
 
-    geo_public_park_site_gdf = gpd.sjoin(public_park_site_gdf, geo_boundary_gdf).reset_index(drop=True)
-    geo_public_park_access_gdf = gpd.sjoin(public_park_access_gdf, geo_boundary_gdf).reset_index(drop=True)
-    geo_buildings_gdf = gpd.sjoin(buildings_gdf, geo_boundary_gdf).set_index(['verisk_premise_id'])
+    geo_buildings_sdf = filter_buffer_geometries(sedona, geo_level, geo_code, 'buildings')
+    geo_buildings_gdf = gpd.GeoDataFrame(geo_buildings_sdf.toPandas(), geometry='geometry', crs=PROJECT_CRS)
+    geo_public_park_sites_sdf = filter_buffer_geometries(sedona, geo_level, geo_code, 'public_park_sites')
+    geo_public_park_sites_gdf = gpd.GeoDataFrame(geo_public_park_sites_sdf.toPandas(), geometry='geometry', crs=PROJECT_CRS)
+    geo_public_park_accesses_sdf = filter_buffer_geometries(sedona, geo_level, geo_code, 'public_park_accesses')
+    geo_public_park_accesses_gdf = gpd.GeoDataFrame(geo_public_park_accesses_sdf.toPandas(), geometry='geometry', crs=PROJECT_CRS)
 
-    result_dict = {'nodes': geo_road_nodes_gdf, 
-                   'edges': geo_road_edges_gdf, 
-                   'public_park_sites': geo_public_park_site_gdf, 
-                   'public_park_access': geo_public_park_access_gdf, 
-                   'buildings': geo_buildings_gdf}
+    return geo_road_nodes_gdf, geo_road_edges_gdf, geo_public_park_sites_gdf, geo_public_park_accesses_gdf, geo_buildings_gdf
+
+def get_road_graph_distances(geo_road_nodes_gdf, geo_road_edges_gdf, geo_public_park_accesses_gdf, geo_buildings_gdf):
     
-    return result_dict
+    logging.debug(f"Generating graph")
 
-def get_closest_park(geo_graph: nx.MultiGraph, geo_buildings_gdf: gpd.GeoDataFrame, geo_public_park_access_gdf: gpd.GeoDataFrame) -> pd.DataFrame:
+    geo_graph = ox.graph_from_gdfs(geo_road_nodes_gdf, geo_road_edges_gdf).to_undirected()
+
+    park_near_road_node_id, park_near_road_node_dist = ox.distance.nearest_nodes(geo_graph, geo_public_park_accesses_gdf.geometry.centroid.x, geo_public_park_accesses_gdf.geometry.centroid.y, return_dist=True)
+    geo_public_park_accesses_gdf['nearest_road_node'] = park_near_road_node_id
+    geo_public_park_accesses_gdf['nearest_road_node_distance'] = park_near_road_node_dist
+    building_near_road_node_id, building_near_road_node_dist = ox.distance.nearest_nodes(geo_graph, geo_buildings_gdf.geometry.centroid.x, geo_buildings_gdf.geometry.centroid.y, return_dist=True)
+    geo_buildings_gdf['nearest_road_node'] = building_near_road_node_id
+    geo_buildings_gdf['nearest_road_node_distance'] = building_near_road_node_dist
+
+    return geo_graph, geo_public_park_accesses_gdf, geo_buildings_gdf
+
+def get_closest_park_manhattan(geo_graph: nx.MultiGraph, geo_buildings_gdf: gpd.GeoDataFrame, geo_public_park_accesses_gdf: gpd.GeoDataFrame) -> pd.DataFrame:
     """
     Calculate the closest park access point for each building in the given GeoDataFrame.
     Parameters:
         geo_graph (nx.MultiGraph): A graph representing the road network.
         geo_buildings_gdf (gpd.GeoDataFrame): A GeoDataFrame containing building information, including the nearest road node.
-        geo_public_park_access_gdf (gpd.GeoDataFrame): A GeoDataFrame containing public park access points, including the nearest road node.
+        geo_public_park_accesses_gdf (gpd.GeoDataFrame): A GeoDataFrame containing public park access points, including the nearest road node.
     Returns:
         pd.DataFrame: A DataFrame with columns 'verisk_premise_id', 'closest_park_access_id', and 'distance', representing the building ID, the closest park access point ID, and the distance to the closest park access point, respectively.
     """
 
-    logging.debug(f"Getting closest park (n: {len(geo_public_park_access_gdf)}) to each building (n: {len(geo_buildings_gdf)})")
+    logging.debug(f"Getting closest park (n: {len(geo_public_park_accesses_gdf)}) to each building (n: {len(geo_buildings_gdf)})")
 
-    park_access_nodes = geo_public_park_access_gdf['nearest_road_node'].unique()
+    park_access_nodes = geo_public_park_accesses_gdf['nearest_road_node'].unique()
     shortest_paths = {}
-    for park_access_node in park_access_nodes:
+    for park_access_node in tqdm(park_access_nodes):
         lengths = nx.single_source_dijkstra_path_length(geo_graph, park_access_node, weight='length')
         shortest_paths[park_access_node] = lengths
 
@@ -84,17 +96,19 @@ def get_closest_park(geo_graph: nx.MultiGraph, geo_buildings_gdf: gpd.GeoDataFra
     # Iterate over each building
     for building in tqdm(geo_buildings_gdf.itertuples(), desc='Buildings processed'):
         building_node = building.nearest_road_node
-        building_id = building.Index
+        building_id = building.verisk_premise_id
+        building_road_node_dist = building.nearest_road_node_distance
         min_distance = float('inf')
         closest_park_access_id = None
 
         # Iterate over each park access point
-        for park_access in geo_public_park_access_gdf.itertuples():
+        for park_access in tqdm(geo_public_park_accesses_gdf.itertuples(), desc='Parks checked'):
             park_access_node = park_access.nearest_road_node
+            park_road_node_dist = park_access.nearest_road_node_distance
 
             # Lookup the precomputed shortest path distance
             try:
-                distance = shortest_paths[park_access_node][building_node]
+                distance = shortest_paths[park_access_node][building_node] + building_road_node_dist + park_road_node_dist
                 if distance < min_distance:
                     min_distance = distance
                     closest_park_access_id = park_access.id
@@ -106,57 +120,66 @@ def get_closest_park(geo_graph: nx.MultiGraph, geo_buildings_gdf: gpd.GeoDataFra
         distances.append((building_id, closest_park_access_id, min_distance))
 
     # Convert the distances to a DataFrame
-    distances_df = pd.DataFrame(distances, columns=['verisk_premise_id', 'closest_park_access_id', 'distance'])
+    manhattan_distances_df = pd.DataFrame(distances, columns=['verisk_premise_id', 'closest_park_access_id', 'distance_manhattan'])
+    manhattan_distances_df['distance_manhattan'] = manhattan_distances_df.distance_manhattan.apply(lambda x: round(x, 1))
+    
 
-    return distances_df
+    return manhattan_distances_df
 
-def process_geo_code(geo_level: str, geo_code: str, output_areas_boundaries_gdf: gpd.GeoDataFrame, road_nodes_gdf: gpd.GeoDataFrame, 
-                     road_edges_gdf: gpd.GeoDataFrame, public_park_site_gdf: gpd.GeoDataFrame,
-                     public_park_access_gdf: gpd.GeoDataFrame, buildings_gdf: gpd.GeoDataFrame) -> None:
-    """
-    Processes geographical data for a given geo_code and geo_level, calculates the distance from buildings to the nearest park,
-    and saves the results to a CSV file.
-    Parameters:
-        geo_code (str): The geographical code to process.
-        geo_level (str): The geographical level (e.g., LSOA, BUA) to process.
-        output_areas_boundaries_gdf (gpd.GeoDataFrame): GeoDataFrame containing the geographical boundaries.
-        road_nodes_gdf (gpd.GeoDataFrame): GeoDataFrame containing the road nodes.
-        road_edges_gdf (gpd.GeoDataFrame): GeoDataFrame containing the road edges.
-        public_park_site_gdf (gpd.GeoDataFrame): GeoDataFrame containing the public park sites.
-        public_park_access_gdf (gpd.GeoDataFrame): GeoDataFrame containing the public park access points.
-        buildings_gdf (gpd.GeoDataFrame): GeoDataFrame containing the buildings.
-    Returns:
-        None
-    """
+def get_closest_park_euclidean(sedona, geo_buildings_gdf, geo_public_park_site_gdf):
+
+    euclidean_distances_df = gpd.sjoin_nearest(geo_buildings_gdf, geo_public_park_site_gdf, distance_col='distance_euclidean')
+    euclidean_distances_df['distance_euclidean'] = euclidean_distances_df.distance_euclidean.apply(lambda x: round(x, 1))
+    euclidean_distances_df = euclidean_distances_df[['verisk_premise_id', 'id', 'distance_euclidean']].rename(columns={'id': 'closest_park_site_id'})
+
+    # TODO: Figure out why the query doesn't work
+    # euclidean_distances_sdf = sedona.sql(
+    #     """
+    #     SELECT b.verisk_premise_id, p.id
+    #     FROM geo_buildings b
+    #     JOIN geo_public_park_sites p
+    #     ON ST_KNN(b.geometry, p.geometry, 1, TRUE) 
+    #     """)
+    # euclidean_distances_df = euclidean_distances_sdf.toPandas()
+    
+    return euclidean_distances_df
+
+def get_closest_park(sedona, geo_graph, geo_buildings_gdf, geo_public_park_accesses_gdf, geo_public_park_sites_gdf):
+
+    manhattan_distances_df = get_closest_park_manhattan(geo_graph, geo_buildings_gdf, geo_public_park_accesses_gdf)
+    euclidean_distances_df = get_closest_park_euclidean(sedona, geo_buildings_gdf, geo_public_park_sites_gdf)
+
+    geo_park_distance_df = pd.merge(manhattan_distances_df, euclidean_distances_df, on='verisk_premise_id')
+
+    return geo_park_distance_df
+
+def process_geo_code(sedona, geo_level: str, geo_code: str, road_nodes_gdf: gpd.GeoDataFrame, 
+                     road_edges_gdf: gpd.GeoDataFrame, overwrite: bool=True) -> pd.DataFrame:
 
     start_time = time.time()
+    logging.info(f"Processing {geo_code}")
 
-    logging.info(f"Processing {geo_code}")    
-    
-    try:
-    
-        geo_building_park_distance_path = T300_dir / f"T300_{geo_code}.csv"
+    geo_park_distance_path = T300_dir / f"T300_{geo_code}.csv"
 
-        geo_boundary_gdf = output_areas_boundaries_gdf[output_areas_boundaries_gdf[geo_level] == geo_code].dissolve()[['geometry', geo_level]]
+    if not geo_park_distance_path.exists() or overwrite:
+        try:
 
-        geo_road_nodes_gdf, geo_road_edges_gdf, _, geo_public_park_access_gdf, geo_buildings_gdf = filter_features(road_nodes_gdf, road_edges_gdf, public_park_site_gdf, public_park_access_gdf, buildings_gdf, geo_boundary_gdf).values()
+            geo_boundary_sdf = get_geometries(sedona, geo_level, geo_code, True)
+            geo_boundary_gdf = gpd.GeoDataFrame(geo_boundary_sdf.toPandas(), geometry='geometry', crs=PROJECT_CRS)
+            geo_road_nodes_gdf, geo_road_edges_gdf, geo_public_park_sites_gdf, geo_public_park_accesses_gdf, geo_buildings_gdf = filter_features(sedona, geo_level, geo_code, 
+                                                                                                                                                road_nodes_gdf, road_edges_gdf, 
+                                                                                                                                                geo_boundary_gdf)
 
-        logging.debug(f"Generating graph for {geo_code}")
+            geo_graph, geo_public_park_accesses_gdf, geo_buildings_gdf = get_road_graph_distances(geo_road_nodes_gdf, geo_road_edges_gdf, geo_public_park_accesses_gdf, geo_buildings_gdf)
+            geo_park_distance_df = get_closest_park(sedona, geo_graph, geo_buildings_gdf, geo_public_park_accesses_gdf, geo_public_park_sites_gdf)
 
-        geo_graph = ox.graph_from_gdfs(geo_road_nodes_gdf, geo_road_edges_gdf).to_undirected()
+            geo_park_distance_df.to_csv(geo_park_distance_path, index=False)
 
-        geo_public_park_access_gdf['nearest_road_node'] = ox.distance.nearest_nodes(geo_graph, geo_public_park_access_gdf.geometry.centroid.x, geo_public_park_access_gdf.geometry.centroid.y)
-        geo_buildings_gdf['nearest_road_node'] = ox.distance.nearest_nodes(geo_graph, geo_buildings_gdf.geometry.centroid.x, geo_buildings_gdf.geometry.centroid.y)
+            end_time = time.time()
+            logging.info(f"Processing for {geo_code} with {len(geo_park_distance_df)} records took {end_time - start_time:.2f} seconds")
 
-        geo_building_park_distance_df = get_closest_park(geo_graph, geo_buildings_gdf, geo_public_park_access_gdf)
+            return geo_park_distance_df
 
-        logging.info(f"Saving file for {geo_code} with {len(geo_building_park_distance_df)} records")
-
-        geo_building_park_distance_df.to_csv(geo_building_park_distance_path, index=False)
-
-        end_time = time.time()
-        logging.info(f"Processing for {geo_code} took {end_time - start_time:.2f} seconds")
-
-    except Exception as e:
-        logging.error(f"Error processing {geo_code}: {e}")
+        except Exception as e:
+            logging.error(f"Error processing {geo_code}: {e}")
         

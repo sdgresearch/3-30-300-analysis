@@ -1,11 +1,11 @@
 """
 Module: file_operations.py
 Description: Utility functions for file handling in My Project.
-Author: Your Name
-Date: YYYY-MM-DD
+Author: Andrés C. Zúñiga-González
+Date: 2025-04-03
 """
 
-from src.utils.constants import INPUT_DIR, OUTPUT_DIR
+from utils.constants import INPUT_DIR, OUTPUT_DIR
 
 # IN paths
 vom_dir = INPUT_DIR / "Defra" / "VOM"

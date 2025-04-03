@@ -1,6 +1,13 @@
-from src.utils.paths import *
-from src.utils.constants import *
-from src.utils.logging_config import *
+"""
+Module: file_operations.py
+Description: Utility functions for file handling in My Project.
+Author: Andrés C. Zúñiga-González
+Date: 2025-04-03
+"""
+
+from utils.paths import *
+from utils.constants import *
+from utils.logging_config import *
 
 import re
 import pandas as pd

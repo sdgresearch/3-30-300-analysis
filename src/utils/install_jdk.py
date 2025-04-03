@@ -1,11 +1,12 @@
 """
 Module: file_operations.py
 Description: Utility functions for file handling in My Project.
-Author: Your Name
-Date: YYYY-MM-DD
+Author: Andrés C. Zúñiga-González
+Date: 2025-04-03
 """
 
-from src.utils.constants import JAVA_HOME
+from utils.constants import JAVA_HOME
+
 import jdk
 
 def install_jdk(version: str='8',path: str=JAVA_HOME) -> str:
