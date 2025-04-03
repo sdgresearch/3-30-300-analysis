@@ -134,7 +134,6 @@ def process_geo_code(sedona, query_method: str, geo_level: str, geo_code: str, t
                      buffer: int=100, tree_area: int=10, tree_height: int=3) -> None:
 
     start_time = time.time()
-
     logging.info(f"Processing {geo_code} with buffer {buffer}m")
 
     tree_count_path = T3_dir / f"T3_{geo_code}_{buffer}m.csv"
