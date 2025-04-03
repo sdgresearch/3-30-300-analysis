@@ -5,12 +5,12 @@ Author: Andrés C. Zúñiga-González
 Date: 2025-04-03
 """
 
-from utils.paths import *
-from utils.constants import *
-from utils.logging_config import *
+from utils.paths import T300_dir
+from utils.constants import PROJECT_CRS
 from utils.data_processing import filter_buffer_geometries, get_geometries
 
 import time
+import logging
 import pandas as pd
 import geopandas as gpd
 import networkx as nx
@@ -58,7 +58,7 @@ def filter_features(sedona, geo_level, geo_code, road_nodes_gdf: gpd.GeoDataFram
 
 def get_road_graph_distances(geo_road_nodes_gdf, geo_road_edges_gdf, geo_public_park_accesses_gdf, geo_buildings_gdf):
     
-    logging.debug(f"Generating graph")
+    logging.debug("Generating graph of the road network")
 
     geo_graph = ox.graph_from_gdfs(geo_road_nodes_gdf, geo_road_edges_gdf).to_undirected()
 

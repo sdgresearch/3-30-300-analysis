@@ -5,12 +5,12 @@ Author: Andrés C. Zúñiga-González
 Date: 2025-04-03
 """
 
-from utils.paths import *
-from utils.constants import *
-from utils.logging_config import *
+from utils.paths import T30_dir
+from utils.constants import PROJECT_CRS
 from utils.data_processing import generate_tile_paths, get_geometries
 
-import time, logging
+import time
+import logging
 import pandas as pd
 import geopandas as gpd
 import xarray as xr
