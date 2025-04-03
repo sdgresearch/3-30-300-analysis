@@ -15,11 +15,16 @@ from src.utils.data_processing import translate_tile_name
 
 def setup_parquet_files():
 
+    logging.debug("Setting up parquet files")
+
     imd_england_columns = ['lsoa11cd', 'IMD_Rank', 'IMD_Decile', 'IMDScore', 'IncScore', 
                            'IncRank', 'IncDec', 'EmpScore', 'EmpRank', 'EmpDec', 'EduScore',
                            'EduRank', 'EduDec', 'HDDScore', 'HDDRank', 'HDDDec', 'CriScore', 
                            'CriRank', 'CriDec', 'BHSScore', 'BHSRank', 'BHSDec', 'EnvScore', 
                            'EnvRank', 'EnvDec']
+    
+    logging.debug("Loading data from shapefiles and CSVs")
+
     imd_england_2019_gdf = gpd.read_file(imd_england_2019_path)[imd_england_columns].rename(columns={'lsoa11cd': 'LSOA11CD'})
     lsoa_2011_2021_lookup_df = pd.read_csv(lsoa_2011_2021_lookup_path)
     oa_2021_lookup_df = pd.read_csv(oa_2021_lookup_path)
@@ -37,6 +42,8 @@ def setup_parquet_files():
                         'distance_building', 'distance_water', 'map_use', 'map_simple_use', 'geometry']
     buildings_gdf = gpd.read_file(buildings_path, layer='edition_17_0_new_format', columns=buildings_columns)
 
+    logging.debug("Processing data")
+
     output_areas_boundaries_columns = ['OA21CD', 'LSOA21CD', 'LSOA21NM', 'MSOA21CD', 'MSOA21NM', 
                                    'LAD22CD', 'LAD22NM', "RGN22CD", "RGN22NM", "area", "geometry"]
     output_areas_boundaries_gdf = oa_2021_boundaries_gdf.merge(oa_2021_lookup_df, on=["OA21CD", "LSOA21CD", "LSOA21NM"]) \
@@ -47,21 +54,26 @@ def setup_parquet_files():
     output_areas_boundaries_gdf
     std_population_estimates_df = process_population_data(population_estimates_df)
     imd_lsoa_gdf = imd_england_2019_gdf.merge(lsoa_2011_2021_lookup_df[["LSOA11CD", "LSOA21CD"]], on="LSOA11CD")
-    imd_lsoa_gdf = imd_lsoa_gdf[["LSOA11CD", "LSOA21CD"] + imd_lsoa_gdf.columns[1:-1].tolist()]
+    imd_lsoa_df = imd_lsoa_gdf[["LSOA11CD", "LSOA21CD"] + imd_lsoa_gdf.columns[1:-1].tolist()]
     os_tile_boundaries_gdf = expand_national_grid(os_5km_boundaries_gdf)
+
+    logging.debug("Saving data to parquet files")
 
     output_areas_boundaries_gdf.to_parquet(output_areas_boundaries_parquet, index=False)
     std_population_estimates_df.to_parquet(std_population_estimates_parquet, index=False)
-    imd_lsoa_gdf.to_parquet(imd_lsoa_parquet, index=False)
+    imd_lsoa_df.to_parquet(imd_lsoa_parquet, index=False)
     os_tile_boundaries_gdf.to_parquet(os_tile_boundaries_parquet, index=False)
     green_space_access_gdf.to_parquet(green_space_access_parquet, index=False)
     green_space_site_gdf.to_parquet(green_space_site_parquet, index=False)
     road_edges_gdf.to_parquet(road_edges_parquet, index=False)
     road_nodes_gdf.to_parquet(road_nodes_parquet, index=False)
     buildings_gdf.to_parquet(buildings_parquet, index=False)
+
     logging.debug("Parquet files created successfully")
 
 def create_in_out_folders():
+
+    logging.debug("Creating input and output folders")
     
     INPUT_DIR.mkdir(parents=True, exist_ok=True)
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -73,6 +85,7 @@ def create_in_out_folders():
     vom_lad_dir.mkdir(parents=True, exist_ok=True)
     vom_unzipped_dir.mkdir(parents=True, exist_ok=True)
     vom_dir.mkdir(parents=True, exist_ok=True)
+    database_dir.mkdir(parents=True, exist_ok=True)
 
 def load_tables(sedona):
 
@@ -93,20 +106,22 @@ def load_tables(sedona):
         "buildings_sdf"
     ])
 
-    return TableData(
+    tables = TableData(
         pd.read_parquet(vom_raster_paths_parquet),
         pd.read_parquet(tree_vector_paths_parquet),
         gpd.read_parquet(output_areas_boundaries_parquet),
         pd.read_parquet(output_areas_os_tile_overlay_parquet),
         pd.read_parquet(std_population_estimates_parquet),
-        gpd.read_parquet(imd_lsoa_parquet),
+        pd.read_parquet(imd_lsoa_parquet),
         gpd.read_parquet(os_tile_boundaries_parquet),
         gpd.read_parquet(green_space_access_parquet),
         gpd.read_parquet(green_space_site_parquet),
         gpd.read_parquet(road_edges_parquet),
         gpd.read_parquet(road_nodes_parquet),
-        sedona.read.format("geoparquet").load(str(buildings_path))
+        sedona.read.format("geoparquet").load(str(buildings_parquet))
     )
+
+    return tables
 
 def process_population_data(population_estimates_df):
 
@@ -139,6 +154,8 @@ def process_population_data(population_estimates_df):
     return std_population_estimates_df
 
 def expand_national_grid(os_5km_boundaries_gdf):
+
+    logging.debug("Expanding national grid")
 
     def translate_code(code):
         ew = 'W' if int(code[2]) < 5 else 'E'
