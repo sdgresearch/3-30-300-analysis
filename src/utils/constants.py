@@ -14,7 +14,6 @@ load_dotenv()  # take environment variables from .env
 DATA_DIR = Path(os.getenv("DATA_DIR")) 
 INPUT_DIR = DATA_DIR / "input"
 OUTPUT_DIR = DATA_DIR / "output"
-DATABASE_DIR = DATA_DIR / "database"
 JAVA_HOME = str(DATA_DIR.parent / ".jdk" / os.getenv("JDK_HOME"))
 GEE_PROJECT_NAME = os.getenv("GEE_PROJECT_NAME")
 

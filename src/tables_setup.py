@@ -5,11 +5,11 @@ Author: Andrés C. Zúñiga-González
 Date: 2025-04-03
 """
 
-from utils.constants import PROJECT_CRS
+from utils.constants import PROJECT_CRS, INPUT_DIR, OUTPUT_DIR
 from utils.paths import imd_england_2019_path, lsoa_2011_2021_lookup_path, oa_2021_lookup_path, oa_2021_boundaries_path, oa_rgn_lookup_path, population_estimates_path, os_5km_boundaries_path, green_space_path, roads_path, buildings_path
 from utils.paths import output_areas_boundaries_parquet, std_population_estimates_parquet, imd_lsoa_parquet, os_tile_boundaries_parquet, green_space_access_parquet, green_space_site_parquet, road_edges_parquet, road_nodes_parquet, buildings_parquet
 from utils.paths import vom_raster_paths_parquet, tree_vector_paths_parquet, output_areas_os_tile_overlay_parquet
-from utils.paths import INPUT_DIR, OUTPUT_DIR, T3_30_300_DIR, T3_dir, T30_dir, T300_dir, trees_dir, vom_lad_dir, vom_unzipped_dir, vom_dir, database_dir
+from utils.paths import T3_30_300_DIR, T3_dir, T30_dir, T300_dir, trees_dir, vom_lad_dir, vom_unzipped_dir, vom_dir, database_dir
 from utils.data_processing import translate_tile_name
 
 import logging
