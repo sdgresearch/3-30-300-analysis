@@ -95,7 +95,7 @@ def process_geo_code(sedona, geo_level: str, geo_code: str, output_areas_os_tile
             geo_canopy_cover_df = get_canopy_cover(geo_boundary_gdf, binary_merged_chm_xr)
             geo_canopy_cover_df = geo_canopy_cover_df[['OA21CD', 'LSOA21CD', 'MSOA21CD', 'LAD22CD', 'RGN22CD', 'canopy_cover', 'total_pixels']]
 
-            geo_canopy_cover_df.to_csv(geo_canopy_cover_path)
+            geo_canopy_cover_df.to_csv(geo_canopy_cover_path, index=False)
 
             end_time = time.time()
             logging.info(f"Processing for {geo_code} with {len(geo_canopy_cover_df)} records took {end_time - start_time:.2f} seconds")
