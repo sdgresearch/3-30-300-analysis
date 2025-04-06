@@ -113,3 +113,12 @@ def get_geometries(sedona, geo_level: str, geo_code: str, dissolve):
     geo_boundary_sdf.createOrReplaceTempView("geo_boundary")
 
     return geo_boundary_sdf
+
+def save_csv_as_parquet(in_directory, path_pattern, out_path):
+    
+    csv_files = list(in_directory.glob(path_pattern))
+    dataframes_lst = [pd.read_csv(file) for file in csv_files]
+    concatenated_df = pd.concat(dataframes_lst, ignore_index=True)
+    concatenated_df.to_parquet(out_path, index=False)
+
+    return concatenated_df
