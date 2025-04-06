@@ -113,7 +113,7 @@ def get_closest_park_manhattan(geo_graph: nx.MultiGraph, geo_buildings_gdf: gpd.
                     min_distance = distance
                     closest_park_access_id = park_access.id
             except Exception as e:
-                logging.error(f"Error with building/park pair: {building_node}/{park_access_node} - {e}")
+                logging.debug(f"Error with building/park pair: {building_node}/{park_access_node} - {e}")
 
         min_distance = None if min_distance == float('inf') else min_distance
 
