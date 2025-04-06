@@ -6,9 +6,11 @@ Date: 2025-04-03
 """
 
 from utils.constants import PROJECT_CRS, INPUT_DIR, OUTPUT_DIR
-from utils.paths import imd_england_2019_path, lsoa_2011_2021_lookup_path, oa_2021_lookup_path, oa_2021_boundaries_path, oa_rgn_lookup_path, population_estimates_path, os_5km_boundaries_path, green_space_path, roads_path, buildings_path
-from utils.paths import output_areas_boundaries_parquet, std_population_estimates_parquet, imd_lsoa_parquet, os_tile_boundaries_parquet, green_space_access_parquet, green_space_site_parquet, road_edges_parquet, road_nodes_parquet, buildings_parquet
-from utils.paths import vom_raster_paths_parquet, tree_vector_paths_parquet, output_areas_os_tile_overlay_parquet
+from utils.paths import imd_england_2019_path, lsoa_2011_2021_lookup_path, oa_2021_lookup_path, oa_2021_boundaries_path, oa_rgn_lookup_path 
+from utils.paths import population_estimates_path, os_5km_boundaries_path, green_space_path, roads_path, buildings_path
+from utils.paths import output_areas_boundaries_parquet, output_areas_buildings_parquet, std_population_estimates_parquet, imd_lsoa_parquet 
+from utils.paths import os_tile_boundaries_parquet, green_space_access_parquet, green_space_site_parquet, road_edges_parquet, road_nodes_parquet
+from utils.paths import buildings_parquet, vom_raster_paths_parquet, tree_vector_paths_parquet, output_areas_os_tile_overlay_parquet
 from utils.paths import T3_30_300_DIR, T3_dir, T30_dir, T300_dir, trees_dir, vom_lad_dir, vom_unzipped_dir, vom_dir, database_dir
 from utils.data_processing import translate_tile_name
 
@@ -101,6 +103,7 @@ def load_tables(sedona):
         "tree_vector_paths_df": pd.read_parquet(tree_vector_paths_parquet),
         "output_areas_boundaries_gdf": gpd.read_parquet(output_areas_boundaries_parquet),
         "output_areas_os_tile_overlay_df": pd.read_parquet(output_areas_os_tile_overlay_parquet),
+        "output_areas_buildings_overlay_df": pd.read_parquet(output_areas_buildings_parquet),
         "std_population_estimates_df": pd.read_parquet(std_population_estimates_parquet),
         "imd_lsoa_gdf": pd.read_parquet(imd_lsoa_parquet),
         "os_tile_boundaries_gdf": gpd.read_parquet(os_tile_boundaries_parquet),
@@ -194,3 +197,21 @@ def overlay_output_areas_with_os_tiles(output_areas_boundaries_gdf, os_tile_boun
 
     
     return output_areas_os_tile_overlay_df
+
+def overlay_output_areas_with_buildings(sedona, output_areas_boundaries_sdf, buildings_sdf):
+    """
+    Overlay output areas with buildings to get the matching geography for each building
+    """
+    # Perform spatial join
+    buildings_boundaries_sdf = sedona.sql(
+    """
+    SELECT b.verisk_premise_id, l.OA21CD, l.LSOA21CD, l.MSOA21CD, l.LAD22CD, l.RGN22CD
+    FROM buildings b
+    JOIN boundaries l
+    ON ST_Contains(l.geometry, b.geometry)
+    """
+    )
+    buildings_boundaries_df = buildings_boundaries_sdf.toPandas()
+    buildings_boundaries_df.drop_duplicates(subset=['verisk_premise_id', 'OA21CD'], keep='first', inplace=True)
+    
+    return buildings_boundaries_df
