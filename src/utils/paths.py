@@ -31,12 +31,15 @@ roads_path = INPUT_DIR / "OS" / "Roads" / "oproad_gb.gpkg"
 # # Verisk
 buildings_path = INPUT_DIR / "Verisk" / "Buildings_6183" / "edition_17_0_new_format.gpkg"
 
+# Google Earth Engine
+output_areas_boundaries_ee_path = "projects/ee-phd-thesis/assets/output_areas_boundaries"
 
 # OUT paths
 T3_30_300_DIR = OUTPUT_DIR / "3-30-300"
 T3_dir = T3_30_300_DIR / "T3"
 T30_dir = T3_30_300_DIR / "T30"
 T300_dir = T3_30_300_DIR / "T300"
+Spectral_dir = T3_30_300_DIR / "Spectral"
 trees_dir = T3_30_300_DIR / "VOM_Trees"
 database_dir = T3_30_300_DIR / "database"
 
