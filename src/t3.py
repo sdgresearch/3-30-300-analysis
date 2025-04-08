@@ -7,18 +7,17 @@ Date: 2025-04-03
 
 from utils.paths import T3_30_300_DIR, T3_dir
 from utils.data_processing import generate_tile_paths, get_overlapping_grid_tiles, filter_buffer_geometries, get_geometries
-
-from sedona.utils.adapter import Adapter
-from sedona.core.enums import GridType, IndexType
-from sedona.core.spatialOperator import JoinQueryRaw
+from utils.sedona_rdd import create_spatial_rdds, count_trees_rdd
 
 import time
 import logging
 import pandas as pd
 import geopandas as gpd
+from pyspark.sql.session import SparkSession
+from pyspark.sql.functions import monotonically_increasing_id
 
 # TODO: Merge process_vom_tiles with read_vom_trees_geoparquet so that it reads geopackages based on tile_level using tree_vector_paths_df
-def process_vom_tiles(sedona, trees_path_lst: list, tree_area: int=10, tree_height: int=3) -> gpd.GeoDataFrame:
+def process_vom_tiles(sedona: SparkSession, trees_path_lst: list, tree_area: int=10, tree_height: int=3) -> gpd.GeoDataFrame:
 
     logging.debug(f"Reading {len(trees_path_lst)} VOM tiles")
 
@@ -42,19 +41,18 @@ def process_vom_tiles(sedona, trees_path_lst: list, tree_area: int=10, tree_heig
 
     return geo_trees_gdf
 
-def create_spatial_rdds(geo_buildings_buffer_sdf, geo_trees_sdf):
+# TODO: Figure out how to integrate the creation of the VOM_Trees geoparquet with the new version of the code
+def read_vom_trees_geoparquet(sedona, overlapping_tiles_lst):
 
-    logging.debug("Creating Spatial RDDs for buildings and trees")
+    vom_trees_dir = T3_30_300_DIR / "VOM_Trees_geoparquet"
+    vom_trees_paths = [str(path) for path in vom_trees_dir.glob("*.geoparquet") if any(tile_name in path.name for tile_name in overlapping_tiles_lst)]
+    geo_trees_sdf = sedona.read.format("geoparquet").load(vom_trees_paths)
 
-    geo_buildings_buffer_rdd  = Adapter.toSpatialRdd(geo_buildings_buffer_sdf, 'geometry')
-    geo_trees_rdd = Adapter.toSpatialRdd(geo_trees_sdf, 'geometry')
-    
-    geo_buildings_buffer_rdd.analyze()
-    geo_trees_rdd.analyze()
+    geo_trees_sdf.withColumn("treeID", monotonically_increasing_id()).createOrReplaceTempView("geo_trees")
 
-    return geo_buildings_buffer_rdd, geo_trees_rdd
+    return geo_trees_sdf
 
-def count_trees(sedona, geo_code: str) -> pd.DataFrame:
+def count_trees(sedona: SparkSession, geo_code: str) -> pd.DataFrame:
 
     logging.debug(f"Counting trees for each building in {geo_code}")
 
@@ -71,35 +69,7 @@ def count_trees(sedona, geo_code: str) -> pd.DataFrame:
 
     return geo_tree_count_df
 
-def count_trees_rdd(sedona, geo_buildings_buffer_rdd, geo_trees_rdd, buffer, build_on_spatial_partitioned_rdd = True, using_index = True):
-
-    logging.debug("Counting trees for each building using RDD")
-
-    geo_trees_rdd.spatialPartitioning(GridType.KDBTREE)
-    geo_buildings_buffer_rdd.spatialPartitioning(geo_trees_rdd.getPartitioner())
-    
-    geo_buildings_buffer_rdd.buildIndex(IndexType.QUADTREE, build_on_spatial_partitioned_rdd)
-
-    query_result = JoinQueryRaw.SpatialJoinQueryFlat(geo_trees_rdd, geo_buildings_buffer_rdd, using_index, True)
-
-    query_result_sdf = Adapter.toDf(query_result, ["verisk_premise_id"], ["treeID"], sedona)
-
-    query_result_df = query_result_sdf.toPandas().sort_values(by='verisk_premise_id')
-
-    geo_tree_count_df = query_result_df.groupby('verisk_premise_id').size().reset_index(name=f'tree_count_{buffer}m')
-
-    return geo_tree_count_df
-
-def read_vom_trees_geoparquet(sedona, overlapping_tiles_lst):
-
-    vom_trees_dir = T3_30_300_DIR / "VOM_Trees_geoparquet"
-    vom_trees_paths = [str(path) for path in vom_trees_dir.glob("*.geoparquet") if any(tile_name in path.name for tile_name in overlapping_tiles_lst)]
-    geo_trees_sdf = sedona.read.format("geoparquet").load(vom_trees_paths)
-    geo_trees_sdf.createOrReplaceTempView("geo_trees")
-
-    return geo_trees_sdf
-
-def process_geo_code(sedona, query_method: str, geo_level: str, geo_code: str, tile_level: str,
+def process_geo_code(sedona: SparkSession, query_method: str, geo_level: str, geo_code: str, tile_level: str,
                      output_areas_boundaries_gdf: gpd.GeoDataFrame, os_tile_boundaries_gdf: gpd.GeoDataFrame,
                      output_areas_os_tile_overlay_df: pd.DataFrame, vom_raster_paths_df: pd.DataFrame, 
                      tree_vector_paths_df: pd.DataFrame, buffer: int=100, tree_area: int=10, 
@@ -131,11 +101,12 @@ def process_geo_code(sedona, query_method: str, geo_level: str, geo_code: str, t
                 logging.debug("Executing query using Spatial RDD")
                 
                 geo_trees_sdf = read_vom_trees_geoparquet(sedona, overlapping_tiles_lst)
-                geo_buildings_buffer_rdd, geo_trees_rdd = create_spatial_rdds(geo_buildings_buffer_sdf, geo_trees_sdf)
-                geo_tree_count_df = count_trees_rdd(sedona, geo_buildings_buffer_rdd, geo_trees_rdd, buffer, build_on_spatial_partitioned_rdd = True, using_index = True)
-
+                geo_buildings_buffer_rdd, geo_trees_rdd = create_spatial_rdds(geo_buildings_buffer_sdf, geo_trees_sdf, build_on_spatial_partitioned_rdd = True)
+                geo_tree_count_df = count_trees_rdd(sedona, geo_buildings_buffer_rdd, geo_trees_rdd, 'verisk_premise_id', using_index = True)
+                geo_tree_count_df.rename(columns={'tree_count': f'tree_count_{buffer}m'}, inplace=True)
+            
             geo_tree_count_df.to_csv(geo_tree_count_path, index=False)
-
+            
             end_time = time.time()
             logging.info(f"Processing for {geo_code} with {len(geo_tree_count_df)} records took {end_time - start_time:.2f} seconds")
 
