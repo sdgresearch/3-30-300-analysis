@@ -11,7 +11,7 @@ from utils.paths import population_estimates_path, os_5km_boundaries_path, green
 from utils.paths import output_areas_boundaries_parquet, output_areas_buildings_parquet, std_population_estimates_parquet, imd_lsoa_parquet 
 from utils.paths import os_tile_boundaries_parquet, green_space_access_parquet, green_space_site_parquet, road_edges_parquet, road_nodes_parquet
 from utils.paths import buildings_parquet, vom_raster_paths_parquet, tree_vector_paths_parquet, output_areas_os_tile_overlay_parquet
-from utils.paths import T3_30_300_DIR, T3_dir, T30_dir, T300_dir, trees_dir, vom_lad_dir, vom_unzipped_dir, vom_dir, database_dir
+from utils.paths import T3_30_300_DIR, T3_dir, T30_dir, T300_dir, trees_dir, Spectral_dir, vom_unzipped_dir, vom_dir, database_dir
 from utils.data_processing import translate_tile_name
 
 import logging
@@ -86,8 +86,8 @@ def create_in_out_folders():
     T3_dir.mkdir(parents=True, exist_ok=True)
     T30_dir.mkdir(parents=True, exist_ok=True)
     T300_dir.mkdir(parents=True, exist_ok=True)
+    Spectral_dir.mkdir(parents=True, exist_ok=True)
     trees_dir.mkdir(parents=True, exist_ok=True)
-    vom_lad_dir.mkdir(parents=True, exist_ok=True)
     vom_unzipped_dir.mkdir(parents=True, exist_ok=True)
     vom_dir.mkdir(parents=True, exist_ok=True)
     database_dir.mkdir(parents=True, exist_ok=True)
