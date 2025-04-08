@@ -9,9 +9,7 @@ from utils.constants import INPUT_DIR, OUTPUT_DIR
 
 # IN paths
 vom_dir = INPUT_DIR / "Defra" / "VOM"
-vom_lad_dir = vom_dir / "LADs"
 vom_unzipped_dir = vom_dir / "unzipped_tiles"
-chm_lad_tiles_path = vom_lad_dir / "LAD_CHM_tiles_paths.json"
 
 # # CDRC
 imd_england_2019_path = INPUT_DIR / "CDRC" / "IMD" / "English IMD 2019" / "IMD_2019.shp"
