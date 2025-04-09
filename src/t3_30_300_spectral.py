@@ -1,0 +1,114 @@
+
+from utils.paths import database_dir, t30_parquet, t300_parquet, spectral_parquet
+
+import logging
+
+def read_parquet_files(sedona, t3_buffer_lst):
+
+    sdf_dict = {}
+
+    t30_sdf = sedona.read.format("parquet").load(str(t30_parquet))
+    t30_sdf.createOrReplaceTempView("t30")
+    t300_sdf = sedona.read.format("parquet").load(str(t300_parquet))
+    t300_sdf.createOrReplaceTempView("t300")
+    spectral_sdf = sedona.read.format("parquet").load(str(spectral_parquet))
+    spectral_sdf.createOrReplaceTempView("spectral")
+
+    sdf_dict["t30"] = t30_sdf
+    sdf_dict["t300"] = t300_sdf
+    sdf_dict["spectral"] = spectral_sdf
+
+    for buffer in t3_buffer_lst:
+        t3_buffer_parquet = database_dir / f"T3_{buffer}m.parquet"
+        t3_sdf = sedona.read.format("parquet").load(str(t3_buffer_parquet))
+
+        t3_sdf.createOrReplaceTempView(f"t3_{buffer}m")
+        sdf_dict[f"t3_{buffer}m"] = t3_sdf
+
+    return sdf_dict
+
+def aggregate_t30(sedona, geo_level):
+
+    t30_agg_sdf = sedona.sql(f"""
+    SELECT {geo_level},
+    ROUND(SUM(canopy_cover * total_pixels) / SUM(total_pixels), 2) AS canopy_cover
+    FROM t30 
+    GROUP BY {geo_level}
+    """)
+
+    t30_agg_sdf.createOrReplaceTempView("t30_agg")
+
+    return t30_agg_sdf
+
+def merge_t30_and_spectral(sedona, geo_level):
+
+    logging.debug("Merging T30 and spectral index dataframes")
+
+    t30_spectral_sdf = sedona.sql(f"""
+    SELECT s.*, t30_agg.canopy_cover
+    FROM t30_agg
+    RIGHT JOIN spectral s ON t30_agg.{geo_level} = s.{geo_level}
+    """)
+    t30_spectral_sdf.createOrReplaceTempView("t30_spectral")
+    
+    return t30_spectral_sdf
+
+def merge_t3_and_t300(sedona, t3_buffer_lst):
+
+    logging.debug("Merging T3 and T300 dataframes")
+
+    sql_parts = [f"""SELECT t300.*, 
+                 {', '.join([f"t3_{buffer}m.tree_count_{buffer}m" for buffer in t3_buffer_lst])}
+                 FROM t300"""]
+
+    # Add all JOINs
+    for buffer in t3_buffer_lst:
+        sql_parts.append(f"""
+        FULL JOIN t3_{buffer}m
+        ON t300.verisk_premise_id = t3_{buffer}m.verisk_premise_id
+        """)
+
+    # Join everything into a single SQL string
+    final_query = "\n".join(sql_parts)
+    t3_300_sdf = sedona.sql(final_query)
+    t3_300_sdf.createOrReplaceTempView("t3_300")
+
+    return t3_300_sdf
+
+def aggregate_t3_300_by_boundaries(sedona, geo_level, t3_buffer_lst):
+
+    t3_300_boundaries_sdf = sedona.sql(f"""
+    SELECT DISTINCT bbo.{geo_level}, t3_300.*, b.distance_water FROM t3_300
+    LEFT JOIN boundaries_buildings_overlay bbo ON t3_300.verisk_premise_id = bbo.verisk_premise_id
+    LEFT JOIN buildings b ON bbo.verisk_premise_id = b.verisk_premise_id
+    """)
+    t3_300_boundaries_sdf.createOrReplaceTempView("t3_300_boundaries")
+
+    t3_300_agg_sdf = sedona.sql(f"""
+    SELECT {geo_level}, {', '.join([f"ROUND(AVG(tree_count_{buffer}m), 2) as tree_count_{buffer}m" for buffer in t3_buffer_lst])},
+    ROUND(AVG(distance_manhattan), 2) as park_distance_manhattan, ROUND(AVG(distance_euclidean), 2) as park_distance_euclidean, 
+    ROUND(AVG(distance_water), 2) as water_distance
+    FROM t3_300_boundaries
+    GROUP BY {geo_level}
+    """)
+
+    t3_300_agg_sdf.createOrReplaceTempView("t3_300_agg")
+
+    return t3_300_agg_sdf
+
+def merge_t3_30_300_spectral(sedona, geo_level):
+
+    logging.debug("Merging T3, T30, T300, Spectral dataframes")
+
+    t3_30_300_spectral_sdf = sedona.sql(f"""
+    SELECT t3_300_agg.*, ts.canopy_cover, ROUND(ts.NDBI, 2) as NDBI, ROUND(ts.NDVI, 2) as NDVI, ROUND(ts.NDWI, 2) as NDWI
+    FROM t3_300_agg
+    JOIN t30_spectral ts ON t3_300_agg.{geo_level} = ts.{geo_level}
+    """)
+    t3_30_300_spectral_sdf.createOrReplaceTempView("t3_30_300_spectral")
+
+    return t3_30_300_spectral_sdf
+
+
+
+    
