@@ -1,14 +1,21 @@
 
 # Packages ----------------------------------------------------------------
 
-library(tidyverse)
+library(dplyr)
+library(tidyr)
+library(readr)
+library(ggplot2)
+library(sparklyr)
 library(sf)
 library(patchwork)
 library(ggbump)
 library(BBmisc)
 library(esquisse)
 
-source("scripts/constants.R")
+source("R/utils/constants.R")
+source("R/utils/paths.R")
+
+sc <- spark_connect(master = "local")
 
 # Paths -------------------------------------------------------------------
 
@@ -17,12 +24,13 @@ t3_30_300_path <-  here(T3_30_300_DIR, "T3_30_300.geojson")
 
 lsoa_to_bua_path <- here(TABULAR_IN_DIR, "ONS", "LSOA_(2021)_to_Built_Up_Area_to_Local_Authority_District_to_Region_(December_2022)_Lookup_in_England_and_Wales_v2.csv")
 lad_to_bua_path <- here(VECTOR_IN_DIR, "ONS", "Local_Authority_Districts_December_2022_UK_BUC_V2_-1856850221694639751.geojson")
+lsoa_urban_path <- here(VECTOR_IN_DIR, "ONS", "Rural_Urban_Classification_(2021)_of_LSOAs_in_EW.csv")
 
 # Variables ---------------------------------------------------------------
 
 t3_30_300_vars <- list('3' = list('plot_label' = '3 \nTree Count',
                                   'number' = 3, 'variable' = 'tree_count',
-                                  'breaks' = c(1, 3, 10, 100, 500, 2000)),
+                                  'breaks' = c(1, 3, 10, 50, 100, 200)),
                        '30' = list('plot_label' = '30 \nCanopy Cover (%)',
                                    'number' = 30, 'variable' = 'canopy_cover',
                                    'breaks' = c(1, 5, 10, 30, 60)),
@@ -43,26 +51,36 @@ plot_theme <- theme_bw(base_size = 12, base_family = "Helvetica") +
 
 # Processing --------------------------------------------------------------
 
+lsoa_to_bua_df <- read_csv(lsoa_to_bua_path)
+lad_to_bua_gdf <- read_sf(lad_to_bua_path)
+lsoa_urban_df <- read_csv(lsoa_urban_path)
+
 lsoa_2021_df <- lad_to_bua_gdf |>
     full_join(lsoa_to_bua_df, by = c('LAD22CD', 'LAD22NM')) |> 
     select(LSOA21CD, LSOA21NM, LAD22CD, LAD22NM, BUA22CD, BUA22NM, RGN22CD, RGN22NM, geometry) |> 
     filter(RGN22CD != 'W92000004') |> 
-    st_drop_geometry()
+    st_drop_geometry() |> 
+    inner_join(lsoa_urban_df |> 
+                  select(LSOA21CD, Urban_rural_flag), by = 'LSOA21CD')
 
 t3_30_300_gdf <- read_sf(t3_30_300_path) |> 
     # filter(RGN22CD != 'E12000007') |> # London = E12000007
-    select(-c("TotPop", "DepChi", "Pop16_59", "Pop60+", "WorkPop", LSOA21NM:RGN22NM)) |> 
+    select(-c(LSOA21NM:RGN22NM)) |> 
     left_join(lsoa_2021_df, by = 'LSOA21CD') |> 
-    mutate(
-           park_distance = if_else(park_distance == -99, NA, park_distance),
+    mutate(NDVI_diff = NDVI_2024 - NDVI_2016,
+           NDBI_diff = NDBI_2024 - NDBI_2016,
+           NDWI_diff = NDWI_2024 - NDWI_2016,
            IMD_Decile = as_factor(IMD_Decile),
+           Pop_density = Total / (area / 1e6),
+           tree_person_ratio = total_trees / Total,
            across(ends_with('Dec'), as_factor, .names = "{.col}"),
            RGN22NM = fct_relevel(RGN22NM, c('North West', 'North East',
                                             'Yorkshire and The Humber',
                                             'West Midlands', 'East Midlands',
                                             'East of England', 'South West',
                                             'South East', 'London', NA))) |> 
-    distinct(LSOA11CD, .keep_all = T)
+    distinct(LSOA11CD, .keep_all = T) |>
+    arrange(RGN22CD, LAD22CD, LSOA11CD)
 
 t3_30_300_gdf |> write_sf(here(T3_30_300_DIR, "T3_30_300_cleaned.geojson"))
 
@@ -81,11 +99,11 @@ population_metric <- 'Total'
 imd_metric <- 'IMDScore'
 
 # Run for interactive plotting
-# esquisser()
+esquisser(t3_30_300_gdf)
 
 # Box Plots ---------------------------------------------------------------
 
-plot_boxplots_3_30_300 <- function(green_metric, plot_legend = T, x_axis = T) {
+plot_boxplots_3_30_300 <- function(t3_30_300_gdf, green_metric, plot_legend = T, x_axis = T, facet = T) {
     
     res_plot <- t3_30_300_gdf |> 
         filter(!is.na(RGN22NM)) |> 
@@ -109,6 +127,10 @@ plot_boxplots_3_30_300 <- function(green_metric, plot_legend = T, x_axis = T) {
             axis.title.x = element_blank()
             )
     
+    # if (facet) {
+    #     res_plot <- res_plot + facet_wrap(~Urban_rural_flag, scales = 'free_x')
+    # }
+    
     if (!x_axis) {
         res_plot <- res_plot +
             theme(
@@ -122,12 +144,13 @@ plot_boxplots_3_30_300 <- function(green_metric, plot_legend = T, x_axis = T) {
                 axis.ticks.x = element_line(linewidth = 0.5)
             )
     }
+    
         return(res_plot)
 }
 
-t3_region_boxplots <- plot_boxplots_3_30_300('3', plot_legend = T, x_axis = F)
-t30_region_boxplots <- plot_boxplots_3_30_300('30', plot_legend = F, x_axis = F)
-t300_region_boxplots <- plot_boxplots_3_30_300('300', plot_legend = F, x_axis = T)
+t3_region_boxplots <- plot_boxplots_3_30_300(t3_30_300_gdf, '3', plot_legend = T, x_axis = F)
+t30_region_boxplots <- plot_boxplots_3_30_300(t3_30_300_gdf, '30', plot_legend = F, x_axis = F)
+t300_region_boxplots <- plot_boxplots_3_30_300(t3_30_300_gdf, '300', plot_legend = F, x_axis = T)
 
 (t3_30_300_region_boxplots <- t3_region_boxplots / t30_region_boxplots / t300_region_boxplots)
 
@@ -135,9 +158,6 @@ ggsave("images/t3_30_300_region_boxplots.png", t3_30_300_region_boxplots,
        width = 180, height = 170, units = 'mm', dpi = 300)
 
 # Rank Map ----------------------------------------------------------------
-
-lsoa_to_bua_df <- read_csv(lsoa_to_bua_path)
-lad_to_bua_gdf <- read_sf(lad_to_bua_path)
 
 rgn22_gdf <- lad_to_bua_gdf |> 
     left_join(lsoa_to_bua_df |> 
