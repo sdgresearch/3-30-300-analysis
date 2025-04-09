@@ -15,6 +15,7 @@ from t3 import process_geo_code as process_geo_code_t3
 from t30 import process_geo_code as process_geo_code_t30
 from t300 import process_geo_code as process_geo_code_t300
 from spectral import process_geo_code as process_geo_code_spectral
+from tree_count import process_geo_code as process_geo_code_tree_count
 
 import argparse
 import logging
@@ -31,7 +32,8 @@ def main(process, args_dict, geo_code):
         "T3": list(inspect.signature(process_geo_code_t3).parameters.keys()),
         "T30": list(inspect.signature(process_geo_code_t30).parameters.keys()),
         "T300": list(inspect.signature(process_geo_code_t300).parameters.keys()),
-        "Spectral": list(inspect.signature(process_geo_code_spectral).parameters.keys())
+        "Spectral": list(inspect.signature(process_geo_code_spectral).parameters.keys()),
+        "Tree_count": list(inspect.signature(process_geo_code_tree_count).parameters.keys())
     }
 
     # Filter only required arguments
@@ -44,12 +46,13 @@ def main(process, args_dict, geo_code):
         case "T30": return process_geo_code_t30(**filtered_args)
         case "T300": return process_geo_code_t300(**filtered_args)
         case "Spectral": return process_geo_code_spectral(**filtered_args)
+        case "Tree_count": return process_geo_code_tree_count(**filtered_args)
         case _: raise ValueError(f"Unknown process: {process}")       
 
 if __name__ == "__main__":                     
 
     parser = argparse.ArgumentParser(description='This script executes the module to calculate the 3-30-300 metric and spectral indexes for all of England.')
-    parser.add_argument('--process', type=str, required=True, choices=['T3', 'T30', 'T300', 'Spectral'], help='Name of the component of the module to run')
+    parser.add_argument('--process', type=str, required=True, choices=['T3', 'T30', 'T300', 'Spectral', 'Tree_count'], help='Name of the component of the module to run')
     parser.add_argument('--geo_level', type=str, required=False, default='LAD22CD', help='Name/Code of the desired geography')
     parser.add_argument('--geo_code', type=str, required=False, help='Geographical variable name')
     parser.add_argument('--tile_level', type=str, required=False, default='TILE_NAME_50KM', help='Name/Code of the desired geography')
@@ -82,7 +85,7 @@ if __name__ == "__main__":
     args_dict['sedona'] = sedona
     args_dict.update(tables)
 
-    output_path = database_dir / f"{process}.parquet" if process in ['T30', 'T300', 'Spectral'] else database_dir / f"{process}_{args_dict['buffer']}m.parquet"
+    output_path = database_dir / f"{process}.parquet" if process in ['T30', 'T300', 'Spectral', 'Tree_count'] else database_dir / f"{process}_{args_dict['buffer']}m.parquet"
 
     if process == 'Spectral':
         from spectral import setup_gee
