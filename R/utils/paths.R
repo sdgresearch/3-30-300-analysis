@@ -1,0 +1,29 @@
+library(here)
+
+source("R/utils/constants.R")
+
+# OUT paths
+T3_30_300_DIR <- here(OUTPUT_DIR, "3-30-300")
+trees_dir <- here(T3_30_300_DIR, "VOM_Trees")
+database_dir <- here(T3_30_300_DIR, "database")
+
+## Parquet files
+vom_raster_paths_parquet <- here(database_dir, "vom_raster_paths.parquet")
+tree_vector_paths_parquet <- here(database_dir, "tree_vector_paths.parquet")
+os_tile_boundaries_parquet <- here(database_dir, "os_tile_boundaries.parquet")
+output_areas_boundaries_parquet <- here(database_dir, "output_areas_boundaries.parquet")
+output_areas_os_tile_overlay_parquet <- here(database_dir, "output_areas_os_tile_overlay.parquet")
+output_areas_buildings_parquet <- here(database_dir, "output_areas_buildings.parquet")
+imd_lsoa_parquet <- here(database_dir, "imd_england_2019.parquet")
+std_population_estimates_parquet <- here(database_dir, "population_estimates.parquet")
+green_space_access_parquet <- here(database_dir, "green_space_access.parquet")
+green_space_site_parquet <- here(database_dir, "green_space_site.parquet")
+road_edges_parquet <- here(database_dir, "road_edges.parquet")
+road_nodes_parquet <- here(database_dir, "road_nodes.parquet")
+buildings_parquet <- here(database_dir, "verisk_buildings.parquet")
+t30_parquet <- here(database_dir, "T30.parquet")
+t300_parquet <- here(database_dir, "T300.parquet")
+spectral_parquet <- here(database_dir, "Spectral.parquet")
+tree_count_parquet <- here(database_dir, "Tree_count.parquet")
+t3_30_300_spectral_parquet <- here(database_dir, "T3_30_300_spectral.parquet")
+imd_lsoa_bua_boundaries_path <- here(OUTPUT_DIR, "IMD", "English_IMD_2019_BUA_filtered_boundaries.geojson")
