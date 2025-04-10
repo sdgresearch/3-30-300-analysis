@@ -3,6 +3,8 @@ from utils.paths import tree_count_dir
 from utils.constants import PROJECT_CRS
 from utils.sedona_rdd import create_spatial_rdds, count_trees_rdd
 
+import glob
+import shutil
 import time
 import logging
 import pandas as pd
@@ -50,10 +52,27 @@ def process_geo_code(sedona, geo_level, sub_geo_level, geo_code,
             sub_geo_code_rdd, geo_trees_rdd = create_spatial_rdds(sub_geo_code_sdf, geo_trees_sdf, build_on_spatial_partitioned_rdd = True)
             geo_tree_count_df = count_trees_rdd(sedona, sub_geo_code_rdd, geo_trees_rdd, sub_geo_level, using_index = True)
 
-            geo_tree_count_df.to_csv(geo_tree_count_path, index=False)
+            # geo_tree_count_df.to_csv(geo_tree_count_path, index=False)
+            # Create a temp output folder (Spark writes here)
+            temp_dir = tree_count_dir / f"_temp_tree_count"
+
+            geo_tree_count_df.coalesce(1) \
+                .write \
+                .option("header", True) \
+                .mode("overwrite") \
+                .csv(str(temp_dir))
+            
+            # Step 2: Find the part file Spark wrote
+            part_file = glob.glob(str(temp_dir / "part-*.csv"))[0]
+
+            # Step 3: Move and rename it to your target file
+            shutil.move(part_file, str(geo_tree_count_path))
+
+            # Step 4: Clean up temp folder
+            shutil.rmtree(temp_dir)
                 
             end_time = time.time()
-            logging.info(f"Processing for {geo_code} with {len(geo_tree_count_df)} records took {end_time - start_time:.2f} seconds")
+            # logging.info(f"Processing for {geo_code} with {len(geo_tree_count_df)} records took {end_time - start_time:.2f} seconds")
 
             return geo_tree_count_df
 
