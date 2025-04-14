@@ -18,10 +18,6 @@ library(esquisse)
 source("R/utils/constants.R")
 source("R/utils/paths.R")
 
-# Paths -------------------------------------------------------------------
-
-
-
 # Variables ---------------------------------------------------------------
 
 t3_30_300_vars <- list('3' = list('plot_label' = '3 \nTree Count',
@@ -54,6 +50,9 @@ output_areas_boundaries_gdf <- open_dataset(output_areas_boundaries_parquet) |>
     st_as_sf()
 imd_lsoa_df <- read_parquet(imd_lsoa_parquet)
 std_population_estimates_df <- read_parquet(std_population_estimates_parquet)
+tree_count_df <- read_parquet(tree_count_parquet)
+t3_300_df <- read_parquet(here(database_dir, "t3_300.parquet"))
+output_areas_buildings_df <- read_parquet(output_areas_buildings_parquet)
 
 t3_30_300_boundaries_gdf <- output_areas_boundaries_gdf |> 
     group_by(!!sym(geo_level)) |> 
@@ -63,7 +62,20 @@ t3_30_300_boundaries_gdf <- output_areas_boundaries_gdf |>
 imd_population_df <- imd_lsoa_df |>  
     left_join(std_population_estimates_df, by = 'LSOA11CD')
 
+tree_count_gini_df <- tree_count_df |> 
+    left_join(output_areas_boundaries_gdf |> st_drop_geometry(), by = 'OA21CD') |> 
+    group_by(!!sym(geo_level)) |>
+    summarise(total_trees_gini = Gini(tree_count, na.rm = T), .groups = 'drop')
+
+t3_300_gini_df <- t3_300_df |> 
+    left_join(output_areas_buildings_df, by = 'verisk_premise_id') |>
+    group_by(!!sym(geo_level)) |>
+    summarise(across(starts_with('tree_count'), ~Gini(.x, na.rm = T), .names = '{.col}_gini'),
+              across(starts_with('distance'), ~Gini(.x, na.rm = T), .names = '{.col}_gini'), .groups = 'drop')
+
 t3_30_300_gdf <- t3_30_300_boundaries_gdf |> 
+    full_join(tree_count_gini_df, by = geo_level) |>
+    full_join(t3_300_gini_df, by = geo_level) |>
     right_join(imd_population_df, by = geo_level) |> 
     mutate(IMD_Decile = as_factor(IMD_Decile),
            Pop_density = total_pop / (area / 1e6),
@@ -83,7 +95,6 @@ t3_30_300_gdf <- t3_30_300_boundaries_gdf |>
     arrange(RGN22CD, LAD22CD, LSOA11CD) |> 
     filter(!is.na(IMD_Decile))
 
-
 t3_30_300_long_df <- t3_30_300_gdf |> 
     st_drop_geometry() |> 
     select(LSOA21CD, #area, total_pop, total_trees, 
@@ -101,7 +112,7 @@ population_metric <- 'Total'
 imd_metric <- 'IMDScore'
 
 # Run for interactive plotting
-esquisser(t3_30_300_gdf)
+# esquisser(t3_30_300_gdf)
 
 # Box Plots ---------------------------------------------------------------
 
@@ -560,3 +571,20 @@ for (i in seq_along(scatter_vars)) {
 
 ggsave("images/t3_30_300_scatter_plots.png", t3_30_300_scatter_plots, 
        width = 180, height = 180, units = 'mm', dpi = 300)
+
+# Gini Coefficient --------------------------------------------------------
+
+t3_30_300_gdf |> 
+    ggplot(aes(x = distance_manhattan_gini, y = tree_count_25m_gini, colour = EnvDec)) + 
+    geom_point(alpha = .5) + 
+    scale_colour_brewer(palette = "RdYlBu", direction = 1) + 
+    facet_wrap(~RGN22NM) + plot_theme
+
+t3_30_300_gdf |> 
+    filter(RGN22NM == 'London') |> 
+    ggplot() +
+    aes(fill = total_trees_gini) +
+    geom_sf() +
+    scale_fill_distiller(palette = "PiYG", direction = -1) +
+    plot_theme
+
