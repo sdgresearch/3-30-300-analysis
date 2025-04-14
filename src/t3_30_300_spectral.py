@@ -153,7 +153,11 @@ def process_data(sedona, geo_level, sub_geo_level, t3_buffer_lst):
 
     t3_30_300_spectral_df = t3_30_300_spectral_sdf.toPandas()
 
-    t3_30_300_spectral_df.to_parquet(t3_30_300_spectral_parquet, index=False)
+    columns = [geo_level, 'total_trees'] + [f'tree_count_{buffer}m' for buffer in t3_buffer_lst] + ['canopy_cover', 'park_distance_manhattan', 
+                                                                                                    'park_distance_euclidean', 'water_distance', 
+                                                                                                    'NDBI', 'NDVI', 'NDWI']
+
+    t3_30_300_spectral_df[columns].to_parquet(t3_30_300_spectral_parquet, index=False)
 
     logging.info("Data processing pipeline completed")
 
