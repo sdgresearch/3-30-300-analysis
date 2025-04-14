@@ -11,6 +11,7 @@ from utils.data_processing import generate_tile_paths, get_geometries
 
 import time
 import logging
+import numpy as np
 import pandas as pd
 import geopandas as gpd
 import xarray as xr
@@ -68,7 +69,8 @@ def get_canopy_cover(subgeo_filt_gdf: gpd.GeoDataFrame, binary_merged_chm_xr: xr
     zs_categorical = zonal_stats(subgeo_filt_gdf, binary_merged_chm_xr[0].values, 
                                 affine=binary_merged_chm_xr.rio.transform(), categorical=True)
 
-    subgeo_filt_gdf['canopy_cover'] = [round(100 * z.get(1, 0) / (z.get(0, 0) + z.get(1, 0)), 3) for z in zs_categorical]
+    # subgeo_filt_gdf['canopy_cover'] = [round(100 * z.get(1, 0) / (z.get(0, 0) + z.get(1, 0)), 3) for z in zs_categorical]
+    subgeo_filt_gdf['canopy_cover'] = [round(100 * z.get(1, 0) / sum(z.values()), 3) if z else np.nan for z in zs_categorical]
     subgeo_filt_gdf['total_pixels'] = [z.get(0, 0) + z.get(1, 0) for z in zs_categorical]
 
     geo_canopy_cover_df = subgeo_filt_gdf.copy()
