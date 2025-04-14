@@ -1,5 +1,5 @@
 
-from utils.paths import database_dir, t30_parquet, t300_parquet, spectral_parquet
+from utils.paths import database_dir, t30_parquet, t300_parquet, spectral_parquet, tree_count_parquet, t3_30_300_spectral_parquet
 
 import logging
 
@@ -13,10 +13,13 @@ def read_parquet_files(sedona, t3_buffer_lst):
     t300_sdf.createOrReplaceTempView("t300")
     spectral_sdf = sedona.read.format("parquet").load(str(spectral_parquet))
     spectral_sdf.createOrReplaceTempView("spectral")
+    tree_count_sdf = sedona.read.format("parquet").load(str(tree_count_parquet))
+    tree_count_sdf.createOrReplaceTempView("tree_count")
 
     sdf_dict["t30"] = t30_sdf
     sdf_dict["t300"] = t300_sdf
     sdf_dict["spectral"] = spectral_sdf
+    sdf_dict["tree_count"] = tree_count_sdf
 
     for buffer in t3_buffer_lst:
         t3_buffer_parquet = database_dir / f"T3_{buffer}m.parquet"
@@ -39,6 +42,19 @@ def aggregate_t30(sedona, geo_level):
     t30_agg_sdf.createOrReplaceTempView("t30_agg")
 
     return t30_agg_sdf
+
+def aggregate_tree_count(sedona, geo_level, sub_geo_level):
+
+    tree_count_agg_sdf = sedona.sql(f"""
+    SELECT b.{geo_level}, SUM(t.tree_count) AS total_trees
+    FROM tree_count t
+    LEFT JOIN boundaries b ON t.{sub_geo_level} = b.{sub_geo_level}
+    GROUP BY {geo_level}
+    """)
+
+    tree_count_agg_sdf.createOrReplaceTempView("tree_count_agg")
+
+    return tree_count_agg_sdf
 
 def merge_t30_and_spectral(sedona, geo_level):
 
@@ -96,19 +112,49 @@ def aggregate_t3_300_by_boundaries(sedona, geo_level, t3_buffer_lst):
 
     return t3_300_agg_sdf
 
-def merge_t3_30_300_spectral(sedona, geo_level):
+def merge_all(sedona, geo_level):
 
     logging.debug("Merging T3, T30, T300, Spectral dataframes")
 
     t3_30_300_spectral_sdf = sedona.sql(f"""
-    SELECT t3_300_agg.*, ts.canopy_cover, ROUND(ts.NDBI, 2) as NDBI, ROUND(ts.NDVI, 2) as NDVI, ROUND(ts.NDWI, 2) as NDWI
+    SELECT t3_300_agg.*, ts.canopy_cover, ROUND(ts.NDBI, 2) as NDBI, ROUND(ts.NDVI, 2) as NDVI, ROUND(ts.NDWI, 2) as NDWI, tca.total_trees
     FROM t3_300_agg
     JOIN t30_spectral ts ON t3_300_agg.{geo_level} = ts.{geo_level}
+    JOIN tree_count_agg tca ON t3_300_agg.{geo_level} = tca.{geo_level}
     """)
     t3_30_300_spectral_sdf.createOrReplaceTempView("t3_30_300_spectral")
 
     return t3_30_300_spectral_sdf
 
 
+def process_data(sedona, geo_level, sub_geo_level, t3_buffer_lst):
+    logging.info("Starting data processing pipeline")
 
-    
+    # Step 1: Read parquet files
+    sdf_dict = read_parquet_files(sedona, t3_buffer_lst)
+
+    # Step 2: Aggregate T30 data
+    t30_agg_sdf = aggregate_t30(sedona, geo_level)
+
+    # Step 3: Aggregate tree count data
+    tree_count_agg_sdf = aggregate_tree_count(sedona, geo_level, sub_geo_level)
+
+    # Step 4: Merge T30 and spectral data
+    t30_spectral_sdf = merge_t30_and_spectral(sedona, geo_level)
+
+    # Step 5: Merge T3 and T300 data
+    t3_300_sdf = merge_t3_and_t300(sedona, t3_buffer_lst)
+
+    # Step 6: Aggregate T3 and T300 data by boundaries
+    t3_300_agg_sdf = aggregate_t3_300_by_boundaries(sedona, geo_level, t3_buffer_lst)
+
+    # Step 7: Merge all dataframes into the final result
+    t3_30_300_spectral_sdf = merge_all(sedona, geo_level)
+
+    t3_30_300_spectral_df = t3_30_300_spectral_sdf.toPandas()
+
+    t3_30_300_spectral_df.to_parquet(t3_30_300_spectral_parquet, index=False)
+
+    logging.info("Data processing pipeline completed")
+
+    return t3_30_300_spectral_df
