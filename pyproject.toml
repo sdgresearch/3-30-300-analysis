@@ -1,40 +1,25 @@
-[tool.poetry]
+[project]
 name = "3-30-300-analysis"
 version = "0.1.0"
-description = ""
-authors = ["Andrés Camilo Zúñiga-González <ancazugo@hotmail.com>"]
+description = "Add your description here"
 readme = "README.md"
-
-[tool.poetry.dependencies]
-python = "^3.10"
-apache-sedona = {extras = ["spark"], version = "^1.7.0"}
-geopandas = "^1.0.1"
-rioxarray = "^0.18.1"
-python-dotenv = "^1.0.1"
-osmnx = "^2.0.0"
-tqdm = "^4.67.1"
-gdal = "3.10.0"
-pyspark = "^3.5.3"
-ipykernel = "^6.29.5"
-cartopy = "^0.24.1"
-scipy = "^1.14.1"
-pyarrow = "^18.1.0"
-rasterstats = "^0.20.0"
-install-jdk = "^1.1.0"
-earthengine-api = "^1.4.3"
-geemap = "^0.35.1"
-eemont = "^0.3.6"
-spyndex = "^0.6.0"
-
-
-[tool.poetry.group.dev.dependencies]
-pipdeptree = "^2.26.0"
-graphviz = "^0.20.3"
-pydeps = "^3.0.1"
-ruff = "^0.11.4"
-pylint = "^3.3.6"
-pyan3 = "1.1.1"
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires-python = ">=3.10"
+dependencies = [
+    "apache-sedona>=1.7.1",
+    "cartopy>=0.24.1",
+    "earthengine-api>=1.5.9",
+    "eemont>=0.3.6",
+    "gdal==3.10.0",
+    "geemap>=0.35.3",
+    "geopandas>=1.0.1",
+    "install-jdk>=1.1.0",
+    "ipykernel>=6.29.5",
+    "osmnx>=2.0.2",
+    "pyarrow>=19.0.1",
+    "pyspark>=3.5.5",
+    "python-dotenv>=1.1.0",
+    "rasterstats>=0.20.0",
+    "rioxarray>=0.18.2",
+    "scipy>=1.15.2",
+    "tqdm>=4.67.1",
+]

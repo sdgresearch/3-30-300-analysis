@@ -54,7 +54,7 @@ def process_geo_code(sedona, geo_level, sub_geo_level, geo_code,
 
             # geo_tree_count_df.to_csv(geo_tree_count_path, index=False)
             # Create a temp output folder (Spark writes here)
-            temp_dir = tree_count_dir / f"_temp_tree_count"
+            temp_dir = tree_count_dir / "_temp_tree_count"
 
             geo_tree_count_df.coalesce(1) \
                 .write \
