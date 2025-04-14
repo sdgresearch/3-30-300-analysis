@@ -11,12 +11,11 @@ library(FactoMineR)
 library(factoextra)
 library(DescTools)
 
-source("scripts/constants.R")
+source("R/utils/constants.R")
+source("R/utils/paths.R")
 
-# Paths -------------------------------------------------------------------
-
-T3_30_300_DIR <-  here(VECTOR_OUT_DIR, "3-30-300")
-t3_30_300_path <-  here(T3_30_300_DIR, "T3_30_300.geojson")
+lsoa_urban_path <- here(INPUT_DIR, "ONS", "Rural_Urban_Classification_(2021)_of_LSOAs_in_EW.csv")
+lsoa_urban_df <- read_csv(lsoa_urban_path)
 
 # Variables ---------------------------------------------------------------
 
@@ -26,20 +25,22 @@ z_score_normalize <- function(x) {
 
 t3_30_300_standard_df <- t3_30_300_gdf |> 
     st_drop_geometry() |> 
-    mutate(`3` = log(tree_count + 1),
+    left_join(lsoa_urban_df |> 
+                  select(LSOA21CD, Urban_rural_flag), by = 'LSOA21CD') |>
+    mutate(`3` = log(tree_count_25m + 1),
            `30` = log(canopy_cover + 1),
-           `300` = -log(park_distance + 1),
+           `300` = -log(park_distance_manhattan + 1),
            water = -log(water_distance + 1),
            tree_person_ratio = log(tree_person_ratio + 1),
            across(ends_with('Score'), scale, .names = "{.col}"),
            Pop_density = round(Pop_density * 1000, 2)) |> 
-    distinct(LSOA11CD, .keep_all = T) |>
+    distinct(LSOA21CD, .keep_all = T) |>
     # select(EnvDec, `3`, `30`, `300`, water, NDVI, NDWI, NDBI, Pop_density) |> 
     # select(ends_with('Score'), Pop_density, `3`, `30`, `300`,
     #        water, NDVI_2024, NDWI_2024, NDBI_2024) |>
     select(`3`, `30`, `300`, tree_person_ratio, 
-           water, NDVI_2024, NDWI_2024, NDBI_2024,
-           LSOA11CD, LAD22CD, RGN22CD, Pop_density, Urban_rural_flag, EnvDec
+           water, NDVI, NDWI, NDBI,
+           LSOA21CD, LAD22CD, RGN22CD, Pop_density, Urban_rural_flag, EnvDec
            ) |> 
     drop_na() |> 
     mutate(across(is.numeric, z_score_normalize))
@@ -48,7 +49,7 @@ t3_30_300_standard_df <- t3_30_300_gdf |>
 # PCA ---------------------------------------------------------------------
 
 t3_30_300_pca <- t3_30_300_standard_df |>
-    select(-c(LSOA11CD, LAD22CD, RGN22CD, EnvDec, Urban_rural_flag)) |>
+    select(-c(LSOA21CD, LAD22CD, RGN22CD, EnvDec, Urban_rural_flag)) |>
     prcomp(center = T, scale. = T)
 
 explained_variance <- t3_30_300_pca$sdev^2 / sum(t3_30_300_pca$sdev^2)
@@ -80,7 +81,7 @@ t3_30_300_pca |>
 
 t3_30_300_famd <- t3_30_300_standard_df |>
     # mutate(EnvDec = as.numeric(EnvDec)) |>
-    select(-c(LSOA11CD, LAD22CD, RGN22CD, Pop_density, EnvDec)) |>
+    select(-c(LSOA21CD, LAD22CD, RGN22CD, Pop_density, EnvDec)) |>
     FAMD(graph = F)
 
 fviz_screeplot(t3_30_300_famd)
@@ -126,7 +127,7 @@ final_weights
 # Convert categorical variables to numeric dummy variables
 df <- t3_30_300_standard_df |>
     # mutate(EnvDec = as.numeric(EnvDec)) |>
-    select(-c(LSOA11CD, LAD22CD, RGN22CD, Pop_density, EnvDec))
+    select(-c(LSOA21CD, LAD22CD, RGN22CD, Pop_density, EnvDec))
 df_encoded <- model.matrix(~.-1, data = df)
 
 # Compute the final index
@@ -136,7 +137,7 @@ min_value <- min(df$Urban_Green_Index)
 
 df_gini <- df |> 
     cbind(t3_30_300_standard_df |> 
-              select(LSOA11CD, LAD22CD, RGN22CD, EnvDec)) |> 
+              select(LSOA21CD, LAD22CD, RGN22CD, EnvDec)) |> 
     mutate(Urban_Green_Index = Urban_Green_Index - min_value)
 
 df_gini_lad <- df_gini |> 
@@ -161,10 +162,10 @@ lad_gdf |>
 # Correlation -------------------------------------------------------------
 
 t3_30_300_cor <- t3_30_300_standard_df |>
-    select(-c(LSOA11CD, RGN22CD, Pop_density, EnvDec, Urban_rural_flag)) |>
+    select(-c(LSOA21CD, RGN22CD, Pop_density, EnvDec, Urban_rural_flag)) |>
     cor(method = 'pearson')
 p.mat <- cor_pmat(t3_30_300_cor, n = nrow(t3_30_300_standard_df) |> 
-                      select(-c(LSOA11CD, RGN22CD, Pop_density, EnvDec, Urban_rural_flag)))
+                      select(-c(LSOA21CD, RGN22CD, Pop_density, EnvDec, Urban_rural_flag)))
 
 corrplot(t3_30_300_cor, method = 'circle', type = 'upper', 
            tl.col = 'black', p.mat = p.mat, sig.level = 0.05)
@@ -295,13 +296,13 @@ t3_30_300_pass_df <- read_sf(t3_30_300_path) |>
     mutate(pass_3 = if_else(tree_count > 3, 1, 0),
            pass_30 = if_else(canopy_cover > 30, 1, 0),
            pass_300 = if_else(park_distance < 300, 1, 0)) |> 
-    select(LSOA11CD, LSOA11NM, LAD22CD, LAD22NM, pass_3, pass_30, pass_300,
+    select(LSOA21CD, LSOA11NM, LAD22CD, LAD22NM, pass_3, pass_30, pass_300,
            tree_count, canopy_cover, park_distance) |>
     mutate(pass_3_30 = if_else(pass_3 == 1 & pass_30 == 1, 1, 0),
            pass_3_300 = if_else(pass_3 == 1 & pass_300 == 1, 1, 0),
            pass_30_300 = if_else(pass_30 == 1 & pass_300 == 1, 1, 0),
            pass_all = if_else(pass_3 + pass_30 + pass_300 == 1, 1, 0)) |> 
-    distinct(LSOA11CD, .keep_all = T) |> 
+    distinct(LSOA21CD, .keep_all = T) |> 
     arrange(desc(pass_all), desc(canopy_cover), park_distance, desc(tree_count))
 
 t3_30_300_pass_agg_df <- t3_30_300_pass_df |>
