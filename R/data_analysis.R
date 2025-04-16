@@ -14,6 +14,7 @@ library(patchwork)
 library(ggbump)
 library(BBmisc)
 library(esquisse)
+library(DescTools)
 
 source("R/utils/constants.R")
 source("R/utils/paths.R")
@@ -43,7 +44,8 @@ plot_theme <- theme_bw(base_size = 12, base_family = "Helvetica") +
 
 geo_level <- 'LSOA21CD'
 
-# Processing --------------------------------------------------------------
+
+# Data --------------------------------------------------------------------
 
 t3_30_300_spectral_df <- read_parquet(t3_30_300_spectral_parquet)
 output_areas_boundaries_gdf <- open_dataset(output_areas_boundaries_parquet) |> 
@@ -53,6 +55,9 @@ std_population_estimates_df <- read_parquet(std_population_estimates_parquet)
 tree_count_df <- read_parquet(tree_count_parquet)
 t3_300_df <- read_parquet(here(database_dir, "t3_300.parquet"))
 output_areas_buildings_df <- read_parquet(output_areas_buildings_parquet)
+buildings_df <- read_parquet(buildings_parquet, col_select = -geometry)
+
+# Processing --------------------------------------------------------------
 
 t3_30_300_boundaries_gdf <- output_areas_boundaries_gdf |> 
     group_by(!!sym(geo_level)) |> 
@@ -72,6 +77,12 @@ t3_300_gini_df <- t3_300_df |>
     group_by(!!sym(geo_level)) |>
     summarise(across(starts_with('tree_count'), ~Gini(.x, na.rm = T), .names = '{.col}_gini'),
               across(starts_with('distance'), ~Gini(.x, na.rm = T), .names = '{.col}_gini'), .groups = 'drop')
+
+t3_300_buildings_df <- t3_300_df |> 
+    select(-closest_park_access_id, -closest_park_site_id) |> 
+    left_join(buildings_df |> 
+                  select(verisk_premise_id, map_use, distance_water, building_area), by = 'verisk_premise_id') |>
+    left_join(output_areas_buildings_df, by = 'verisk_premise_id')
 
 t3_30_300_gdf <- t3_30_300_boundaries_gdf |> 
     full_join(tree_count_gini_df, by = geo_level) |>
@@ -98,7 +109,7 @@ t3_30_300_gdf <- t3_30_300_boundaries_gdf |>
 t3_30_300_long_df <- t3_30_300_gdf |> 
     st_drop_geometry() |> 
     select(LSOA21CD, #area, total_pop, total_trees, 
-           tree_count_10m:water_distance) |> 
+           tree_count_10m:NDWI) |> 
     pivot_longer(cols = NDBI:NDWI, names_to = 'spectral', values_to = 'spectral_value') |> 
     pivot_longer(cols = tree_count_10m:park_distance_euclidean, names_to = 't3_metric', values_to = 't3_value') #|>
     # pivot_longer(cols = Total:Pop_density, names_to = 'population', values_to = 'pop_value') |> 
@@ -583,8 +594,15 @@ t3_30_300_gdf |>
 t3_30_300_gdf |> 
     filter(RGN22NM == 'London') |> 
     ggplot() +
-    aes(fill = total_trees_gini) +
+    aes(fill = distance_euclidean_gini) +
     geom_sf() +
     scale_fill_distiller(palette = "PiYG", direction = -1) +
     plot_theme
 
+t3_30_300_gdf |> 
+    filter(RGN22NM == 'London') |> 
+    ggplot() +
+    aes(fill = as.numeric(EnvDec)) +
+    geom_sf() +
+    scale_fill_distiller(palette = "RdYlBu") +
+    plot_theme
