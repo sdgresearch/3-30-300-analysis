@@ -103,7 +103,7 @@ def load_tables(sedona):
         "tree_vector_paths_df": pd.read_parquet(tree_vector_paths_parquet),
         "output_areas_boundaries_gdf": gpd.read_parquet(output_areas_boundaries_parquet),
         "output_areas_os_tile_overlay_df": pd.read_parquet(output_areas_os_tile_overlay_parquet),
-        "output_areas_buildings_overlay_df": sedona.read.format("parquet").load(str(output_areas_buildings_parquet)),
+        "output_areas_buildings_overlay_sdf": sedona.read.format("parquet").load(str(output_areas_buildings_parquet)),
         "std_population_estimates_df": pd.read_parquet(std_population_estimates_parquet),
         "imd_lsoa_gdf": pd.read_parquet(imd_lsoa_parquet),
         "os_tile_boundaries_gdf": gpd.read_parquet(os_tile_boundaries_parquet),
@@ -116,7 +116,7 @@ def load_tables(sedona):
 
     output_areas_boundaries_sdf = sedona.createDataFrame(tables["output_areas_boundaries_gdf"])
     output_areas_boundaries_sdf.createOrReplaceTempView('boundaries')
-    tables["output_areas_buildings_overlay_df"].createOrReplaceTempView("boundaries_buildings_overlay")
+    tables["output_areas_buildings_overlay_sdf"].createOrReplaceTempView("boundaries_buildings_overlay")
     tables["buildings_sdf"].createOrReplaceTempView("buildings")
     public_park_site_gdf = tables["green_space_site_gdf"].copy()[tables["green_space_site_gdf"]['function'] == 'Public Park Or Garden'].reset_index(drop=True)
     public_park_site_sdf = sedona.createDataFrame(public_park_site_gdf)

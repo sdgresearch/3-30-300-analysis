@@ -5,5 +5,11 @@ DATA_DIR <- Sys.getenv("DATA_DIR")
 INPUT_DIR <- here(DATA_DIR, "input")
 OUTPUT_DIR <- here(DATA_DIR, "output")
 JAVA_HOME <- here(dirname(DATA_DIR), ".jdk", Sys.getenv("JDK_HOME"))
-
+Sys.setenv("JAVA_HOME"=JAVA_HOME)
+Sys.setenv("PROJ_LIB"=paste0(Sys.getenv("CONDA_PREFIX"), "/envs/r-env/share/proj"))
 PROJECT_CRS <- "EPSG:27700"  # OSGB 1936 / British National Grid
+
+if (!requireNamespace("apache.sedona", quietly = TRUE)) {
+    install.packages("apache.sedona")
+    install.packages("biscale")
+}
