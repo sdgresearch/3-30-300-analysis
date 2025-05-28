@@ -1,6 +1,6 @@
 library(here)
 
-source("R/utils/constants.R")
+source(here(HOME_DIR, "R/utils/constants.R"))
 
 # OUT paths
 T3_30_300_DIR <- here(OUTPUT_DIR, "3-30-300")
