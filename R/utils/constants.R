@@ -1,6 +1,7 @@
 
 library(here)
 
+HOME_DIR <- Sys.getenv("HOME_DIR")
 DATA_DIR <- Sys.getenv("DATA_DIR")
 INPUT_DIR <- here(DATA_DIR, "input")
 OUTPUT_DIR <- here(DATA_DIR, "output")
