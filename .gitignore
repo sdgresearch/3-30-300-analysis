@@ -19,3 +19,4 @@ data/
 /images
 /logs
 .python-version
+*.parquet
