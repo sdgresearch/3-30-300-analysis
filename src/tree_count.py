@@ -17,7 +17,7 @@ def concatenate_trees_for_boundary(sedona, geo_level, geo_code, output_areas_os_
 
     geo_tile_lst = output_areas_os_tile_overlay_df[output_areas_os_tile_overlay_df[geo_level] == geo_code]['TILE_NAME_5KM_int'].str.upper().unique().tolist()
 
-    tree_paths_lst = tree_vector_paths_df[tree_vector_paths_df['TILE_NAME'].isin(geo_tile_lst)]['path'].tolist()
+    tree_paths_lst = tree_vector_paths_df.copy().drop_duplicates(subset=['TILE_NAME'])[tree_vector_paths_df['TILE_NAME'].isin(geo_tile_lst)]['path'].tolist()
     trees_gdf_lst = []
     for gpkg_path in tree_paths_lst:
         temp_gdf = gpd.read_file(gpkg_path)
@@ -64,7 +64,7 @@ def process_geo_code(sedona, geo_level, sub_geo_level, geo_code,
             
             # Step 2: Find the part file Spark wrote
             part_file = glob.glob(str(temp_dir / "part-*.csv"))[0]
-
+            
             # Step 3: Move and rename it to your target file
             shutil.move(part_file, str(geo_tree_count_path))
 
@@ -72,7 +72,7 @@ def process_geo_code(sedona, geo_level, sub_geo_level, geo_code,
             shutil.rmtree(temp_dir)
                 
             end_time = time.time()
-            # logging.info(f"Processing for {geo_code} with {len(geo_tree_count_df)} records took {end_time - start_time:.2f} seconds")
+            logging.info(f"Processing for {geo_code} with {sum(geo_tree_count_df['tree_count'])} records took {end_time - start_time:.2f} seconds")
 
             return geo_tree_count_df
 

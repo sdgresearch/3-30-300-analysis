@@ -52,37 +52,6 @@ def calculate_median_index(imagery_ic: ee.image.Image, geometries: ee.featurecol
     )
     return median_dict
 
-# def calculate_zonal_statistics(imagery_ic, output_areas_boundaries_fc: ee.featurecollection.FeatureCollection, iter_span: int=100) -> list:
-#     """
-#     Calculate zonal statistics for a given Earth Engine FeatureCollection.
-#     This function processes the input FeatureCollection in chunks, calculates the median spectral index
-#     for each chunk, and aggregates the results into a list.
-#     Args:
-#         imd_lsoa_bua_boundaries_ee (ee.featurecollection.FeatureCollection): The input FeatureCollection
-#             containing the geometries for which zonal statistics are to be calculated.
-#         iter_span (int, optional): The number of features to process in each iteration. Defaults to 100.
-#     Returns:
-#         list: A list of dictionaries containing the calculated zonal statistics for each feature.
-#     """
-
-#     spectral_results_lst = []
-#     for i in range(0, output_areas_boundaries_fc.size().getInfo(), iter_span):
-#         limited_geometries = output_areas_boundaries_fc.toList(iter_span, i)
-#         limited_geometries_fc = ee.FeatureCollection(limited_geometries)
-#         retry_count = 0
-#         while retry_count < 3:
-#             try:
-#                 median_index_features = calculate_median_index(imagery_ic, limited_geometries_fc)
-#                 median_index_dict = median_index_features.getInfo()['features']
-#                 spectral_results_lst.extend(median_index_dict)
-#                 break
-#             except ee.ee_exception.EEException as e:
-#                 logging.warning(f"Attempt {retry_count + 1} failed with error: {e}")
-#                 retry_count += 1
-#                 time.sleep(5) 
-
-#     return spectral_results_lst
-
 def process_geo_code(geo_code: str, geo_level: str, sub_geo_level: str, imagery_ee_path: str, 
                      start_date: str, end_date: str, cloud_coverage: float, 
                      spectral_indexes: list[str], overwrite: bool=True) -> pd.DataFrame:
