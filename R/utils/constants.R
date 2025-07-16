@@ -13,4 +13,8 @@ PROJECT_CRS <- "EPSG:27700"  # OSGB 1936 / British National Grid
 if (!requireNamespace("apache.sedona", quietly = TRUE)) {
     install.packages("apache.sedona")
     install.packages("biscale")
+    install.packages("gridGeometry")
+    install.packages("ggmagnify", repos = c("https://hughjonesd.r-universe.dev", 
+                 "https://cloud.r-project.org"))
 }
+
