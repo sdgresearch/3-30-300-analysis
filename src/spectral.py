@@ -1,3 +1,9 @@
+"""
+Module: src/spectral.py
+Description: Functions for calculating the spectral indices.
+Author: Andrés C. Zúñiga-González
+Date: 2025-07-16
+"""
 
 from utils.constants import GEE_PROJECT_NAME 
 from utils.paths import Spectral_dir, output_areas_boundaries_ee_path
@@ -9,6 +15,13 @@ import eemont
 import pandas as pd
 
 def setup_gee() -> None:
+    """
+    Sets up the GEE project.
+    Args:
+        None
+    Returns:
+        None
+    """
 
     logging.debug(f"Initializing GEE for project: {GEE_PROJECT_NAME}")
 
@@ -17,7 +30,19 @@ def setup_gee() -> None:
 
 def get_imagery(geo_level_filt_fc: ee.featurecollection.FeatureCollection, imagery_ee_path: str,
                 start_date: str, end_date: str, cloud_coverage: float, spectral_indexes: list[str]) -> ee.image.Image:
-    
+    """
+    Gets the imagery from GEE.
+    Args:
+        geo_level_filt_fc (ee.featurecollection.FeatureCollection): The filtered feature collection.
+        imagery_ee_path (str): The path to the imagery in GEE.
+        start_date (str): The start date.
+        end_date (str): The end date.
+        cloud_coverage (float): The cloud coverage.
+        spectral_indexes (list[str]): The spectral indexes.
+    Returns:
+        ee.image.Image: The imagery.
+    """
+
     logging.debug("Querying GEE for imagery")
 
     geo_level_union_geometry = geo_level_filt_fc.union().geometry()
@@ -55,7 +80,22 @@ def calculate_median_index(imagery_ic: ee.image.Image, geometries: ee.featurecol
 def process_geo_code(geo_code: str, geo_level: str, sub_geo_level: str, imagery_ee_path: str, 
                      start_date: str, end_date: str, cloud_coverage: float, 
                      spectral_indexes: list[str], overwrite: bool=True) -> pd.DataFrame:
-
+    """
+    Processes a given geo_code for spectral indices.
+    Args:
+        geo_code (str): The geo code.
+        geo_level (str): The geo level.
+        sub_geo_level (str): The sub geo level.
+        imagery_ee_path (str): The path to the imagery in GEE.
+        start_date (str): The start date.
+        end_date (str): The end date.
+        cloud_coverage (float): The cloud coverage.
+        spectral_indexes (list[str]): The spectral indexes.
+        overwrite (bool): Whether to overwrite the existing file.
+    Returns:
+        pd.DataFrame: The spectral indices dataframe.
+    """
+    
     start_time = time.time()
     logging.info(f"Processing data for {geo_code}")
 

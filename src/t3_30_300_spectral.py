@@ -1,10 +1,27 @@
+"""
+Module: src/t3_30_300_spectral.py
+Description: Functions for gathering the T3, T30, T300, and spectral indices dataframes.
+Author: Andrés C. Zúñiga-González
+Date: 2025-07-16
+"""
 
 from utils.paths import database_dir, t30_parquet, t300_parquet, spectral_parquet, tree_count_parquet, t3_30_300_spectral_parquet
 
 import logging
+import pandas as pd
+from pyspark.sql.dataframe import DataFrame
+from pyspark.sql.session import SparkSession
 
-def read_parquet_files(sedona, t3_buffer_lst):
-
+def read_parquet_files(sedona: SparkSession, t3_buffer_lst: list[int]) -> dict:
+    """
+    Reads the parquet files.
+    Args:
+        sedona (SparkSession): The Spark session.
+        t3_buffer_lst (list[int]): The list of buffer sizes.
+    Returns:
+        dict: A dictionary containing the dataframes.
+    """
+    
     sdf_dict = {}
 
     t30_sdf = sedona.read.format("parquet").load(str(t30_parquet))
@@ -30,7 +47,15 @@ def read_parquet_files(sedona, t3_buffer_lst):
 
     return sdf_dict
 
-def aggregate_t30(sedona, geo_level):
+def aggregate_t30(sedona: SparkSession, geo_level: str) -> DataFrame:
+    """
+    Aggregates the T30 data.
+    Args:
+        sedona (SparkSession): The Spark session.
+        geo_level (str): The geo level.
+    Returns:
+        DataFrame: The aggregated T30 dataframe.
+    """
 
     t30_agg_sdf = sedona.sql(f"""
     SELECT {geo_level},
@@ -43,7 +68,16 @@ def aggregate_t30(sedona, geo_level):
 
     return t30_agg_sdf
 
-def aggregate_tree_count(sedona, geo_level, sub_geo_level):
+def aggregate_tree_count(sedona: SparkSession, geo_level: str, sub_geo_level: str) -> DataFrame:
+    """
+    Aggregates the tree count data.
+    Args:
+        sedona (SparkSession): The Spark session.
+        geo_level (str): The geo level.
+        sub_geo_level (str): The sub geo level.
+    Returns:
+        DataFrame: The aggregated tree count dataframe.
+    """
 
     tree_count_agg_sdf = sedona.sql(f"""
     SELECT b.{geo_level}, SUM(t.tree_count) AS total_trees
@@ -56,8 +90,16 @@ def aggregate_tree_count(sedona, geo_level, sub_geo_level):
 
     return tree_count_agg_sdf
 
-def merge_t30_and_spectral(sedona, geo_level):
-
+def merge_t30_and_spectral(sedona: SparkSession, geo_level: str) -> DataFrame:
+    """
+    Merges the T30 and spectral index dataframes.
+    Args:
+        sedona (SparkSession): The Spark session.
+        geo_level (str): The geo level.
+    Returns:
+        DataFrame: The merged T30 and spectral index dataframe.
+    """
+    
     logging.debug("Merging T30 and spectral index dataframes")
 
     t30_spectral_sdf = sedona.sql(f"""
@@ -69,8 +111,16 @@ def merge_t30_and_spectral(sedona, geo_level):
     
     return t30_spectral_sdf
 
-def merge_t3_and_t300(sedona, t3_buffer_lst):
-
+def merge_t3_and_t300(sedona: SparkSession, t3_buffer_lst: list[int]) -> DataFrame:
+    """
+    Merges the T3 and T300 dataframes.
+    Args:
+        sedona (SparkSession): The Spark session.
+        t3_buffer_lst (list[int]): The list of buffer sizes.
+    Returns:
+        DataFrame: The merged T3 and T300 dataframe.
+    """
+    
     logging.debug("Merging T3 and T300 dataframes")
 
     sql_parts = [f"""SELECT t300.*, 
@@ -91,7 +141,14 @@ def merge_t3_and_t300(sedona, t3_buffer_lst):
 
     return t3_300_sdf
 
-def aggregate_t3_300_by_boundaries(sedona, geo_level, t3_buffer_lst):
+def aggregate_t3_300_by_boundaries(sedona: SparkSession, geo_level: str, t3_buffer_lst: list[int]) -> DataFrame:
+    """
+    Aggregates the T3 and T300 dataframes by boundaries.
+    Args:
+        sedona (SparkSession): The Spark session.
+        geo_level (str): The geo level.
+        t3_buffer_lst (list[int]): The list of buffer sizes.
+    """
 
     t3_300_boundaries_sdf = sedona.sql(f"""
     SELECT DISTINCT bbo.{geo_level}, t3_300.*, b.distance_water FROM t3_300
@@ -112,8 +169,16 @@ def aggregate_t3_300_by_boundaries(sedona, geo_level, t3_buffer_lst):
 
     return t3_300_agg_sdf
 
-def merge_all(sedona, geo_level):
-
+def merge_all(sedona: SparkSession, geo_level: str) -> DataFrame:
+    """
+    Merges all the dataframes.
+    Args:
+        sedona (SparkSession): The Spark session.
+        geo_level (str): The geo level.
+    Returns:
+        DataFrame: The merged dataframe.
+    """
+    
     logging.debug("Merging T3, T30, T300, Spectral dataframes")
 
     t3_30_300_spectral_sdf = sedona.sql(f"""
@@ -126,8 +191,18 @@ def merge_all(sedona, geo_level):
 
     return t3_30_300_spectral_sdf
 
+def process_data(sedona: SparkSession, geo_level: str, sub_geo_level: str, t3_buffer_lst: list[int]) -> pd.DataFrame:
+    """
+    Processes the data.
+    Args:
+        sedona (SparkSession): The Spark session.
+        geo_level (str): The geo level.
+        sub_geo_level (str): The sub geo level.
+        t3_buffer_lst (list[int]): The list of buffer sizes.
+    Returns:
+        pd.DataFrame: The processed dataframe.
+    """
 
-def process_data(sedona, geo_level, sub_geo_level, t3_buffer_lst):
     logging.info("Starting data processing pipeline")
 
     # Step 1: Read parquet files

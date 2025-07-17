@@ -1,8 +1,8 @@
 """
-Module: data_processing.py
-Description: Functions for cleaning and transforming data in My Project.
+Module: src/t30.py
+Description: Functions for calculating the canopy cover (T30).
 Author: Andrés C. Zúñiga-González
-Date: 2025-04-03
+Date: 2025-07-16
 """
 
 from utils.paths import T30_dir
@@ -18,9 +18,10 @@ import xarray as xr
 import rioxarray as rxr
 from rioxarray.merge import merge_arrays
 from rasterstats import zonal_stats
+from pyspark.sql.session import SparkSession
 
 # TODO: Do the zonal statistics with sedona
-def binarise_tiles(vom_paths_lst, low_threshold, high_threshold) -> xr.DataArray:
+def binarise_tiles(vom_paths_lst: list, low_threshold: float, high_threshold: float) -> xr.DataArray:
     """
     Binarise the canopy height model (CHM) tiles based on given thresholds.
 
@@ -28,8 +29,8 @@ def binarise_tiles(vom_paths_lst, low_threshold, high_threshold) -> xr.DataArray
     and then binarises the merged array based on the provided low and high thresholds.
     The resulting binary array will have values of 1 where the CHM values are within the
     specified range, and 0 otherwise.
-    Parameters:
-        selected_chm_path_lst (list of str): List of file paths to the CHM tiles to be processed.
+    Args:
+        selected_chm_path_lst (list): List of file paths to the CHM tiles to be processed.
         low_threshold (float): The lower threshold for binarisation.
         high_threshold (float): The upper threshold for binarisation.
     Returns:
@@ -57,7 +58,7 @@ def binarise_tiles(vom_paths_lst, low_threshold, high_threshold) -> xr.DataArray
 def get_canopy_cover(subgeo_filt_gdf: gpd.GeoDataFrame, binary_merged_chm_xr: xr.DataArray) -> pd.DataFrame:
     """
     Calculate the canopy cover percentage for each geometry in the given GeoDataFrame.
-    Parameters:
+    Args:
         subgeo_filt_gdf (gpd.GeoDataFrame): A GeoDataFrame containing the geometries for which the canopy cover is to be calculated.
         binary_merged_chm_xr (xr.DataArray): A DataArray containing binary canopy height model data.
     Returns:
@@ -77,10 +78,25 @@ def get_canopy_cover(subgeo_filt_gdf: gpd.GeoDataFrame, binary_merged_chm_xr: xr
     
     return geo_canopy_cover_df
 
-def process_geo_code(sedona, geo_level: str, geo_code: str, output_areas_os_tile_overlay_df: pd.DataFrame, 
+def process_geo_code(sedona: SparkSession, geo_level: str, geo_code: str, output_areas_os_tile_overlay_df: pd.DataFrame, 
                      vom_raster_paths_df: pd.DataFrame, tree_vector_paths_df: pd.DataFrame,
                      low_threshold: int=3, high_threshold: int=60, overwrite: bool=True) -> pd.DataFrame:
-
+    """
+    Processes a given geo_code for T30.
+    Args:
+        sedona (SparkSession): The Spark session.
+        geo_level (str): The geo level.
+        geo_code (str): The geo code.
+        output_areas_os_tile_overlay_df (pd.DataFrame): The output areas OS tile overlay dataframe. 
+        vom_raster_paths_df (pd.DataFrame): The VOM raster paths dataframe.
+        tree_vector_paths_df (pd.DataFrame): The tree vector paths dataframe.
+        low_threshold (int): The low threshold for binarisation.
+        high_threshold (int): The high threshold for binarisation.
+        overwrite (bool): Whether to overwrite the existing file.
+    Returns:    
+        pd.DataFrame: The canopy cover dataframe.
+    """
+    
     start_time = time.time()
     logging.info(f"Processing data for {geo_code}")
 

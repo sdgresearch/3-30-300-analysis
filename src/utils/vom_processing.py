@@ -19,7 +19,7 @@ from pyspark.sql.types import StringType, IntegerType
 def extract_vom_type(file_name: str|Path) -> str:
     """
     Classifies the type of VOM (Vegetation Object Model) based on the file name.
-    Parameters:
+    Args:
         file_name (str | Path): The name of the file to classify.
     Returns:
         str: 'HS' if the file name contains 'VOM_HS_', otherwise 'CHM'.
@@ -34,7 +34,7 @@ def extract_vom_type(file_name: str|Path) -> str:
 def extract_vom_type_udf(file_name: str|Path) -> str:
     """
     Spark DataFrame function wrapper to extract the type of VOM (Vegetation Object Model) based on the file name.
-    Parameters:
+    Args:
         file_name (str | Path): The name of the file to classify.
     Returns:
         str: 'HS' if the file name contains 'VOM_HS_', otherwise 'CHM'.
@@ -48,7 +48,7 @@ def extract_grid_reference(filename: str|Path) -> str|None:
     followed by an underscore, a two-letter code, a four-digit number, and another underscore.
     If such a pattern is found, it returns the grid reference (the two-letter code and the four-digit number).
     If no match is found, it returns None.
-    Parameters:
+    Args:
         filename (str | Path): The name of the file from which to extract the grid reference.
     Returns:
         str | None: The extracted grid reference if a match is found, otherwise None.
@@ -63,7 +63,7 @@ def extract_grid_reference(filename: str|Path) -> str|None:
 def extract_grid_reference_udf(filename: str|Path) -> str|None:
     """
     Spark DataFrame function wrapper to extract the grid reference from a given filename.
-    Parameters:
+    Args:
         filename (str | Path): The name of the file from which to extract the grid reference.
     Returns:
         str | None: The extracted grid reference if a match is found, otherwise None.
@@ -73,7 +73,7 @@ def extract_grid_reference_udf(filename: str|Path) -> str|None:
 def extract_year(file_path: str|Path) -> int:
     """
     Extracts the year from the given file path.
-    Parameters:
+    Args:
         file_path (str): The file path containing the year.
     Returns:
         int: The extracted year, or None if not found.
@@ -87,7 +87,7 @@ def extract_year(file_path: str|Path) -> int:
 def extract_year_udf(file_path: str|Path) -> int:
     """
     Spark DataFrame function wrapper to extract the year from the given file path.
-    Parameters:
+    Args:
         file_path (str | Path): The file path containing the year.
     Returns:
         int: The extracted year, or None if not found.
@@ -97,7 +97,7 @@ def extract_year_udf(file_path: str|Path) -> int:
 def generate_vom_paths_df(sedona: SparkSession) -> pd.DataFrame:
     """
     Generates the VOM paths DataFrame.
-    Parameters:
+    Args:
         sedona (SparkSession): The Spark session.
     Returns:
         pd.DataFrame: The VOM paths DataFrame.
@@ -125,7 +125,7 @@ def generate_vom_paths_df(sedona: SparkSession) -> pd.DataFrame:
 def generate_tree_paths_df(trees_dir: Path) -> pd.DataFrame:
     """
     Generates the tree paths DataFrame.
-    Parameters:
+    Args:
         trees_dir (Path): The directory containing the tree files.
     Returns:
         pd.DataFrame: The tree paths DataFrame.
