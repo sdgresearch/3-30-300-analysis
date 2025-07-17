@@ -1,8 +1,8 @@
 """
-Module: file_operations.py
-Description: Utility functions for file handling in My Project.
+Module: src/utils/sedona_config.py
+Description: Utility functions for Apache Sedona and Spark configuration.
 Author: Andrés C. Zúñiga-González
-Date: 2025-04-03
+Date: 2025-07-16
 """
 
 from utils.constants import JAVA_HOME
@@ -10,8 +10,14 @@ from utils.constants import JAVA_HOME
 import os
 import logging
 from sedona.spark import SedonaContext
+from pyspark.sql.session import SparkSession
 
-def get_spark():
+def get_spark() -> SparkSession:
+    """
+    Sets up the Apache Sedona Spark session.
+    Returns:
+        SedonaContext (SparkSession): The Apache Sedona Spark session.
+    """
     
     logging.debug("Setting up Apache Sedona")
 

@@ -1,12 +1,30 @@
+"""
+Module: src/utils/sedona_rdd.py
+Description: Utility functions for Apache Sedona and Spark RDDs for counting trees.
+Author: Andrés C. Zúñiga-González
+Date: 2025-07-16
+"""
+
+import logging
+
 from sedona.utils.adapter import Adapter
 from sedona.core.enums import GridType, IndexType
 from sedona.core.spatialOperator import JoinQueryRaw
 from pyspark.sql.session import SparkSession
+from pyspark.sql.dataframe import DataFrame
+from sedona.core.SpatialRDD import SpatialRDD
 
-import logging
-
-def create_spatial_rdds(query_sdf, object_sdf, build_on_spatial_partitioned_rdd = True):
-
+def create_spatial_rdds(query_sdf: DataFrame, object_sdf: DataFrame, build_on_spatial_partitioned_rdd: bool = True) -> tuple:
+    """
+    Creates Spatial RDDs for two spatial dataframes.
+    Parameters:
+        query_sdf (DataFrame): The query dataframe.
+        object_sdf (DataFrame): The object dataframe.
+        build_on_spatial_partitioned_rdd (bool): Whether to build on spatial partitioned RDD.
+    Returns:    
+        tuple: The query and object RDDs.
+    """
+    
     logging.debug("Creating Spatial RDDs for two spatial dataframes")
 
     query_rdd  = Adapter.toSpatialRdd(query_sdf, 'geometry')
@@ -22,8 +40,19 @@ def create_spatial_rdds(query_sdf, object_sdf, build_on_spatial_partitioned_rdd 
 
     return query_rdd, object_rdd
 
-def count_trees_rdd(sedona: SparkSession, query_rdd, object_rdd, query_column, using_index = True):
-
+def count_trees_rdd(sedona: SparkSession, query_rdd: SpatialRDD, object_rdd: SpatialRDD, query_column: str, using_index: bool = True) -> DataFrame:
+    """
+    Counts the trees for each area using RDD.
+    Parameters:
+        sedona (SparkSession): The Spark session.
+        query_rdd (SpatialRDD): The query RDD.
+        object_rdd (SpatialRDD): The object RDD.
+        query_column (str): The query column.   
+        using_index (bool): Whether to use the index.
+    Returns:
+        DataFrame: The dataframe with the tree counts.
+    """
+    
     logging.debug("Counting trees for each area using RDD")
 
     query_result = JoinQueryRaw.SpatialJoinQueryFlat(object_rdd, query_rdd, using_index, True)

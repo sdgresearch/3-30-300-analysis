@@ -1,14 +1,16 @@
-
 """
-Module: file_operations.py
-Description: Utility functions for file handling in My Project.
+Module: src/utils/data_processing.py
+Description: Utility functions for data pre-processing.
 Author: Andrés C. Zúñiga-González
-Date: 2025-04-03
+Date: 2025-07-16
 """
 
 import logging
 import pandas as pd
 import geopandas as gpd
+from pathlib import Path
+from pyspark.sql.session import SparkSession
+from pyspark.sql.dataframe import DataFrame
 
 def translate_tile_name(tile_name: str) -> str:
     """
@@ -18,7 +20,7 @@ def translate_tile_name(tile_name: str) -> str:
     The function converts:
     - From Format 1 to Format 2 by interpreting the numeric coordinates and converting them to directional codes.
     - From Format 2 to Format 1 by interpreting the directional codes and converting them to numeric coordinates.
-    Parameters:
+    Args:
         tile_name (str): The tile name to be translated. It should be a string of length 6.
     Returns:
         str: The translated tile name in the opposite format.
@@ -49,7 +51,18 @@ def translate_tile_name(tile_name: str) -> str:
 
     return trans_tile_name
 
-def get_overlapping_grid_tiles(output_areas_boundaries_gdf: gpd.GeoDataFrame, os_tile_boundaries_gdf: gpd.GeoDataFrame, geo_level: str, geo_code: str, tile_level: str):
+def get_overlapping_grid_tiles(output_areas_boundaries_gdf: gpd.GeoDataFrame, os_tile_boundaries_gdf: gpd.GeoDataFrame, geo_level: str, geo_code: str, tile_level: str) -> list:
+    """
+    Gets the overlapping grid tiles for a given geo_code and tile_level.
+    Args:
+        output_areas_boundaries_gdf (gpd.GeoDataFrame): The output areas boundaries dataframe.
+        os_tile_boundaries_gdf (gpd.GeoDataFrame): The OS tile boundaries dataframe.
+        geo_level (str): The geo_level.
+        geo_code (str): The geo_code.
+        tile_level (str): The tile_level.
+    Returns:
+        list: The overlapping grid tiles.
+    """
 
     logging.debug(f"Getting overlapping grid tiles for {geo_code} and {tile_level}")
     
@@ -60,8 +73,19 @@ def get_overlapping_grid_tiles(output_areas_boundaries_gdf: gpd.GeoDataFrame, os
 
     return overlapping_tiles_lst
 
-def generate_tile_paths(geo_level: str, geo_code: str, output_areas_os_tile_overlay_df: gpd.GeoDataFrame, vom_raster_paths_df: pd.DataFrame, tree_vector_paths_df: pd.DataFrame) -> tuple:
-
+def generate_tile_paths(geo_level: str, geo_code: str, output_areas_os_tile_overlay_df: gpd.GeoDataFrame, vom_raster_paths_df: pd.DataFrame, tree_vector_paths_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Generates the tile paths for a given geo_code.
+    Args:
+        geo_level (str): The geo_level.
+        geo_code (str): The geo_code.
+        output_areas_os_tile_overlay_df (gpd.GeoDataFrame): The output areas OS tile overlay dataframe.
+        vom_raster_paths_df (pd.DataFrame): The VOM raster paths dataframe.
+        tree_vector_paths_df (pd.DataFrame): The tree vector paths dataframe.
+    Returns:
+        pd.DataFrame: The tile paths dataframe.
+    """
+    
     logging.debug(f"Generating tile (vom and tree) paths for {geo_code}")
 
     geo_output_areas_os_tile_overlay_df = output_areas_os_tile_overlay_df.copy()[output_areas_os_tile_overlay_df[geo_level] == geo_code]
@@ -74,8 +98,19 @@ def generate_tile_paths(geo_level: str, geo_code: str, output_areas_os_tile_over
 
     return geo_tiles_df
 
-def filter_buffer_geometries(sedona, geo_level: str, geo_code: str, table_name: str, buffer: int=None):
-
+def filter_buffer_geometries(sedona: SparkSession, geo_level: str, geo_code: str, table_name: str, buffer: int=None) -> DataFrame:
+    """
+    Filters the buffer geometries for a given geo_code.
+    Args:
+        sedona (SparkSession): The Spark session.
+        geo_level (str): The geo_level.
+        geo_code (str): The geo_code.
+        table_name (str): The table name.
+        buffer (int): The buffer size.
+    Returns:
+        DataFrame: The filtered buffer geometries dataframe.
+    """
+    
     logging.debug(f"Filtering {table_name} for {geo_code}")
 
     geo_buildings_sdf = sedona.sql(
@@ -98,8 +133,18 @@ def filter_buffer_geometries(sedona, geo_level: str, geo_code: str, table_name: 
     
     return geo_buildings_sdf
 
-def get_geometries(sedona, geo_level: str, geo_code: str, dissolve):
-
+def get_geometries(sedona: SparkSession, geo_level: str, geo_code: str, dissolve: bool=True) -> DataFrame:
+    """
+    Gets the geometries for a given geo_code.
+    Args:
+        sedona (SparkSession): The Spark session.
+        geo_level (str): The geo_level.
+        geo_code (str): The geo_code.
+        dissolve (bool): Whether to dissolve the geometries.
+    Returns:
+        DataFrame: The geometries dataframe.
+    """
+    
     logging.debug(f"Dissolving geometries for {geo_level}:{geo_code}")
 
     query = "ST_Union_Aggr(geometry) AS geometry" if dissolve else "*"
@@ -114,7 +159,16 @@ def get_geometries(sedona, geo_level: str, geo_code: str, dissolve):
 
     return geo_boundary_sdf
 
-def save_csv_as_parquet(in_directory, path_pattern, out_path):
+def save_csv_as_parquet(in_directory: Path, path_pattern: str, out_path: Path) -> pd.DataFrame:
+    """
+    Saves the CSV files as a parquet file.
+    Args:
+        in_directory (Path): The input directory.
+        path_pattern (str): The path pattern.
+        out_path (Path): The output path.
+    Returns:
+        pd.DataFrame: The concatenated dataframe.
+    """
     
     csv_files = list(in_directory.glob(path_pattern))
     dataframes_lst = [pd.read_csv(file) for file in csv_files]
