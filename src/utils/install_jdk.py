@@ -1,8 +1,8 @@
 """
-Module: file_operations.py
-Description: Utility functions for file handling in My Project.
+Module: src/utils/install_jdk.py
+Description: Utility functions for installing the JDK to run Spark jobs.
 Author: Andrés C. Zúñiga-González
-Date: 2025-04-03
+Date: 2025-07-16
 """
 
 from utils.constants import JAVA_HOME

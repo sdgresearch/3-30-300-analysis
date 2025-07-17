@@ -1,8 +1,8 @@
 """
-Module: file_operations.py
-Description: Utility functions for file handling in My Project.
+Module: src/utils/constants.py
+Description: Constants for the project.
 Author: Andrés C. Zúñiga-González
-Date: 2025-04-03
+Date: 2025-07-16
 """
 
 import os
