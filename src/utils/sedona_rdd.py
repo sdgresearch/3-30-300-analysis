@@ -17,7 +17,7 @@ from sedona.core.SpatialRDD import SpatialRDD
 def create_spatial_rdds(query_sdf: DataFrame, object_sdf: DataFrame, build_on_spatial_partitioned_rdd: bool = True) -> tuple:
     """
     Creates Spatial RDDs for two spatial dataframes.
-    Parameters:
+    Args:
         query_sdf (DataFrame): The query dataframe.
         object_sdf (DataFrame): The object dataframe.
         build_on_spatial_partitioned_rdd (bool): Whether to build on spatial partitioned RDD.
@@ -43,7 +43,7 @@ def create_spatial_rdds(query_sdf: DataFrame, object_sdf: DataFrame, build_on_sp
 def count_trees_rdd(sedona: SparkSession, query_rdd: SpatialRDD, object_rdd: SpatialRDD, query_column: str, using_index: bool = True) -> DataFrame:
     """
     Counts the trees for each area using RDD.
-    Parameters:
+    Args:
         sedona (SparkSession): The Spark session.
         query_rdd (SpatialRDD): The query RDD.
         object_rdd (SpatialRDD): The object RDD.

@@ -1,8 +1,8 @@
 """
-Module: file_operations.py
-Description: Utility functions for file handling in My Project.
+Module: src/tables_setup.py
+Description: Utility functions for setting up the tables for the project.
 Author: Andrés C. Zúñiga-González
-Date: 2025-04-03
+Date: 2025-07-16
 """
 
 from utils.constants import PROJECT_CRS, INPUT_DIR, OUTPUT_DIR
@@ -17,8 +17,16 @@ from utils.data_processing import translate_tile_name
 import logging
 import pandas as pd
 import geopandas as gpd
+from pyspark.sql.session import SparkSession
 
-def setup_parquet_files():
+def setup_parquet_files() -> None:
+    """
+    Sets up the parquet files for the project using the paths defined in utils.paths.
+    Args:
+        None
+    Returns:
+        None
+    """
 
     logging.debug("Setting up parquet files")
 
@@ -76,8 +84,15 @@ def setup_parquet_files():
 
     logging.debug("Parquet files created successfully")
 
-def create_in_out_folders():
-
+def create_in_out_folders() -> None:
+    """
+    Creates the input and output folders for the project using the paths defined in utils.paths.
+    Args:
+        None
+    Returns:
+        None
+    """
+    
     logging.debug("Creating input and output folders")
     
     INPUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -92,8 +107,14 @@ def create_in_out_folders():
     vom_dir.mkdir(parents=True, exist_ok=True)
     database_dir.mkdir(parents=True, exist_ok=True)
 
-def load_tables(sedona):
-
+def load_tables(sedona: SparkSession) -> dict:
+    """
+    Loads the tables from the parquet files into a dictionary.
+    Args:
+        sedona (SparkSession): The Spark session.
+    Returns:
+        dict: A dictionary containing the loaded tables.
+    """
     logging.debug("Loading tables from parquet files")
 
     # TODO: Standardise output format: geopandas dataframe or spark dataframe
@@ -127,7 +148,14 @@ def load_tables(sedona):
 
     return tables
 
-def process_population_data(population_estimates_df):
+def process_population_data(population_estimates_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Processes the population data to calculate the ratio of each column compared to Total.
+    Args:
+        population_estimates_df (pd.DataFrame): The population estimates dataframe.
+    Returns:
+        pd.DataFrame: The processed population estimates dataframe.
+    """
 
     logging.debug("Processing population data")
 
@@ -157,7 +185,14 @@ def process_population_data(population_estimates_df):
 
     return std_population_estimates_df
 
-def expand_national_grid(os_5km_boundaries_gdf):
+def expand_national_grid(os_5km_boundaries_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
+    """
+    Expands the national grid to include the 10km, 50km, and 100km tiles.
+    Args:
+        os_5km_boundaries_gdf (gpd.GeoDataFrame): The OS 5km boundaries dataframe.
+    Returns:
+        gpd.GeoDataFrame: The expanded national grid dataframe.
+    """
 
     logging.debug("Expanding national grid")
 
@@ -177,7 +212,7 @@ def expand_national_grid(os_5km_boundaries_gdf):
     
     return os_tile_boundaries_gdf
 
-def overlay_output_areas_with_os_tiles(output_areas_boundaries_gdf, os_tile_boundaries_gdf):
+def overlay_output_areas_with_os_tiles(output_areas_boundaries_gdf: gpd.GeoDataFrame, os_tile_boundaries_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     """
     Overlays output areas with OS tiles and returns the resulting GeoDataFrame.
     Parameters:
@@ -199,10 +234,23 @@ def overlay_output_areas_with_os_tiles(output_areas_boundaries_gdf, os_tile_boun
     
     return output_areas_os_tile_overlay_df
 
-def overlay_output_areas_with_buildings(sedona, output_areas_boundaries_sdf, buildings_sdf):
+def overlay_output_areas_with_buildings(sedona: SparkSession, output_areas_boundaries_sdf: gpd.GeoDataFrame, buildings_sdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     """
-    Overlay output areas with buildings to get the matching geography for each building
+    Overlay output areas with buildings to get the matching geography for each building.
+    Args:
+        sedona (SparkSession): The Spark session.
+        output_areas_boundaries_sdf (gpd.GeoDataFrame): The output areas boundaries dataframe.
+        buildings_sdf (gpd.GeoDataFrame): The buildings dataframe.
+    Returns:
+        gpd.GeoDataFrame: The buildings boundaries dataframe.
+    Args:
+        sedona (SparkSession): The Spark session.
+        output_areas_boundaries_sdf (gpd.GeoDataFrame): The output areas boundaries dataframe.
+        buildings_sdf (gpd.GeoDataFrame): The buildings dataframe.
+    Returns:
+        gpd.GeoDataFrame: The buildings boundaries dataframe.
     """
+
     # Perform spatial join
     buildings_boundaries_sdf = sedona.sql(
     """
