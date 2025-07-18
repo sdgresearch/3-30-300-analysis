@@ -14,9 +14,6 @@ library(DescTools)
 source("R/utils/constants.R")
 source("R/utils/paths.R")
 
-lsoa_urban_path <- here(INPUT_DIR, "ONS", "Rural_Urban_Classification_(2021)_of_LSOAs_in_EW.csv")
-lsoa_urban_df <- read_csv(lsoa_urban_path)
-
 # Variables ---------------------------------------------------------------
 
 z_score_normalize <- function(x) {
