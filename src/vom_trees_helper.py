@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from utils.constants import PROJECT_CRS
+from utils.paths import trees_unique_dir, trees_unique_parquet_dir
 import shutil
 import os
 
@@ -15,19 +16,18 @@ if __name__ == '__main__':
     tables = load_tables(sedona)
     tree_vector_paths_df = tables['tree_vector_paths_df']
     # Create target directory if it doesn't exist
-    target_dir = "/maps/acz25/phd-thesis-data/output/3-30-300/VOM_Trees_unique"
-    os.makedirs(target_dir, exist_ok=True)
+    os.makedirs(trees_unique_dir, exist_ok=True)
     unique_tree_paths = tree_vector_paths_df.drop_duplicates(subset=['TILE_NAME'])['path'].tolist()
     # Copy each uniquefile to the target directory
     for path in unique_tree_paths:
         filename = os.path.basename(path)
-        target_path = os.path.join(target_dir, filename)
+        target_path = trees_unique_dir / filename
         shutil.copy2(path, target_path)
     # Save files as geoparquet in web mercator projection and centroided
-    trees_sdf = sedona.read.format("geopackage").option("tableName", "trees").load('/maps/acz25/phd-thesis-data/output/3-30-300/VOM_Trees_unique')
+    trees_sdf = sedona.read.format("geopackage").option("tableName", "trees").load(str(trees_unique_dir))
     trees_sdf.createOrReplaceTempView("trees")
 
     trees_sdf = sedona.sql(f"""SELECT treeID, height, area, ST_Transform(ST_Centroid(geom), "{PROJECT_CRS}", "EPSG:4326") AS geometry FROM trees""")
     trees_sdf =  trees_sdf.withColumn("treeID", monotonically_increasing_id())
 
-    trees_sdf.write.format("geoparquet").save("/maps/acz25/phd-thesis-data/output/3-30-300/VOM_trees_parquet")
+    trees_sdf.write.format("geoparquet").save(str(trees_unique_parquet_dir))
