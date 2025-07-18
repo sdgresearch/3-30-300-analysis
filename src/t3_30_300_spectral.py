@@ -5,7 +5,7 @@ Author: Andrés C. Zúñiga-González
 Date: 2025-07-16
 """
 
-from utils.paths import database_dir, t30_parquet, t300_parquet, spectral_parquet, tree_count_parquet, t3_30_300_spectral_parquet
+from utils.paths import database_dir, t30_parquet, t300_parquet, t3_300_parquet, spectral_parquet, tree_count_parquet, t3_30_300_spectral_parquet
 
 import logging
 import pandas as pd
@@ -138,6 +138,8 @@ def merge_t3_and_t300(sedona: SparkSession, t3_buffer_lst: list[int]) -> DataFra
     final_query = "\n".join(sql_parts)
     t3_300_sdf = sedona.sql(final_query)
     t3_300_sdf.createOrReplaceTempView("t3_300")
+
+    t3_300_sdf.write.parquet(str(t3_300_parquet), mode="overwrite")
 
     return t3_300_sdf
 
