@@ -6,6 +6,9 @@ Date: 2025-07-16
 """
 
 import logging
+import glob
+import shutil
+import tempfile
 import pandas as pd
 import geopandas as gpd
 from pathlib import Path
@@ -176,3 +179,32 @@ def save_csv_as_parquet(in_directory: Path, path_pattern: str, out_path: Path) -
     concatenated_df.to_parquet(out_path, index=False)
 
     return concatenated_df
+
+def save_temp_file(spark_df: DataFrame, file_path: Path) -> pd.DataFrame:
+    """
+    Saves the temp file.
+    Args:
+        spark_dataframe (DataFrame): The Spark dataframe.
+        file_path (Path): The file path.
+    """
+    
+    temp_dir = tempfile.TemporaryDirectory()
+
+    spark_df.coalesce(1) \
+        .write \
+        .option("header", True) \
+        .mode("overwrite") \
+        .csv(temp_dir.name)
+    
+    # Step 2: Find the part file Spark wrote
+    part_file = glob.glob(temp_dir.name + "/part-*.csv")[0]
+    
+    # Step 3: Move and rename it to your target file
+    shutil.move(part_file, str(file_path))
+
+    # Step 4: Clean up temp folder
+    temp_dir.cleanup()
+    
+    pandas_df = pd.read_csv(file_path)
+
+    return pandas_df
