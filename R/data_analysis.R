@@ -638,16 +638,19 @@ t3_30_300_lad_gdf <- lad22_gdf |>
 
 t30_lad22_map <- t3_30_300_lad_gdf |> 
         st_transform(crs = 4326) |> 
+        # filter(RGN22NM == "London") |> 
         ggplot() + 
-        geom_sf(aes(fill = canopy_cover), linewidth = 0.01, alpha = 0.9) +
+        geom_sf(aes(fill = canopy_cover), linewidth = 0.01, colour = "black", alpha = 0.9) +
         scale_fill_distiller(palette = "Greens", direction = 1) +
+        scale_x_continuous(limits = c(-6.5, 4), expand = c(0, 0)) +
+        scale_y_continuous(limits = c(49.5, 56.5), expand = c(0, 0)) +
         labs(fill = 'Canopy\ncover') + 
         theme_void() +
-        theme(legend.position = c(.2, .5)) + 
-        geom_magnify(aes(from = RGN22NM == "London"), to = c(-0.2, 2.5, 54.4, 55.4),
-                 shadow = TRUE, shape = 'outline', linewidth = .1, colour = "black", alpha = 0)
+        theme(legend.position = c(.15, .5)) + 
+        geom_magnify(aes(from = RGN22NM == "London"), to = c(-.2, 3, 54.5, 56), expand = .35,
+                 shadow = TRUE, shape = 'outline', linewidth = .1, colour = "black", alpha = 0.5)
 
-ggsave('images/canopy_cover_lad_map2.png', t30_lad22_map,  device = "png",
+ggsave('images/canopy_cover_lsoa_map.png', t30_lad22_map,  device = "png",
        width = 180, height = 210, units = "mm", dpi = 300)
 
 (t300_lad22_map <- ggplot(t3_30_300_lad_gdf) + 
@@ -699,12 +702,14 @@ england_biclass_gini_map <- biclass_df |>
     aes(fill = bi_class) +
     geom_sf(color = "grey", linewidth = 0.01, alpha = 0.9) +
     bi_scale_fill(pal = "GrPink2", dim = 4) +
+    scale_x_continuous(limits = c(-6.5, 4), expand = c(0, 0)) +
+    scale_y_continuous(limits = c(49.5, 56.5), expand = c(0, 0)) +
     theme_void() +
     theme(legend.position = "none") 
 
 biclass_gini_map <-  england_biclass_gini_map +
-    geom_magnify(aes(from = RGN22NM == "London"), to = c(-0.2, 2, 54.4, 55.4),
-                 shadow = TRUE, shape = 'outline', linewidth = .1, colour = "black", alpha = 0)
+    geom_magnify(aes(from = RGN22NM == "London"), to = c(-.2, 3, 54.5, 56), expand = .35,
+                 shadow = TRUE, shape = 'outline', linewidth = .1, colour = "black", alpha = 0.5)
 
 biclass_gini_legend <- bi_legend(pal = "GrPink2", dim = 4, size = 7) + 
             labs(x = "Park Distance Gini\n(More unequal) →", 
@@ -713,14 +718,14 @@ biclass_gini_legend <- bi_legend(pal = "GrPink2", dim = 4, size = 7) +
 
 gini_biplot_map <- ggdraw() +
     draw_plot(biclass_gini_map, 0, 0, 1, 1) +
-    draw_plot(biclass_gini_legend, .2, .15, 0.2, 0.6)
+    draw_plot(biclass_gini_legend, .05, .15, 0.2, 0.6)
 
 ggsave('images/gini_biplot_lsoa_map.png', gini_biplot_map,  device = "png",
        width = 180, height = 210, units = "mm", dpi = 300)
 
 t3_30_300_gini_map <- ggdraw() + 
     draw_plot(plot_grid(t30_lad22_map, biclass_gini_map, labels = c("A", "B")), 0, 0, 1, 1) +
-    draw_plot(biclass_gini_legend, .5, .15, 0.2, 0.6)
+    draw_plot(biclass_gini_legend, .45, .15, 0.2, 0.6)
 
 ggsave("images/t3_30_300_gini_lsoa_map.png", t3_30_300_gini_map, 
        width = 180, height = 90, units = "mm", dpi = 300)
@@ -844,17 +849,6 @@ t3_30_300_gdf |>
     geom_point(alpha = .5) + 
     scale_colour_brewer(palette = "RdYlBu", direction = 1) + 
     facet_wrap(~RGN22NM) + plot_theme
-
-canopy_cover_map <- t3_30_300_lad_gdf |> 
-    ggplot() +
-    aes(fill = canopy_cover) +
-    geom_sf(color = alpha("grey", 0.2)) +
-    scale_fill_distiller(palette = "YlGn", direction = 1) +
-    labs(fill = "Canopy Cover") +
-    plot_theme
-
-ggsave("images/canopy_cover_map.png", canopy_cover_map, 
-       width = 180, height = 90, units = "mm", dpi = 300)
 
 (manhattan_distance_gini_map <- t3_30_300_lad_gdf |> 
     ggplot() +
