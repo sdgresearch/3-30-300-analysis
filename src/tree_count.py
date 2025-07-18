@@ -7,10 +7,9 @@ Date: 2025-07-16
 
 from utils.paths import tree_count_dir
 from utils.constants import PROJECT_CRS
+from utils.data_processing import save_temp_file
 from utils.sedona_rdd import create_spatial_rdds, count_trees_rdd
 
-import glob
-import shutil
 import time
 import logging
 import pandas as pd
@@ -84,23 +83,23 @@ def process_geo_code(sedona: SparkSession, geo_level: str, sub_geo_level: str, g
 
             # geo_tree_count_df.to_csv(geo_tree_count_path, index=False)
             # Create a temp output folder (Spark writes here)
-            temp_dir = tree_count_dir / "_temp_tree_count"
+            # temp_dir = tree_count_dir / "_temp_tree_count"
 
-            geo_tree_count_df.coalesce(1) \
-                .write \
-                .option("header", True) \
-                .mode("overwrite") \
-                .csv(str(temp_dir))
+            # geo_tree_count_df.coalesce(1) \
+            #     .write \
+            #     .option("header", True) \
+            #     .mode("overwrite") \
+            #     .csv(str(temp_dir))
             
-            # Step 2: Find the part file Spark wrote
-            part_file = glob.glob(str(temp_dir / "part-*.csv"))[0]
+            # # Step 2: Find the part file Spark wrote
+            # part_file = glob.glob(str(temp_dir / "part-*.csv"))[0]
             
-            # Step 3: Move and rename it to your target file
-            shutil.move(part_file, str(geo_tree_count_path))
+            # # Step 3: Move and rename it to your target file
+            # shutil.move(part_file, str(geo_tree_count_path))
 
-            # Step 4: Clean up temp folder
-            shutil.rmtree(temp_dir)
-                
+            # # Step 4: Clean up temp folder
+            # shutil.rmtree(temp_dir)
+            geo_tree_count_df = save_temp_file(geo_tree_count_df, geo_tree_count_path)
             end_time = time.time()
             logging.info(f"Processing for {geo_code} with {sum(geo_tree_count_df['tree_count'])} records took {end_time - start_time:.2f} seconds")
 
