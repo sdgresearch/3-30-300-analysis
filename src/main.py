@@ -53,22 +53,22 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='This script executes the module to calculate the 3-30-300 metric and spectral indexes for all of England.')
     parser.add_argument('--process', type=str, required=True, choices=['T3', 'T30', 'T300', 'Spectral', 'Tree_count'], help='Name of the component of the module to run')
-    parser.add_argument('--geo_level', type=str, required=False, default='LAD22CD', help='Name/Code of the desired geography')
-    parser.add_argument('--geo_code', type=str, required=False, help='Geographical variable name')
     parser.add_argument('--tile_level', type=str, required=False, default='TILE_NAME_50KM', help='Name/Code of the desired geography')
+    parser.add_argument('--geo_level', type=str, required=False, default='LAD22CD', choices=['RGN22CD', 'MSOA21CD', 'LAD22CD', 'LSOA21CD'], help='Name/Code of the desired geography')
+    parser.add_argument('--sub_geo_level', type=str, required=False, default='LSOA21CD', choices=['MSOA21CD', 'LAD22CD', 'LSOA21CD', 'OA21CD'], help='Name/Code of the desired geography')
+    parser.add_argument('--geo_code', type=str, required=False, help='Geographical variable name')
     parser.add_argument('--query_method', type=str, required=False, default='rdd', choices=['sql', 'rdd'], help='Type of data to use with Apache Sedona')
-    parser.add_argument('--parallel', action='store_true', help='Run job in parallel')
-    parser.add_argument('--n_workers', type=int, required=False, default=2, help='Number of workers')
-    parser.add_argument('--log_level', type=str, required=False, default='INFO', help='Logging level')
     parser.add_argument('--buffer', type=int, required=False, default=100, help='Buffer size in meters')
     parser.add_argument('--tree_area', type=int, required=False, default=10, help='Tree area in square meters')
     parser.add_argument('--tree_height', type=int, required=False, default=3, help='Tree height in meters')
-    parser.add_argument('--sub_geo_level', type=str, required=False, default='LSOA21CD', help='Name/Code of the desired geography')
     parser.add_argument('--start_date', type=str, required=False, default='2024-01-01', help='Start date for querying remote sensing data')
     parser.add_argument('--end_date', type=str, required=False, default='2024-12-31', help='End date for querying remote sensing data')
     parser.add_argument('--imagery_ee_path', type=str, required=False, default='COPERNICUS/S2_HARMONIZED', help='Imagery name from GEE')
     parser.add_argument('--cloud_coverage', type=float, required=False, default=10.0, help='Cloud Pixel Percentage')
     parser.add_argument('--spectral_indexes', type=str, nargs='+', required=False, default=['NDVI', 'NDWI', 'NDBI'], help='List of indexes to calculate')
+    parser.add_argument('--parallel', action='store_true', help='Run job in parallel')
+    parser.add_argument('--n_workers', type=int, required=False, default=2, help='Number of workers')
+    parser.add_argument('--log_level', type=str, required=False, default='INFO', help='Logging level')
     parser.add_argument('--overwrite', action='store_true', help='Overwrite existing files')
 
     args = parser.parse_args()
@@ -97,8 +97,6 @@ if __name__ == "__main__":
     else:
         geo_level_codes = tables['output_areas_boundaries_gdf'][args_dict['geo_level']].unique()
 
-    results = []
-
     logging.info(f"Running process: {process} for {len(geo_level_codes)} regions")
         
     if args_dict['parallel']:
@@ -109,16 +107,11 @@ if __name__ == "__main__":
             
             for future in tqdm(concurrent.futures.as_completed(futures), total=len(futures), desc='Regions processed'):
                 result = future.result()
-                results.append(result) 
 
     else:
         logging.debug("Running sequentially")
 
         for geo_code in tqdm(geo_level_codes, desc='Regions processed'):   
             result = main(process, args_dict, geo_code)
-            results.append(result)
 
-    results_df = pd.concat(results, ignore_index=True)
-    results_df.to_parquet(output_path, index=False)
-
-    logging.info(f"All processes completed successfully with {len(results)} records.")
+    logging.info(f"All processes completed successfully with {len(geo_level_codes)} records.")
