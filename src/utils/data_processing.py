@@ -180,31 +180,54 @@ def save_csv_as_parquet(in_directory: Path, path_pattern: str, out_path: Path) -
 
     return concatenated_df
 
-def save_temp_file(spark_df: DataFrame, file_path: Path) -> pd.DataFrame:
+def save_temp_file(spark_df: DataFrame, output_path: Path, coalesce: int=1, file_format: str="csv") -> pd.DataFrame:
     """
-    Saves the temp file.
+    Saves a Spark DataFrame to a single named file and returns a Pandas DataFrame.
+
+    This function is a workaround for the fact that Spark normally writes to a directory.
+    It works by coalescing the DataFrame to a single partition, writing to a temporary
+    directory, and then moving the single generated data file to the final destination.
+
     Args:
-        spark_dataframe (DataFrame): The Spark dataframe.
-        file_path (Path): The file path.
+        spark_df (DataFrame): The Spark DataFrame to save.
+        output_path (Path): The final, full path for the output file (e.g., Path("/data/my_file.parquet")).
+        file_format (str): The format to save the file in ("parquet", "csv", etc.).
+
+    Returns:
+        pd.DataFrame: The saved data loaded into a Pandas DataFrame.
     """
-    
-    temp_dir = tempfile.TemporaryDirectory()
+    # Create a temporary directory to stage the Spark output
+    with tempfile.TemporaryDirectory() as temp_dir:
+        temp_path = Path(temp_dir)
+        
+        # Step 1: Write the coalesced DataFrame to the temporary directory.
+        # Spark will create a directory with part-files and metadata inside.
+        spark_df.coalesce(coalesce) \
+            .write \
+            .option("header", "true") \
+            .mode("overwrite") \
+            .format(file_format) \
+            .save(str(temp_path))
 
-    spark_df.coalesce(1) \
-        .write \
-        .option("header", True) \
-        .mode("overwrite") \
-        .csv(temp_dir.name)
-    
-    # Step 2: Find the part file Spark wrote
-    part_file = glob.glob(temp_dir.name + "/part-*.csv")[0]
-    
-    # Step 3: Move and rename it to your target file
-    shutil.move(part_file, str(file_path))
+        # Step 2: Find the single part-file Spark wrote.
+        # It will have a name like 'part-00000-....c000.snappy.parquet'
+        part_files = list(temp_path.glob(f"part-*.{file_format}*"))
+        if not part_files:
+            raise FileNotFoundError(f"No part file found with format '{file_format}' in {temp_dir}")
+        
+        temp_file = part_files[0]
+        
+        # Step 3: Move and rename the part-file to your target path.
+        # This moves the actual data file to its final destination.
+        shutil.move(temp_file, output_path)
 
-    # Step 4: Clean up temp folder
-    temp_dir.cleanup()
-    
-    pandas_df = pd.read_csv(file_path)
+    # Step 4: Read the final file into Pandas using the correct reader.
+    if file_format == "parquet":
+        pandas_df = pd.read_parquet(output_path)
+    elif file_format == "csv":
+        pandas_df = pd.read_csv(output_path)
+    else:
+        # Add other formats as needed or raise an error
+        raise ValueError(f"Unsupported file format for reading into Pandas: {file_format}")
 
     return pandas_df
