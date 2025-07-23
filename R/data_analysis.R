@@ -68,13 +68,18 @@ t3_300_df <- read_parquet(here(database_dir, "t3_300.parquet"))
 output_areas_buildings_df <- read_parquet(output_areas_buildings_parquet)
 buildings_df <- read_parquet(buildings_parquet, col_select = -geometry)
 lsoa_urban_df <- read_csv(lsoa_urban_path)
+os_tile_boundaries_gdf <- open_dataset(os_tile_boundaries_parquet) |> 
+    st_as_sf()
+tree_vector_paths_df <- read_parquet(tree_vector_paths_parquet)
 
 # Processing --------------------------------------------------------------
 
 t3_30_300_boundaries_gdf <- output_areas_boundaries_gdf |> 
     group_by(!!sym(geo_level)) |> 
     summarise(geometry = st_union(geometry), area = sum(area)) |>
-    left_join(t3_30_300_spectral_df, by = geo_level)
+    left_join(t3_30_300_spectral_df, by = geo_level) |> 
+    left_join(lsoa_urban_df |> 
+        select(LSOA21CD, Urban_rural_flag), by = geo_level)
 
 imd_population_df <- imd_lsoa_df |>  
     left_join(std_population_estimates_df, by = "LSOA11CD")
@@ -105,7 +110,6 @@ t3_30_300_gdf <- t3_30_300_boundaries_gdf |>
     full_join(tree_count_gini_df, by = geo_level) |>
     full_join(t3_300_buildings_gini_df, by = geo_level) |>
     right_join(imd_population_df, by = geo_level) |> 
-    left_join(lsoa_urban_df |> select(LSOA21CD, Urban_rural_flag), by = geo_level) |> 
     mutate(IMD_Decile = as_factor(IMD_Decile),
            Pop_density = total_pop / (area / 1e6),
            tree_person_ratio = total_trees / total_pop,
@@ -1115,6 +1119,19 @@ for (gdb_file in fr_gdb_files) {
 print("Feature counts in each GDB layer:")
 print(fr_feature_counts)
 
+# Coverage plot -----------------------------------------------------------
 
+coverage_map_plot <- os_tile_boundaries_gdf |> 
+    mutate(TILE_NAME_5KM_int = toupper(TILE_NAME_5KM_int)) |> 
+    filter(TILE_NAME_5KM_int %in% tree_vector_paths_df$TILE_NAME) |> 
+    ggplot() +
+    geom_sf(fill = '#7570b3') +
+    geom_sf(data = t3_30_300_boundaries_gdf, aes(fill = Urban_rural_flag, color = Urban_rural_flag), alpha = 0.5) +
+    scale_fill_brewer(palette = "Dark2") +
+    scale_color_brewer(palette = "Dark2") +
+    theme_void()
+
+ggsave("images/coverage_map_plot.png", coverage_map_plot, 
+       width = 180, height = 180, units = "mm", dpi = 300)
 
 save.image(here(T3_30_300_DIR, ".RData"))
