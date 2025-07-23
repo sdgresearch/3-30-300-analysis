@@ -34,7 +34,7 @@ def process_vom_tiles(sedona: SparkSession, trees_path_lst: list, tree_area: int
 
     if len(trees_path_lst) > 1:
         
-        trees_gdf_lst = [gpd.read_file(tree_path) for tree_path in trees_path_lst]
+        trees_gdf_lst = [gpd.read_file(tree_path, layer="trees") for tree_path in trees_path_lst]
         merged_trees_gdf = gpd.GeoDataFrame(pd.concat(trees_gdf_lst, ignore_index=True))
     elif len(trees_path_lst) == 1: 
         merged_trees_gdf = gpd.read_file(trees_path_lst[0])
