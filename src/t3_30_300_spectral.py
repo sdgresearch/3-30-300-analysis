@@ -5,8 +5,8 @@ Author: Andrés C. Zúñiga-González
 Date: 2025-07-16
 """
 
-from utils.paths import database_dir, t30_parquet, t300_parquet, t3_300_parquet, tree_count_parquet, buildings_parquet, output_areas_boundaries_parquet
-from utils.paths import spectral_parquet, tree_count_parquet, t3_30_300_spectral_parquet, T3_dir, T30_dir, T300_dir, tree_count_dir, output_areas_buildings_parquet
+from utils.paths import database_dir, t30_parquet, t300_parquet, tree_count_parquet, buildings_parquet, output_areas_boundaries_parquet, output_areas_buildings_parquet
+from utils.paths import spectral_parquet, tree_count_parquet, t3_30_300_spectral_parquet, T3_dir, T30_dir, T300_dir, Spectral_dir, tree_count_dir
 from utils.sedona_config import get_spark
 from utils.logging_config import setup_logger
 from utils.data_processing import save_temp_file
@@ -47,6 +47,9 @@ def merge_output_csv(sedona: SparkSession, t3_buffer_lst: list[int], file_format
     t300_sdf = sedona.read.format("csv").option("header", True).load(str(T300_dir))
     t300_sdf.createOrReplaceTempView("t300")
     t300_df = save_temp_file(t300_sdf, t300_parquet, coalesce=1, file_format=file_format)
+    spectral_sdf = sedona.read.format("csv").option("header", True).load(str(Spectral_dir))
+    spectral_sdf.createOrReplaceTempView("spectral")
+    spectral_df = save_temp_file(spectral_sdf, spectral_parquet, coalesce=1, file_format=file_format)
     tree_count_sdf = sedona.read.format("csv").option("header", True).load(str(tree_count_dir))
     tree_count_sdf.createOrReplaceTempView("tree_count")
     tree_count_df = save_temp_file(tree_count_sdf, tree_count_parquet, coalesce=1, file_format=file_format)
@@ -351,5 +354,5 @@ if __name__ == "__main__":
     setup_logger(log_path=log_path, log_level=args_dict['log_level'])
 
     sedona = get_spark()
-    # merge_output_csv(sedona, buffer_lst)
+    merge_output_csv(sedona, buffer_lst)
     process_data(sedona, args_dict['geo_level'], args_dict['sub_geo_level'], buffer_lst)
