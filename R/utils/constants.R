@@ -16,6 +16,5 @@ if (!requireNamespace("apache.sedona", quietly = TRUE)) {
     install.packages("gridGeometry")
     install.packages("ggmagnify", repos = c("https://hughjonesd.r-universe.dev", 
                  "https://cloud.r-project.org"))
-    remotes::install_github("coolbutuseless/ggpattern")
 }
 
