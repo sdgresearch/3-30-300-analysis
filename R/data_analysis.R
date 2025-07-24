@@ -1121,15 +1121,45 @@ print(fr_feature_counts)
 
 # Coverage plot -----------------------------------------------------------
 
-coverage_map_plot <- os_tile_boundaries_gdf |> 
-    mutate(TILE_NAME_5KM_int = toupper(TILE_NAME_5KM_int)) |> 
-    filter(TILE_NAME_5KM_int %in% tree_vector_paths_df$TILE_NAME) |> 
-    ggplot() +
-    geom_sf(fill = '#7570b3') +
-    geom_sf(data = t3_30_300_boundaries_gdf, aes(fill = Urban_rural_flag, color = Urban_rural_flag), alpha = 0.5) +
-    scale_fill_brewer(palette = "Dark2") +
-    scale_color_brewer(palette = "Dark2") +
-    theme_void()
+england_silhouette_gdf <- output_areas_boundaries_gdf |> 
+    group_by(RGN22CD, RGN22NM) |>
+    summarise(geometry = st_union(geometry), .groups = "drop") |>
+    st_simplify()
+
+coverage_map_plot <- ggplot() +
+    # Layer 1: All available data tiles (Orange)
+    geom_sf(data = os_tile_boundaries_gdf |>
+                mutate(TILE_NAME_5KM_int = toupper(TILE_NAME_5KM_int)) |>
+                filter(TILE_NAME_5KM_int %in% tree_vector_paths_df$TILE_NAME) |>
+                st_union(),
+            aes(fill = 'Data Available (Rural & Suburban)'), # Map fill to a label
+            colour = '#d95f02',
+            alpha = 0.5) +
+    # Layer 2: Urban areas (Green)
+    geom_sf(data = t3_30_300_boundaries_gdf |>
+                filter(Urban_rural_flag == "Urban"),
+            aes(fill = 'Urban'), # Map fill to a different label
+            color = '#1b9e77') +
+    # Layer 3: England outline
+    geom_sf(data = england_silhouette_gdf,
+            fill = "transparent",
+            color = "black",
+            linewidth = .3, linetype = 'dotted') +
+    geom_sf_text(data = england_silhouette_gdf, size = 3,
+                    aes(label = str_wrap(RGN22NM, width = 8), geometry = geometry)) +
+    # Manually set the colors and title for the legend
+    scale_fill_manual(
+        name = "Data Coverage", # This is the legend title
+        values = c(
+            'Data Available (Rural & Suburban)' = '#d95f02',
+            'Urban' = '#1b9e77'
+        )
+    ) +
+    theme_void() +
+    # Optional: Customize legend position
+    theme(legend.position = "bottom",
+          legend.title = element_text(size = 10, face = "bold"),
+          legend.text = element_text(size = 9))
 
 ggsave("images/coverage_map_plot.png", coverage_map_plot, 
        width = 180, height = 180, units = "mm", dpi = 300)
