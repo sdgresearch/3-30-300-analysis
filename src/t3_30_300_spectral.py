@@ -5,12 +5,51 @@ Author: Andrés C. Zúñiga-González
 Date: 2025-07-16
 """
 
-from utils.paths import database_dir, t30_parquet, t300_parquet, t3_300_parquet, spectral_parquet, tree_count_parquet, t3_30_300_spectral_parquet
+from utils.paths import database_dir, t30_parquet, t300_parquet, t3_300_parquet, tree_count_parquet, buildings_parquet, output_areas_boundaries_parquet
+from utils.paths import spectral_parquet, tree_count_parquet, t3_30_300_spectral_parquet, T3_dir, T30_dir, T300_dir, tree_count_dir, output_areas_buildings_parquet
+from utils.sedona_config import get_spark
+from utils.logging_config import setup_logger
+from utils.data_processing import save_temp_file
 
 import logging
+import argparse
+import numpy as np
 import pandas as pd
+from pathlib import Path
 from pyspark.sql.dataframe import DataFrame
 from pyspark.sql.session import SparkSession
+from scipy.optimize import curve_fit
+from pyspark.sql.session import SparkSession
+from pyspark.sql.functions import udf, col 
+from pyspark.sql.functions import round as spark_round
+from pyspark.sql.types import DoubleType
+
+def merge_output_csv(sedona: SparkSession, t3_buffer_lst: list[int], file_format: str="parquet") -> None:
+    """
+    Merges the output CSV files into parquet files.
+    Args:
+        sedona (SparkSession): The Spark session.
+    """
+
+    logging.info("Merging output CSV files into parquet files")
+
+    for buffer in t3_buffer_lst:
+        t3_buffer_parquet = database_dir / f"T3_{buffer}m.parquet"
+
+        t3_sdf = sedona.read.format("csv").option("header", True).load(str(T3_dir) + f"/*{buffer}m.csv")
+        t3_sdf = t3_sdf.withColumnRenamed("tree_count", f"tree_count_{buffer}m")
+        t3_sdf.createOrReplaceTempView(f"t3_{buffer}m")
+        t3_df = save_temp_file(t3_sdf, t3_buffer_parquet, coalesce=1, file_format=file_format)
+        
+    t30_sdf = sedona.read.format("csv").option("header", True).load(str(T30_dir))
+    t30_sdf.createOrReplaceTempView("t30")
+    t30_df = save_temp_file(t30_sdf, t30_parquet, coalesce=1, file_format=file_format)
+    t300_sdf = sedona.read.format("csv").option("header", True).load(str(T300_dir))
+    t300_sdf.createOrReplaceTempView("t300")
+    t300_df = save_temp_file(t300_sdf, t300_parquet, coalesce=1, file_format=file_format)
+    tree_count_sdf = sedona.read.format("csv").option("header", True).load(str(tree_count_dir))
+    tree_count_sdf.createOrReplaceTempView("tree_count")
+    tree_count_df = save_temp_file(tree_count_sdf, tree_count_parquet, coalesce=1, file_format=file_format)
 
 def read_parquet_files(sedona: SparkSession, t3_buffer_lst: list[int]) -> dict:
     """
@@ -32,6 +71,12 @@ def read_parquet_files(sedona: SparkSession, t3_buffer_lst: list[int]) -> dict:
     spectral_sdf.createOrReplaceTempView("spectral")
     tree_count_sdf = sedona.read.format("parquet").load(str(tree_count_parquet))
     tree_count_sdf.createOrReplaceTempView("tree_count")
+    buildings_sdf = sedona.read.format("parquet").load(str(buildings_parquet))
+    buildings_sdf.createOrReplaceTempView("buildings")
+    boundaries_sdf = sedona.read.format("parquet").load(str(output_areas_boundaries_parquet))
+    boundaries_sdf.createOrReplaceTempView("boundaries")
+    output_areas_buildings_overlay_sdf = sedona.read.format("parquet").load(str(output_areas_buildings_parquet))
+    output_areas_buildings_overlay_sdf.createOrReplaceTempView("boundaries_buildings_overlay")
 
     sdf_dict["t30"] = t30_sdf
     sdf_dict["t300"] = t300_sdf
@@ -111,6 +156,38 @@ def merge_t30_and_spectral(sedona: SparkSession, geo_level: str) -> DataFrame:
     
     return t30_spectral_sdf
 
+def calculate_slope(*tree_counts, buffer_lst: list[int]=[10, 25, 50, 75, 100]):
+    """
+    Calculates the slope of the exponential regression using the different buffer sizes.
+    Args:
+        tree_counts (list): The list of tree counts.
+    Returns:
+        float: The slope of the exponential regression.
+    """
+
+    # Extract x values from the column names
+    x_values = np.array([0] + buffer_lst)  # Corresponding to tree_count_10m, tree_count_25m, etc.
+    y_values = np.array(tree_counts, dtype=np.float64) + 1
+    y_values = np.insert(y_values, 0, 1)
+    
+    # Filter out rows with invalid or missing values
+    valid_indices = ~np.isnan(y_values)
+    y_values = y_values[valid_indices]
+    
+    if len(y_values) < 2:  # Not enough points to fit a regression
+        return None
+    elif y_values[-1] == 1:
+        return float(0)
+    
+    # Perform exponential regression through the origin
+    def model(x, b):
+        return np.exp(b * x)
+
+    # Fit the model
+    popt, _ = curve_fit(model, x_values, y_values)
+
+    return round(float(popt[0]), 4)  # Return the estimated slope
+
 def merge_t3_and_t300(sedona: SparkSession, t3_buffer_lst: list[int]) -> DataFrame:
     """
     Merges the T3 and T300 dataframes.
@@ -123,9 +200,12 @@ def merge_t3_and_t300(sedona: SparkSession, t3_buffer_lst: list[int]) -> DataFra
     
     logging.debug("Merging T3 and T300 dataframes")
 
-    sql_parts = [f"""SELECT t300.*, 
+    tree_count_columns = [f"tree_count_{buffer}m" for buffer in t3_buffer_lst]
+
+    sql_parts = [f"""SELECT t300.*, b.distance_water, b.map_use, b.building_area,
                  {', '.join([f"t3_{buffer}m.tree_count_{buffer}m" for buffer in t3_buffer_lst])}
-                 FROM t300"""]
+                 FROM t300
+                 JOIN buildings b ON t300.verisk_premise_id = b.verisk_premise_id"""]
 
     # Add all JOINs
     for buffer in t3_buffer_lst:
@@ -138,8 +218,19 @@ def merge_t3_and_t300(sedona: SparkSession, t3_buffer_lst: list[int]) -> DataFra
     final_query = "\n".join(sql_parts)
     t3_300_sdf = sedona.sql(final_query)
     t3_300_sdf.createOrReplaceTempView("t3_300")
-
-    t3_300_sdf.write.parquet(str(t3_300_parquet), mode="overwrite")
+    t3_300_sdf = t3_300_sdf.fillna({col: 0 for col in tree_count_columns})
+    # slope_udf = udf(calculate_slope, DoubleType())
+    # t3_300_sdf = t3_300_sdf.withColumn(
+    #     "tree_count_slope",
+    #     slope_udf(
+    #         col("tree_count_10m"),
+    #         col("tree_count_25m"),
+    #         col("tree_count_50m"),
+    #         col("tree_count_75m"),
+    #         col("tree_count_100m")
+    #     )
+    # )
+    # t3_300_df = save_temp_file(t3_300_sdf, t3_300_parquet, coalesce=1, file_format="parquet")
 
     return t3_300_sdf
 
@@ -153,9 +244,8 @@ def aggregate_t3_300_by_boundaries(sedona: SparkSession, geo_level: str, t3_buff
     """
 
     t3_300_boundaries_sdf = sedona.sql(f"""
-    SELECT DISTINCT bbo.{geo_level}, t3_300.*, b.distance_water FROM t3_300
+    SELECT DISTINCT bbo.{geo_level}, t3_300.* FROM t3_300
     LEFT JOIN boundaries_buildings_overlay bbo ON t3_300.verisk_premise_id = bbo.verisk_premise_id
-    LEFT JOIN buildings b ON bbo.verisk_premise_id = b.verisk_premise_id
     """)
     t3_300_boundaries_sdf.createOrReplaceTempView("t3_300_boundaries")
 
@@ -193,7 +283,7 @@ def merge_all(sedona: SparkSession, geo_level: str) -> DataFrame:
 
     return t3_30_300_spectral_sdf
 
-def process_data(sedona: SparkSession, geo_level: str, sub_geo_level: str, t3_buffer_lst: list[int]) -> pd.DataFrame:
+def process_data(sedona: SparkSession, geo_level: str="LSOA21CD", sub_geo_level: str="OA21CD", t3_buffer_lst: list[int]=[10, 25, 50, 75, 100]) -> pd.DataFrame:
     """
     Processes the data.
     Args:
@@ -244,3 +334,22 @@ def process_data(sedona: SparkSession, geo_level: str, sub_geo_level: str, t3_bu
     logging.info("Data processing pipeline completed")
 
     return t3_30_300_spectral_df
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser(description='This script executes the module to calculate the 3-30-300 metric and spectral indexes for all of England.')
+    parser.add_argument('--geo_level', type=str, required=False, default='LSOA21CD', choices=['RGN22CD', 'MSOA21CD', 'LAD22CD', 'LSOA21CD'], help='Name/Code of the desired geography')
+    parser.add_argument('--sub_geo_level', type=str, required=False, default='OA21CD', choices=['MSOA21CD', 'LAD22CD', 'LSOA21CD', 'OA21CD'], help='Name/Code of the desired geography')
+    parser.add_argument('--log_level', type=str, required=False, default='INFO', help='Logging level')
+
+    args = parser.parse_args()
+
+    args_dict = vars(args)
+
+    buffer_lst = [10, 25, 50, 75, 100]
+    log_path = Path(f"logs/T3_30_300_spectral_processing.log")
+    setup_logger(log_path=log_path, log_level=args_dict['log_level'])
+
+    sedona = get_spark()
+    # merge_output_csv(sedona, buffer_lst)
+    process_data(sedona, args_dict['geo_level'], args_dict['sub_geo_level'], buffer_lst)
