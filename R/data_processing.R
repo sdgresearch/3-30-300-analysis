@@ -111,7 +111,7 @@ t3_30_300_lsoa_gdf <- group_by_geo_level("LSOA21CD", 10) |>
                                             "South East", "London"))) |>
     arrange(RGN22CD, LAD22CD, MSOA21CD, LSOA21CD)
 
-t3_30_300_msoa_gdf <- group_by_geo_level("MSOA21CD", 500) |> 
+t3_30_300_msoa_gdf <- group_by_geo_level("MSOA21CD", 100) |> 
     left_join(output_areas_boundaries_gdf |> 
         st_drop_geometry() |> 
         select(MSOA21CD, MSOA21NM, LAD22CD, LAD22NM, RGN22CD, RGN22NM) |> 
@@ -124,7 +124,7 @@ t3_30_300_msoa_gdf <- group_by_geo_level("MSOA21CD", 500) |>
                                             "South East", "London"))) |>
     arrange(RGN22CD, LAD22CD, MSOA21CD)
 
-t3_30_300_lad_gdf <- group_by_geo_level("LAD22CD", 1000) |> 
+t3_30_300_lad_gdf <- group_by_geo_level("LAD22CD", 100) |> 
     left_join(output_areas_boundaries_gdf |> 
         st_drop_geometry() |> 
         select(LAD22CD, LAD22NM, RGN22CD, RGN22NM) |> 
@@ -137,7 +137,7 @@ t3_30_300_lad_gdf <- group_by_geo_level("LAD22CD", 1000) |>
                                             "South East", "London"))) |>
     arrange(RGN22CD, LAD22CD)
                   
-t3_30_300_rgn_gdf <- group_by_geo_level("RGN22CD", 5000) |> 
+t3_30_300_rgn_gdf <- group_by_geo_level("RGN22CD", 100) |> 
     left_join(output_areas_boundaries_gdf |> 
         st_drop_geometry() |> 
         select(RGN22CD, RGN22NM) |> 

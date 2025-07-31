@@ -27,6 +27,7 @@ library(ggbump)
 library(ggalluvial)
 library(RColorBrewer)
 library(kableExtra)
+library(classInt)
 
 # Plot Theme ---------------------------------------------------------------
 
@@ -114,7 +115,7 @@ t300_region_boxplots <- plot_boxplots_3_30_300(t3_30_300_lsoa_gdf, "300", plot_l
 t3_30_300_region_boxplots <- t3_region_boxplots / t30_region_boxplots / t300_region_boxplots
 
 ggsave("images/t3_30_300_region_urban_boxplots.png", t3_30_300_region_boxplots, 
-       width = 180, height = 170, units = "mm", dpi = 300)
+       width = 180, height = 180, units = "mm", dpi = 300)
 
 # Correlation Matrix -------------------------------------------------------
 
@@ -161,7 +162,7 @@ plot_scatter_3_30_300 <- function(t3_30_300_lsoa_gdf, x_var, y_var, color_var,
                                   x_axis = TRUE, y_axis = TRUE, 
                                   x_text_position = "bottom", y_text_position = "left",
                                   alpha_val = .5, size_val =.5, legend_position = "none") {
-    
+
     res_plot <- t3_30_300_lsoa_gdf |> 
         filter(Urban_rural_flag == "Urban") |>
         ggplot() +
@@ -224,7 +225,7 @@ scatter_vars <- c("tree_count_25m", "canopy_cover", "park_distance_manhattan",
 scatter_labels <- list("tree_count_25m" = "3", "canopy_cover" = "30 (%)",
                        "park_distance_manhattan" = "300 (m)", "water_distance" = "Water Distance (m)",
                        "NDVI" = "NDVI", "NDWI" = "NDWI", "NDBI" = "NDBI")
-scatter_breaks <- list("tree_count_25m" = c(1, 3, 100, 2000), 
+scatter_breaks <- list("tree_count_25m" = c(1, 3, 5, 10, 100, 2000), 
                        "canopy_cover" = c(1, 5, 30), 
                        "park_distance_manhattan" = c(50, 300, 2000, 5000, 20000), 
                        "water_distance" = c(20, 100, 500, 2000, 5000),
@@ -360,56 +361,59 @@ t3_30_300_scatter_plots_legend <- plot_grid(t3_30_300_scatter_plots, legend_plot
 ggsave("images/t3_30_300_scatter_urban_plots.png", t3_30_300_scatter_plots_legend, 
        width = 180, height = 180, units = "mm", dpi = 300)
 
-# 3-30-300 LAD Maps -------------------------------------------------------
+# 3-30-300 LSOA Maps -------------------------------------------------------
 
-t3_lad_map <- t3_30_300_lad_gdf |> 
+t3_lsoa_map <- t3_30_300_lsoa_gdf |> 
         st_transform(crs = WGS84_CRS) |> 
         # filter(RGN22NM == "London") |> 
         ggplot() + 
-        geom_sf(aes(fill = tree_count_25m), linewidth = 0.01, colour = "black", alpha = 0.9) +
+        geom_sf(aes(fill = tree_count_25m, colour = tree_count_25m)) +
         scale_fill_distiller(palette = "Greens", direction = 1) +
+        scale_colour_distiller(palette = "Greens", direction = 1) +
         scale_x_continuous(limits = c(-6.5, 4), expand = c(0, 0)) +
         scale_y_continuous(limits = c(49.5, 56.5), expand = c(0, 0)) +
         labs(fill = "Visible\nTrees", fill = NULL) + 
+        guides(colour = "none") +
         theme_void() +
         theme(legend.position = "bottom") + 
         geom_magnify(aes(from = RGN22NM == "London"), to = c(-.2, 3, 54.5, 56), expand = .35,
-                 shadow = TRUE, shape = 'outline', linewidth = .1, colour = "black", alpha = 0.5)
+                 shadow = TRUE, shape = 'outline', linewidth = .001, alpha = 0.99)
 
-t30_lad_map <- t3_30_300_lad_gdf |> 
+t30_lsoa_map <- t3_30_300_lsoa_gdf |> 
         st_transform(crs = WGS84_CRS) |> 
         # filter(RGN22NM == "London") |> 
         ggplot() + 
-        geom_sf(aes(fill = canopy_cover), linewidth = 0.01, colour = "black", alpha = 0.9) +
+        geom_sf(aes(fill = canopy_cover, colour = canopy_cover)) +
         scale_fill_distiller(palette = "Greens", direction = 1) +
+        scale_colour_distiller(palette = "Greens", direction = 1) +
         scale_x_continuous(limits = c(-6.5, 4), expand = c(0, 0)) +
         scale_y_continuous(limits = c(49.5, 56.5), expand = c(0, 0)) +
         labs(fill = 'Canopy\nCover') + 
+        guides(colour = "none") +
         theme_void() +
-        theme(legend.position = 'bottom') + 
+        theme(legend.position = c(.15, .5)) + 
         geom_magnify(aes(from = RGN22NM == "London"), to = c(-.2, 3, 54.5, 56), expand = .35,
-                 shadow = TRUE, shape = 'outline', linewidth = .1, colour = "black", alpha = 0.5)
+                 shadow = TRUE, shape = 'outline', linewidth = .001, alpha = .99)
 
-ggsave('images/canopy_cover_lad_map.png', t30_lad_map,  device = "png",
-       width = 180, height = 210, units = "mm", dpi = 300)
-
-t300_lad_map <- t3_30_300_lad_gdf |> 
+t300_lsoa_map <- t3_30_300_lsoa_gdf |> 
         st_transform(crs = WGS84_CRS) |> 
         # filter(RGN22NM == "London") |> 
         ggplot() + 
-        geom_sf(aes(fill = park_distance_manhattan), linewidth = 0.01, colour = "black", alpha = 0.9) +
+        geom_sf(aes(fill = park_distance_manhattan, colour = park_distance_manhattan)) +
         scale_fill_distiller(palette = "Greens", direction = -1) +
+        scale_colour_distiller(palette = "Greens", direction = -1) +
         scale_x_continuous(limits = c(-6.5, 4), expand = c(0, 0)) +
         scale_y_continuous(limits = c(49.5, 56.5), expand = c(0, 0)) +
         labs(fill = "Distance\nto Park", fill = NULL) + 
+        guides(colour = "none") +
         theme_void() +
         theme(legend.position = "bottom") + 
         geom_magnify(aes(from = RGN22NM == "London"), to = c(-.2, 3, 54.5, 56), expand = .35,
-                     shadow = TRUE, shape = 'outline', linewidth = .1, colour = "black", alpha = 0.5)
+                     shadow = TRUE, shape = 'outline', linewidth = .001, alpha = 0.99)
 
-t3_30_300_lad_map <- t3_lad_map | t30_lad_map | t300_lad_map
+t3_30_300_lad_map <- t3_lsoa_map | t30_lsoa_map | t300_lsoa_map
 
-ggsave("images/t3_30_300_lad_map.png", t3_30_300_lad_map, 
+ggsave("images/t3_30_300_lsoa_map.png", t3_30_300_lad_map, 
        width = 180, height = 90, units = "mm", dpi = 300)
 
 # Gini Biscale plots -------------------------------------------------------
@@ -417,20 +421,76 @@ ggsave("images/t3_30_300_lad_map.png", t3_30_300_lad_map,
 water_distance_gini_map <- t3_30_300_lad_gdf |> 
         st_transform(crs = WGS84_CRS) |> 
         ggplot() + 
-        geom_sf(aes(fill = distance_water_gini), linewidth = 0.01, colour = "black", alpha = 0.9) +
+        geom_sf(aes(fill = distance_water_gini, colour = distance_water_gini)) +
         scale_fill_distiller(palette = "BrBG", direction = -1) +
+        scale_colour_distiller(palette = "BrBG", direction = -1) +
         scale_x_continuous(limits = c(-6.5, 4), expand = c(0, 0)) +
         scale_y_continuous(limits = c(49.5, 56.5), expand = c(0, 0)) +
         labs(fill = 'Water\ndistance\nGini') + 
+        guides(colour = "none") +
         theme_void() +
         theme(legend.position = c(.15, .5)) + 
         geom_magnify(aes(from = RGN22NM == "London"), to = c(-.2, 3, 54.5, 56), expand = .35,
-                 shadow = TRUE, shape = 'outline', linewidth = .1, colour = "black", alpha = 0.5)
+                 shadow = TRUE, shape = 'outline', linewidth = .001, alpha = 0.99)
 
 ggsave("images/water_distance_gini_lad_map.png", water_distance_gini_map, 
        width = 180, height = 210, units = "mm", dpi = 300)
 
-biclass_df <- bi_class(t3_30_300_lad_gdf, x = tree_count_slope_gini,
+
+t30_breaks <- classIntervals(t3_30_300_lsoa_gdf$canopy_cover,
+    n = 9, style = "fisher")$brks |> 
+    round(3)
+
+t30_breaks[1] <- min(t3_30_300_lsoa_gdf$canopy_cover, na.rm = TRUE)  # Replace first break with actual minimum
+t30_breaks[length(t30_breaks)] <- max(t3_30_300_lsoa_gdf$canopy_cover, na.rm = TRUE)
+
+# Step 2: Categorize data into Jenks bins
+t3_30_300_lsoa_gdf <- t3_30_300_lsoa_gdf |> 
+  mutate(canopy_cover_jenks = cut(canopy_cover, 
+    breaks = t30_breaks, include.lowest = TRUE, right = TRUE, 
+    labels = sprintf("%.1f", tail(t30_breaks, -1))))
+
+canopy_cover_hist <- t3_30_300_lsoa_gdf |> 
+    filter(!is.na(canopy_cover_jenks)) |> 
+    ggplot() +
+    geom_bar(aes(x = canopy_cover_jenks, fill = canopy_cover_jenks)) +
+    # scale_x_discrete(limits = rev(levels(t3_30_300_lsoa_gdf$tree_person_ratio_jenks))) +
+    # scale_y_sqrt(breaks = c(1, 10, 25, 50, 100)) +
+    scale_y_sqrt(breaks = c(100, 1000, 2000, 5000, 8000), labels = function(x) paste0(x / 1000, "k")) +
+    scale_fill_manual(values = colorRampPalette(brewer.pal(9, "YlGn"))(9), 
+        guide = "none") + 
+    coord_flip() + 
+    labs(x = NULL, y = NULL, title = "Canopy Cover") +
+    theme_minimal() +
+    theme(panel.grid.minor = element_blank(), 
+        panel.grid.major.y = element_blank(), 
+        axis.text = element_text(size = 10),
+        plot.title = element_text(size = 13))
+
+# Step 3: Plot with discrete colors
+canopy_cover_map <- t3_30_300_lsoa_gdf |> 
+    st_transform(crs = WGS84_CRS) |> 
+    ggplot() +
+    aes(fill = canopy_cover_jenks) + 
+    geom_sf(color = NA) +
+    scale_fill_manual(values = colorRampPalette(brewer.pal(9, "YlGn"))(9), drop = FALSE) +
+    scale_x_continuous(limits = c(-6.5, 4), expand = c(0, 0)) +
+    scale_y_continuous(limits = c(49.5, 56.5), expand = c(0, 0)) +
+    guides(fill = guide_legend(nrow = 2, byrow = TRUE, keywidth = unit(0.5, "cm"), 
+        color = "none")) +
+    geom_magnify(aes(from = RGN22NM == "London"), to = c(-.2, 3, 54.5, 56), 
+        expand = .35, shadow = TRUE, shape = 'outline', linewidth = .001, alpha = 0.99) +
+    theme_void() + 
+    theme(legend.position = "none")
+
+canopy_cover_plot <- ggdraw() + 
+    draw_plot(canopy_cover_map) +
+    draw_plot(canopy_cover_hist, x = 0.15, y = 0, hjust = 0.5, scale = 0.3)
+
+ggsave('images/canopy_cover_lsoa_map.png', canopy_cover_plot,  device = "png",
+       width = 180, height = 210, units = "mm", dpi = 300)
+
+biclass_df <- bi_class(t3_30_300_lsoa_gdf, x = tree_count_slope_gini,
                        y = distance_manhattan_gini, style = "fisher",  dim = 4) |> 
                 select(RGN22NM, bi_class, tree_count_slope_gini, distance_manhattan_gini)
 
@@ -438,38 +498,46 @@ biclass_gini_map <- biclass_df |>
     st_transform(crs = WGS84_CRS) |> 
     ggplot() +
     aes(fill = bi_class) +
-    geom_sf(linewidth = 0.01, colour = "black", alpha = 0.9) +
+    geom_sf(lwd = 0) +
     bi_scale_fill(pal = "GrPink2", dim = 4) +
     scale_x_continuous(limits = c(-6.5, 4), expand = c(0, 0)) +
     scale_y_continuous(limits = c(49.5, 56.5), expand = c(0, 0)) +
     theme_void() +
     theme(legend.position = "none") +
     geom_magnify(aes(from = RGN22NM == "London"), to = c(-.2, 3, 54.5, 56), expand = .35,
-                 shadow = TRUE, shape = 'outline', linewidth = .1, colour = "black", alpha = 0.5)
+                 shadow = TRUE, shape = 'outline', linewidth = .001, alpha = 0.99)
 
 biclass_gini_legend <- bi_legend(pal = "GrPink2", dim = 4, size = 7) + 
             labs(x = "Park Distance Gini\n(More unequal) →", 
                  y = "Tree Count Gini\n(More unequal) →") +
-            theme(plot.background = element_blank())
+            theme(plot.background = element_blank(), 
+                axis.title = element_text(size = 16))
 
 gini_biplot_map <- ggdraw() +
     draw_plot(biclass_gini_map, 0, 0, 1, 1) +
     draw_plot(biclass_gini_legend, .05, .15, 0.2, 0.6)
 
-ggsave('images/gini_biplot_lad_map.png', gini_biplot_map,  device = "png",
+ggsave('images/gini_biplot_lsoa_map.png', gini_biplot_map,  device = "png",
        width = 180, height = 210, units = "mm", dpi = 300)
 
 t3_30_300_gini_map <- ggdraw() + 
-    draw_plot(plot_grid(t30_lad_map, biclass_gini_map, labels = c("A", "B")), 0, 0, 1, 1) +
+    draw_plot(plot_grid(canopy_cover_plot, biclass_gini_map, labels = c("A", "B"), label_size = 20), 0, 0, 1, 1) +
     draw_plot(biclass_gini_legend, .45, .15, 0.2, 0.6)
 
-ggsave("images/t3_30_300_gini_lad_map.png", t3_30_300_gini_map, 
-       width = 180, height = 90, units = "mm", dpi = 300)
+ggsave("images/t3_30_300_gini_lsoa_map.png", t3_30_300_gini_map, 
+       width = 360, height = 210, units = "mm", dpi = 300)
 
 # 3-30-300 rules ----------------------------------------------------------
 
 t3_30_300_pop_summary <- t3_30_300_lsoa_gdf |> 
-    filter(Urban_rural_flag == "Urban") |> 
+    filter(Urban_rural_flag == "Urban") |>
+    mutate(RGN22NM = if_else(!is.na(IOL22NM), IOL22NM, RGN22NM)) |> 
+    mutate(RGN22NM = fct_relevel(RGN22NM, c("North West", "North East",
+                                            "Yorkshire and The Humber",
+                                            "West Midlands", "East Midlands",
+                                            "East of England", "South West",
+                                            "South East", "Outer London",
+                                            "Inner London"))) |> 
     st_drop_geometry() |> 
     mutate(meets_3_trees = tree_count_25m >= 3,
            meets_30_canopy = canopy_cover >= 30,
@@ -499,44 +567,122 @@ population_summary_plot <- t3_30_300_pop_summary |>
           axis.ticks.x = element_blank(),
           panel.grid.major.x = element_blank())
 
-ggsave("images/population_summary_prc_plot.png", population_summary_plot, 
+ggsave("images/population_summary_urban_prc_plot.png", population_summary_plot, 
        width = 180, height = 90, units = "mm", dpi = 300)
 
 # Tree Counts --------------------------------------------------------
 
+# Step 1: Compute Jenks breaks (same as before)
+tree_person_breaks <- classIntervals(t3_30_300_lad_gdf$tree_person_ratio,
+    n = 9, style = "fisher")$brks |> 
+    round(3)
+
+tree_person_breaks[1] <- min(t3_30_300_lad_gdf$tree_person_ratio, na.rm = TRUE)  # Replace first break with actual minimum
+tree_person_breaks[length(tree_person_breaks)] <- max(t3_30_300_lad_gdf$tree_person_ratio, na.rm = TRUE)
+
+# Step 2: Categorize data into Jenks bins
+t3_30_300_lad_gdf <- t3_30_300_lad_gdf |> 
+  mutate(tree_person_ratio_jenks = cut(tree_person_ratio, 
+    breaks = tree_person_breaks, include.lowest = TRUE, right = TRUE, 
+    labels = sprintf("%.1f", tail(tree_person_breaks, -1))))
+
+trees_pop_hist <- t3_30_300_lad_gdf |> 
+    filter(!is.na(tree_person_ratio_jenks)) |> 
+    ggplot() +
+    geom_bar(aes(x = tree_person_ratio_jenks, fill = tree_person_ratio_jenks)) +
+    # scale_x_discrete(limits = rev(levels(t3_30_300_lad_gdf$tree_person_ratio_jenks))) +
+    scale_y_sqrt(breaks = c(1, 10, 25, 50, 100)) +
+    scale_fill_manual(values = colorRampPalette(brewer.pal(9, "YlGn"))(9), 
+        guide = "none") + 
+    coord_flip() + 
+    labs(x = NULL, y = NULL, title = "Trees per Person") +
+    theme_minimal() +
+    theme(panel.grid.minor = element_blank(), 
+        panel.grid.major.y = element_blank(), 
+        axis.text = element_text(size = 10),
+        plot.title = element_text(size = 13))
+
+# Step 3: Plot with discrete colors
 trees_pop_map <- t3_30_300_lad_gdf |> 
     st_transform(crs = WGS84_CRS) |> 
-    mutate(trees_pop = total_trees / total_pop) |> 
     ggplot() +
-    aes(fill = trees_pop) +
-    geom_sf(linewidth = 0.01, colour = "black", alpha = 0.9) +
-    scale_fill_distiller(palette = "YlGn", direction = 1) +
+    aes(fill = tree_person_ratio_jenks) + 
+    geom_sf(color = NA) +
+    scale_fill_manual(values = colorRampPalette(brewer.pal(9, "YlGn"))(9),
+        name = "Trees per person (Jenks breaks)", drop = FALSE) +
     scale_x_continuous(limits = c(-6.5, 4), expand = c(0, 0)) +
     scale_y_continuous(limits = c(49.5, 56.5), expand = c(0, 0)) +
-    labs(fill = "Trees per person") +
-    theme_void() + theme(legend.position = "bottom") +
-    geom_magnify(aes(from = RGN22NM == "London"), to = c(-.2, 3, 54.5, 56), expand = .35,
-                 shadow = TRUE, shape = 'outline', linewidth = .1, colour = "black", alpha = 0.5)
+    guides(fill = guide_legend(nrow = 2, byrow = TRUE, keywidth = unit(0.5, "cm"), 
+        color = "none")) +
+    geom_magnify(aes(from = RGN22NM == "London"), to = c(-.2, 3, 54.5, 56), 
+        expand = .35, shadow = TRUE, shape = 'outline', linewidth = .001, alpha = 0.99) +
+    theme_void() + 
+    theme(legend.position = "none")
 
+tree_pop_plot <- ggdraw() + 
+    draw_plot(trees_pop_map) +
+    draw_plot(trees_pop_hist, x = 0.15, y = 0, hjust = 0.5, scale = 0.3)
+
+ggsave("images/tree_pop_plot.png", tree_pop_plot, width = 180, height = 210, units = "mm", dpi = 300)
+
+# Step 1: Compute Jenks breaks (same as before)
+tree_area_breaks <- classIntervals(t3_30_300_lad_gdf$tree_area_ratio, 
+    n = 9, style = "fisher")$brks |> 
+    round(3)
+
+tree_area_breaks[1] <- min(t3_30_300_lad_gdf$tree_area_ratio, na.rm = TRUE)  # Replace first break with actual minimum
+tree_area_breaks[length(tree_area_breaks)] <- max(t3_30_300_lad_gdf$tree_area_ratio, na.rm = TRUE)
+
+# Step 2: Categorize data into Jenks bins
+t3_30_300_lad_gdf <- t3_30_300_lad_gdf |> 
+    mutate(tree_area_ratio_jenks = cut(tree_area_ratio, 
+        breaks = tree_area_breaks, include.lowest = TRUE, right = TRUE, 
+        labels = sprintf("%.1f", tail(tree_area_breaks, -1))))
+
+trees_area_hist <- t3_30_300_lad_gdf |> 
+    filter(!is.na(tree_area_ratio_jenks)) |> 
+    ggplot() +
+    geom_bar(aes(x = tree_area_ratio_jenks, fill = tree_area_ratio_jenks)) +
+    # scale_x_discrete(limits = rev(levels(t3_30_300_lad_gdf$tree_person_ratio_jenks))) +
+    scale_y_sqrt(breaks = c(10, 25, 50, 75)) +
+    scale_fill_manual(values = colorRampPalette(brewer.pal(9, "OrRd"))(9),
+        guide = "none") + 
+    coord_flip() + 
+    labs(x = NULL, y = NULL, title = bquote(Trees ~ per ~ km^2)) +
+    theme_minimal() +
+    theme(panel.grid.minor = element_blank(), 
+        panel.grid.major.y = element_blank(), 
+        axis.text = element_text(size = 10),
+        plot.title = element_text(size = 13))
+
+# Step 3: Plot with discrete colors
 trees_area_map <- t3_30_300_lad_gdf |> 
     st_transform(crs = WGS84_CRS) |> 
-    mutate(trees_area = total_trees / area) |> 
     ggplot() +
-    aes(fill = trees_area) +
-    geom_sf(linewidth = 0.01, colour = "black", alpha = 0.9) +
-    scale_fill_distiller(palette = "OrRd", direction = 1) +
+    aes(fill = tree_area_ratio_jenks) +
+    geom_sf(color = NA) +
+    scale_fill_manual(values = colorRampPalette(brewer.pal(9, "OrRd"))(9),
+        name = "Trees per km^2 (Jenks breaks)",drop = FALSE) +
     scale_x_continuous(limits = c(-6.5, 4), expand = c(0, 0)) +
     scale_y_continuous(limits = c(49.5, 56.5), expand = c(0, 0)) +
-    labs(fill = bquote(Trees ~ per ~ km^2)) +
-    theme_void() + theme(legend.position = "bottom") +
-    geom_magnify(aes(from = RGN22NM == "London"), to = c(-.2, 3, 54.5, 56), expand = .35,
-                 shadow = TRUE, shape = 'outline', linewidth = .1, colour = "black", alpha = 0.5)
+    guides(fill = guide_legend(nrow = 2, byrow = TRUE, keywidth = unit(0.5, "cm"), 
+        color = "none")) +
+    geom_magnify(aes(from = RGN22NM == "London"), to = c(-.2, 3, 54.5, 56), 
+        expand = .35, shadow = TRUE, shape = 'outline', linewidth = .001, alpha = 0.99) +
+    theme_void() + 
+    theme(legend.position = "none")
+
+tree_area_plot <- ggdraw() + 
+    draw_plot(trees_area_map) +
+    draw_plot(trees_area_hist, x = 0.15, y = 0, hjust = 0.5, scale = 0.3)
+
+ggsave("images/tree_area_plot.png", tree_area_plot, width = 180, height = 210, units = "mm", dpi = 300)
 
 total_trees_std_map <- ggdraw() + 
-    draw_plot(plot_grid(trees_pop_map, trees_area_map, labels = c("A", "B")), 0, 0, 1, 1)
+    draw_plot(plot_grid(tree_pop_plot, tree_area_plot, labels = c("A", "B"), label_size = 20), 0, 0, 1, 1)
 
-ggsave("images/total_trees_std_map.png", total_trees_std_map, 
-       width = 180, height = 90, units = "mm", dpi = 300)
+ggsave("images/total_trees_std_lad_map.png", total_trees_std_map, 
+       width = 360, height = 210, units = "mm", dpi = 300)
 
 # Coverage plot -----------------------------------------------------------
 
