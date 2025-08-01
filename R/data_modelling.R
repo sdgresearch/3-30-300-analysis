@@ -1,6 +1,11 @@
 # Packages ----------------------------------------------------------------
 
-library(tidyverse)
+source("R/utils/constants.R")
+source("R/utils/paths.R")
+load(here(T3_30_300_DIR, ".RData"))
+
+library(dplyr)
+library(tidyr)
 library(forcats)
 library(sf)
 library(tidymodels)
@@ -10,43 +15,71 @@ library(corrplot)
 library(FactoMineR)
 library(factoextra)
 library(DescTools)
+library(spdep)
+library(spatialreg)
 
-source("R/utils/constants.R")
-source("R/utils/paths.R")
+# Data Preparation -------------------------------------------------------
 
-# Variables ---------------------------------------------------------------
+# z_score_normalize <- function(x) {
+#     (x - mean(x)) / sd(x)
+# }
 
-z_score_normalize <- function(x) {
-    (x - mean(x)) / sd(x)
+# t3_30_300_lsoa_standard_df <- t3_30_300_lsoa_standard_df |> 
+#     mutate(across(is.numeric, z_score_normalize))
+
+t3_30_300_lsoa_srm_gdf <- t3_30_300_lsoa_gdf |> 
+    select(LSOA11CD, Region = RGN22NM, Urban = Urban_rural_flag, tree_count_slope_gini, 
+           canopy_cover, park_distance_manhattan, distance_manhattan_gini, water_distance, 
+           distance_water_gini, tree_person_ratio, tree_area_ratio, NDVI, NDWI, NDBI, IMDScore, pop_density) |> 
+    drop_na()
+
+# Spatial Regression Models -----------------------------------------------
+
+nb_lsoa <- poly2nb(t3_30_300_lsoa_srm_gdf, queen = TRUE, row.names = t3_30_300_lsoa_srm_gdf$LSOA11CD)
+lw_lsoa <- nb2listw(nb_lsoa, style = "W", zero.policy = TRUE)
+
+neighbour_counts <- card(nb_lsoa)
+
+# 2. Create a new data frame that excludes the "islands"
+# Keep only the rows where the neighbour count is greater than 0
+t3_30_300_lsoa_srm_gdf_subset <- t3_30_300_lsoa_srm_gdf[neighbour_counts > 0, ]
+
+# 3. Re-create the spatial weights matrix using ONLY the subsetted data
+# This step is crucial to ensure the data and weights matrix align perfectly
+nb_lsoa_subset <- poly2nb(t3_30_300_lsoa_srm_gdf_subset, queen = TRUE, 
+                          row.names = t3_30_300_lsoa_srm_gdf_subset$LSOA11CD)
+                          
+lw_lsoa_subset <- nb2listw(nb_lsoa_subset, style = "W", zero.policy = FALSE)
+
+moran.test(t3_30_300_lsoa_srm_gdf_subset$tree_count_slope_gini, lw_lsoa_subset)
+moran.test(t3_30_300_lsoa_srm_gdf_subset$distance_manhattan_gini, lw_lsoa_subset)
+moran.test(t3_30_300_lsoa_srm_gdf_subset$distance_water_gini, lw_lsoa_subset)
+
+vars_lst <- c("tree_count_slope_gini", "distance_water_gini", "distance_manhattan_gini")
+
+sem_models <- list()
+slm_models <- list()
+
+for (var in vars_lst) { 
+    print(var)
+    formula <- paste(var, "~ IMDScore + Urban + Region + IMDScore*Urban + IMDScore*Region + pop_density + NDVI + NDWI + NDBI")
+    sem_model <- errorsarlm(as.formula(formula),
+                            data = t3_30_300_lsoa_srm_gdf_subset,
+                            listw = lw_lsoa_subset)
+    slm_model <- lagsarlm(as.formula(formula),
+                          data = t3_30_300_lsoa_srm_gdf_subset,
+                          listw = lw_lsoa_subset)
+    sem_models[[var]] <- sem_model
+    slm_models[[var]] <- slm_model
+    print(paste("--------------------------------"))
 }
-
-t3_30_300_standard_df <- t3_30_300_gdf |> 
-    st_drop_geometry() |> 
-    left_join(lsoa_urban_df |> 
-                  select(LSOA21CD, Urban_rural_flag), by = 'LSOA21CD') |>
-    mutate(`3` = log(tree_count_25m + 1),
-           `30` = log(canopy_cover + 1),
-           `300` = -log(park_distance_manhattan + 1),
-           water = -log(water_distance + 1),
-           tree_person_ratio = log(tree_person_ratio + 1),
-           across(ends_with('Score'), scale, .names = "{.col}"),
-           Pop_density = round(Pop_density * 1000, 2)) |> 
-    distinct(LSOA21CD, .keep_all = T) |>
-    # select(EnvDec, `3`, `30`, `300`, water, NDVI, NDWI, NDBI, Pop_density) |> 
-    # select(ends_with('Score'), Pop_density, `3`, `30`, `300`,
-    #        water, NDVI_2024, NDWI_2024, NDBI_2024) |>
-    select(`3`, `30`, `300`, tree_person_ratio, 
-           water, NDVI, NDWI, NDBI,
-           LSOA21CD, LAD22CD, RGN22CD, Pop_density, Urban_rural_flag, EnvDec
-           ) |> 
-    drop_na() |> 
-    mutate(across(is.numeric, z_score_normalize))
-
+saveRDS(sem_models, "sem_models.rds")
+saveRDS(slm_models, "slm_models.rds")
 
 # PCA ---------------------------------------------------------------------
 
-t3_30_300_pca <- t3_30_300_standard_df |>
-    select(-c(LSOA21CD, LAD22CD, RGN22CD, EnvDec, Urban_rural_flag)) |>
+t3_30_300_pca <- t3_30_300_lsoa_gdf |>
+    select() |>
     prcomp(center = T, scale. = T)
 
 explained_variance <- t3_30_300_pca$sdev^2 / sum(t3_30_300_pca$sdev^2)
