@@ -545,14 +545,14 @@ tree_gini_scatter <- t3_30_300_lsoa_gdf |>
     scale_radius() +
     # facet_wrap(~RGN22NM) +
     facet_grid(RGN22NM ~ Urban_rural_flag, labeller = label_wrap_gen(8)) +
-    labs(x = bquote(Trees ~ per ~ km^2), y = "Tree Count Slope Gini", 
+    labs(x = bquote(Trees ~ per ~ km^2), y = "Gini", 
         colour = "IMD Decile", size = bquote("Population Density (per km"^2 * ")"),
-        title = "Tree Count\nSlope Gini") +
+        title = "Tree Count Slope") +
     guides(colour = guide_legend(nrow = 1, byrow = TRUE, keywidth = unit(0.5, "cm")),
         size = guide_legend(nrow = 1, byrow = TRUE, keywidth = unit(0.5, "cm"))) +
     plot_theme +
     theme(legend.position = "none", legend.box = "vertical", strip.text.y = element_blank(),
-        axis.title.y = element_blank(), plot.title = element_text(size = 12))
+        plot.title = element_text(size = 12))
 
 park_gini_scatter <- t3_30_300_lsoa_gdf |> 
     filter(!is.na(IMD_Decile)) |> 
@@ -567,7 +567,7 @@ park_gini_scatter <- t3_30_300_lsoa_gdf |>
     facet_grid(RGN22NM ~ Urban_rural_flag, labeller = label_wrap_gen(8)) +
     labs(x = "Park Distance (km)", y = "Park Distance Gini", 
         colour = "IMD Decile", size = bquote("Population Density (per km"^2 * ")"),
-        title = "Park Distance\nGini") +
+        title = "Park Distance") +
     guides(colour = guide_legend(nrow = 1, byrow = TRUE, keywidth = unit(0.5, "cm"))) +
     plot_theme +
     theme(legend.position = "bottom", legend.box = "vertical", 
@@ -587,7 +587,7 @@ water_gini_scatter <- t3_30_300_lsoa_gdf |>
     facet_grid(RGN22NM ~ Urban_rural_flag, labeller = label_wrap_gen(8)) +
     labs(x = "Water Distance (km)", y = "Water Distance Gini", 
         colour = "IMD Decile", size = bquote("Population Density (per km"^2 * ")"),
-        title = "Water Distance\nGini") +
+        title = "Water Distance") +
     guides(colour = guide_legend(nrow = 1, byrow = TRUE, keywidth = unit(0.5, "cm")),
         size = guide_legend(nrow = 1, byrow = TRUE, keywidth = unit(0.5, "cm"))) +
     plot_theme +
