@@ -1,4 +1,5 @@
 site_name: 3-30-300 Analysis of England using Big Spatial Data
+site_url: https://ancazugo.github.io/3-30-300-analysis/
 nav:
   - Home: index.md
   - Reference:
