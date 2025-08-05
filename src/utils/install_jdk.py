@@ -1,9 +1,3 @@
-"""
-Module: src/utils/install_jdk.py
-Description: Utility functions for installing the JDK to run Spark jobs.
-Author: Andrés C. Zúñiga-González
-Date: 2025-07-16
-"""
 
 from utils.constants import JAVA_HOME
 

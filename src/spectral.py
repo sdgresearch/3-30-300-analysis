@@ -1,9 +1,3 @@
-"""
-Module: src/spectral.py
-Description: Functions for calculating the spectral indices.
-Author: Andrés C. Zúñiga-González
-Date: 2025-07-16
-"""
 
 from utils.constants import GEE_PROJECT_NAME 
 from utils.paths import Spectral_dir, output_areas_boundaries_ee_path
@@ -17,10 +11,6 @@ import pandas as pd
 def setup_gee() -> None:
     """
     Sets up the GEE project.
-    Args:
-        None
-    Returns:
-        None
     """
 
     logging.debug(f"Initializing GEE for project: {GEE_PROJECT_NAME}")
@@ -32,6 +22,7 @@ def get_imagery(geo_level_filt_fc: ee.featurecollection.FeatureCollection, image
                 start_date: str, end_date: str, cloud_coverage: float, spectral_indexes: list[str]) -> ee.image.Image:
     """
     Gets the imagery from GEE.
+
     Args:
         geo_level_filt_fc (ee.featurecollection.FeatureCollection): The filtered feature collection.
         imagery_ee_path (str): The path to the imagery in GEE.
@@ -39,6 +30,7 @@ def get_imagery(geo_level_filt_fc: ee.featurecollection.FeatureCollection, image
         end_date (str): The end date.
         cloud_coverage (float): The cloud coverage.
         spectral_indexes (list[str]): The spectral indexes.
+
     Returns:
         ee.image.Image: The imagery.
     """
@@ -60,11 +52,13 @@ def calculate_median_index(imagery_ic: ee.image.Image, geometries: ee.featurecol
                            scale: float=10.0, tile_scale: int=4) -> ee.featurecollection.FeatureCollection:
     """
     Calculate the median index of an image collection over specified geometries.
+
     Args:
         image_collection (ee.image.Image): The image collection to process.
         geometries (ee.featurecollection.FeatureCollection): The geometries over which to calculate the median index.
         scale (float, optional): The scale in meters at which to perform the reduction. Default is 10.0.
         tile_scale (int, optional): A scaling factor used to reduce aggregation tile size; may help avoid memory errors. Default is 4.
+
     Returns:
         ee.featurecollection.FeatureCollection: A FeatureCollection containing the median index values for each geometry.
     """
@@ -82,6 +76,7 @@ def process_geo_code(geo_code: str, geo_level: str, sub_geo_level: str, imagery_
                      spectral_indexes: list[str], overwrite: bool=True) -> pd.DataFrame:
     """
     Processes a given geo_code for spectral indices.
+
     Args:
         geo_code (str): The geo code.
         geo_level (str): The geo level.
@@ -92,6 +87,7 @@ def process_geo_code(geo_code: str, geo_level: str, sub_geo_level: str, imagery_
         cloud_coverage (float): The cloud coverage.
         spectral_indexes (list[str]): The spectral indexes.
         overwrite (bool): Whether to overwrite the existing file.
+        
     Returns:
         pd.DataFrame: The spectral indices dataframe.
     """

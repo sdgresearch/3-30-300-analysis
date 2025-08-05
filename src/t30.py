@@ -1,9 +1,3 @@
-"""
-Module: src/t30.py
-Description: Functions for calculating the canopy cover (T30).
-Author: Andrés C. Zúñiga-González
-Date: 2025-07-16
-"""
 
 from utils.paths import T30_dir
 from utils.constants import PROJECT_CRS
@@ -29,10 +23,12 @@ def binarise_tiles(vom_paths_lst: list, low_threshold: float, high_threshold: fl
     and then binarises the merged array based on the provided low and high thresholds.
     The resulting binary array will have values of 1 where the CHM values are within the
     specified range, and 0 otherwise.
+
     Args:
         selected_chm_path_lst (list): List of file paths to the CHM tiles to be processed.
         low_threshold (float): The lower threshold for binarisation.
         high_threshold (float): The upper threshold for binarisation.
+
     Returns:
         xr.DataArray: A binary xarray DataArray where values are 1 if within the threshold range, and 0 otherwise.
     """
@@ -58,9 +54,11 @@ def binarise_tiles(vom_paths_lst: list, low_threshold: float, high_threshold: fl
 def get_canopy_cover(subgeo_filt_gdf: gpd.GeoDataFrame, binary_merged_chm_xr: xr.DataArray) -> pd.DataFrame:
     """
     Calculate the canopy cover percentage for each geometry in the given GeoDataFrame.
+
     Args:
         subgeo_filt_gdf (gpd.GeoDataFrame): A GeoDataFrame containing the geometries for which the canopy cover is to be calculated.
         binary_merged_chm_xr (xr.DataArray): A DataArray containing binary canopy height model data.
+
     Returns:
         pd.DataFrame: A DataFrame containing the original geometries and their corresponding canopy cover percentages.
     """
@@ -83,6 +81,7 @@ def process_geo_code(sedona: SparkSession, geo_level: str, geo_code: str, output
                      low_threshold: int=3, high_threshold: int=60, overwrite: bool=True) -> pd.DataFrame:
     """
     Processes a given geo_code for T30.
+
     Args:
         sedona (SparkSession): The Spark session.
         geo_level (str): The geo level.
@@ -93,6 +92,7 @@ def process_geo_code(sedona: SparkSession, geo_level: str, geo_code: str, output
         low_threshold (int): The low threshold for binarisation.
         high_threshold (int): The high threshold for binarisation.
         overwrite (bool): Whether to overwrite the existing file.
+
     Returns:    
         pd.DataFrame: The canopy cover dataframe.
     """

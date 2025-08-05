@@ -1,9 +1,3 @@
-"""
-Module: src/t300.py
-Description: Functions for calculating the distance to the closest park (T300).
-Author: Andrés C. Zúñiga-González
-Date: 2025-07-16
-"""
 
 from utils.paths import T300_dir
 from utils.constants import PROJECT_CRS
@@ -22,6 +16,7 @@ def filter_features(sedona: SparkSession, geo_level: str, geo_code: str, road_no
                     road_edges_gdf: gpd.GeoDataFrame, geo_boundary_gdf: gpd.GeoDataFrame) -> dict:
     """
     Filters various GeoDataFrames by performing spatial joins with a given geographic boundary.
+
     Args:
         sedona (SparkSession): The Spark session.
         geo_level (str): The geo level.
@@ -29,6 +24,7 @@ def filter_features(sedona: SparkSession, geo_level: str, geo_code: str, road_no
         road_nodes_gdf (gpd.GeoDataFrame): GeoDataFrame containing road nodes.
         road_edges_gdf (gpd.GeoDataFrame): GeoDataFrame containing road edges.
         geo_boundary_gdf (gpd.GeoDataFrame): GeoDataFrame containing the geographic boundary for filtering.
+
     Returns:
         dict: A dictionary containing filtered GeoDataFrames with the following keys:
             - 'nodes': Filtered road nodes GeoDataFrame.
@@ -61,11 +57,13 @@ def get_road_graph_distances(geo_road_nodes_gdf: gpd.GeoDataFrame, geo_road_edge
                              geo_public_park_accesses_gdf: gpd.GeoDataFrame, geo_buildings_gdf: gpd.GeoDataFrame) -> tuple:
     """
     Generates a graph of the road network and calculates the distances to the nearest park access point and building.
+
     Args:
         geo_road_nodes_gdf (gpd.GeoDataFrame): GeoDataFrame containing road nodes.
         geo_road_edges_gdf (gpd.GeoDataFrame): GeoDataFrame containing road edges.
         geo_public_park_accesses_gdf (gpd.GeoDataFrame): GeoDataFrame containing public park access points.
         geo_buildings_gdf (gpd.GeoDataFrame): GeoDataFrame containing building information.
+
     Returns:
         tuple: A tuple containing the graph of the road network, the public park access points GeoDataFrame, and the buildings GeoDataFrame.
     """
@@ -86,10 +84,12 @@ def get_road_graph_distances(geo_road_nodes_gdf: gpd.GeoDataFrame, geo_road_edge
 def get_closest_park_manhattan(geo_graph: nx.MultiGraph, geo_buildings_gdf: gpd.GeoDataFrame, geo_public_park_accesses_gdf: gpd.GeoDataFrame) -> pd.DataFrame:
     """
     Calculate the closest park access point for each building in the given GeoDataFrame.
+
     Parameters:
         geo_graph (nx.MultiGraph): A graph representing the road network.
         geo_buildings_gdf (gpd.GeoDataFrame): A GeoDataFrame containing building information, including the nearest road node.
         geo_public_park_accesses_gdf (gpd.GeoDataFrame): A GeoDataFrame containing public park access points, including the nearest road node.
+
     Returns:
         pd.DataFrame: A DataFrame with columns 'verisk_premise_id', 'closest_park_access_id', and 'distance', representing the building ID, the closest park access point ID, and the distance to the closest park access point, respectively.
     """
@@ -140,10 +140,12 @@ def get_closest_park_manhattan(geo_graph: nx.MultiGraph, geo_buildings_gdf: gpd.
 def get_closest_park_euclidean(sedona: SparkSession, geo_buildings_gdf: gpd.GeoDataFrame, geo_public_park_site_gdf: gpd.GeoDataFrame) -> pd.DataFrame:
     """
     Calculates the Euclidean distance to the closest park site for each building in the given GeoDataFrame.
+
     Args:
         sedona (SparkSession): The Spark session.
         geo_buildings_gdf (gpd.GeoDataFrame): GeoDataFrame containing building information.
         geo_public_park_site_gdf (gpd.GeoDataFrame): GeoDataFrame containing public park sites.
+
     Returns:
         pd.DataFrame: A DataFrame with columns 'verisk_premise_id', 'closest_park_site_id', and 'distance_euclidean', representing the building ID, the closest park site ID, and the Euclidean distance to the closest park site, respectively.
     """
@@ -168,12 +170,14 @@ def get_closest_park(sedona: SparkSession, geo_graph: nx.MultiGraph, geo_buildin
                      geo_public_park_accesses_gdf: gpd.GeoDataFrame, geo_public_park_sites_gdf: gpd.GeoDataFrame) -> pd.DataFrame:
     """
     Calculates the closest park access point and Euclidean distance to the closest park site for each building in the given GeoDataFrame.
+
     Args:
         sedona (SparkSession): The Spark session.
         geo_graph (nx.MultiGraph): A graph representing the road network.
         geo_buildings_gdf (gpd.GeoDataFrame): A GeoDataFrame containing building information, including the nearest road node.
         geo_public_park_accesses_gdf (gpd.GeoDataFrame): A GeoDataFrame containing public park access points, including the nearest road node.
         geo_public_park_sites_gdf (gpd.GeoDataFrame): A GeoDataFrame containing public park sites.
+
     Returns:
         pd.DataFrame: A DataFrame with columns 'verisk_premise_id', 'closest_park_access_id', 'distance_manhattan', 'closest_park_site_id', and 'distance_euclidean', representing the building ID, the closest park access point ID, the Manhattan distance to the closest park access point, the closest park site ID, and the Euclidean distance to the closest park site, respectively.
     """
@@ -189,6 +193,7 @@ def process_geo_code(sedona: SparkSession, geo_level: str, geo_code: str, road_n
                      road_edges_gdf: gpd.GeoDataFrame, overwrite: bool=True) -> pd.DataFrame:
     """
     Processes a given geo_code for T300.
+
     Args:
         sedona (SparkSession): The Spark session.
         geo_level (str): The geo level.
@@ -196,6 +201,7 @@ def process_geo_code(sedona: SparkSession, geo_level: str, geo_code: str, road_n
         road_nodes_gdf (gpd.GeoDataFrame): GeoDataFrame containing road nodes.
         road_edges_gdf (gpd.GeoDataFrame): GeoDataFrame containing road edges.
         overwrite (bool): Whether to overwrite the existing file.
+        
     Returns:
         pd.DataFrame: A DataFrame with columns 'verisk_premise_id', 'closest_park_access_id', 'distance_manhattan', 'closest_park_site_id', and 'distance_euclidean', representing the building ID, the closest park access point ID, the Manhattan distance to the closest park access point, the closest park site ID, and the Euclidean distance to the closest park site, respectively.
     """

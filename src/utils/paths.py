@@ -1,9 +1,3 @@
-"""
-Module: src/utils/paths.py
-Description: Name of input and output directories and files.
-Author: Andrés C. Zúñiga-González
-Date: 2025-07-16
-"""
 
 from utils.constants import INPUT_DIR, OUTPUT_DIR
 

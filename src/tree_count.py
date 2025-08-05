@@ -1,9 +1,3 @@
-"""
-Module: src/tree_count.py
-Description: Functions for counting the number of trees within a boundary.
-Author: Andrés C. Zúñiga-González
-Date: 2025-07-16
-"""
 
 from utils.paths import tree_count_dir
 from utils.constants import PROJECT_CRS
@@ -20,12 +14,14 @@ from pyspark.sql.session import SparkSession
 def concatenate_trees_for_boundary(sedona: SparkSession, geo_level: str, geo_code: str, output_areas_os_tile_overlay_df: pd.DataFrame, tree_vector_paths_df: pd.DataFrame) -> gpd.GeoDataFrame:
     """
     Concatenates the trees for a given boundary.
+
     Args:
         sedona (SparkSession): The Spark session.
         geo_level (str): The geo level.
         geo_code (str): The geo code.
         output_areas_os_tile_overlay_df (pd.DataFrame): The output areas OS tile overlay dataframe.
         tree_vector_paths_df (pd.DataFrame): The tree vector paths dataframe.
+
     Returns:
         gpd.GeoDataFrame: The concatenated trees for the boundary.
     """
@@ -54,6 +50,7 @@ def process_geo_code(sedona: SparkSession, geo_level: str, sub_geo_level: str, g
                      output_areas_os_tile_overlay_df: pd.DataFrame, tree_vector_paths_df: pd.DataFrame, overwrite: bool=True) -> pd.DataFrame:
     """
     Processes a given geo_code for tree count.
+
     Args:
         sedona (SparkSession): The Spark session.
         geo_level (str): The geo level.
@@ -62,6 +59,7 @@ def process_geo_code(sedona: SparkSession, geo_level: str, sub_geo_level: str, g
         output_areas_os_tile_overlay_df (pd.DataFrame): The output areas OS tile overlay dataframe.
         tree_vector_paths_df (pd.DataFrame): The tree vector paths dataframe.
         overwrite (bool): Whether to overwrite the existing file.
+        
     Returns:
         pd.DataFrame: The tree count dataframe.
     """
