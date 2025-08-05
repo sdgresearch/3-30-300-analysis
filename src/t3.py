@@ -1,9 +1,3 @@
-"""
-Module: src/t3.py
-Description: Functions for calculating the number of trees within a buffer of a building (T3).
-Author: Andrés C. Zúñiga-González
-Date: 2025-07-16
-"""
 
 from utils.paths import T3_dir, trees_unique_dir
 from utils.data_processing import generate_tile_paths, get_overlapping_grid_tiles, filter_buffer_geometries, get_geometries, save_temp_file
@@ -21,11 +15,13 @@ from pyspark.sql.functions import monotonically_increasing_id
 def process_vom_tiles(sedona: SparkSession, trees_path_lst: list, tree_area: int=10, tree_height: int=3) -> gpd.GeoDataFrame:
     """
     Processes the VOM tiles to create a GeoDataFrame of the trees.
+
     Args:
         sedona (SparkSession): The Spark session.
         trees_path_lst (list): The list of paths to the VOM tiles.
         tree_area (int): The area of the tree.
         tree_height (int): The height of the tree.
+
     Returns:
         gpd.GeoDataFrame: The GeoDataFrame of the trees.
     """
@@ -56,11 +52,13 @@ def process_vom_tiles(sedona: SparkSession, trees_path_lst: list, tree_area: int
 def read_vom_trees_unique(sedona: SparkSession, overlapping_tiles_lst: list, tree_area: int=10, tree_height: int=3) -> DataFrame:
     """
     Reads the VOM trees unique files.
+
     Args:
         sedona (SparkSession): The Spark session.
         overlapping_tiles_lst (list): The list of overlapping tiles.
         tree_area (int): The area of the tree.
         tree_height (int): The height of the tree.
+
     Returns:
         DataFrame: The VOM trees dataframe.
     """
@@ -87,9 +85,11 @@ def read_vom_trees_unique(sedona: SparkSession, overlapping_tiles_lst: list, tre
 def count_trees(sedona: SparkSession, geo_code: str) -> pd.DataFrame:
     """
     Counts the trees for each building.
+
     Args:
         sedona (SparkSession): The Spark session.
         geo_code (str): The geo code.
+
     Returns:
         pd.DataFrame: The dataframe with the tree counts.
     """
@@ -116,6 +116,7 @@ def process_geo_code(sedona: SparkSession, query_method: str, geo_level: str, ge
                      tree_height: int=3, overwrite: bool=True) -> pd.DataFrame:
     """
     Processes a given geo_code for T3.
+
     Args:
         sedona (SparkSession): The Spark session.
         query_method (str): The query method.
@@ -131,6 +132,7 @@ def process_geo_code(sedona: SparkSession, query_method: str, geo_level: str, ge
         tree_area (int): The area of the tree.
         tree_height (int): The height of the tree.
         overwrite (bool): Whether to overwrite the existing file.
+        
     Returns:
         pd.DataFrame: The dataframe with the tree counts.
     """

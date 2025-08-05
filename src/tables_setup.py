@@ -1,9 +1,3 @@
-"""
-Module: src/tables_setup.py
-Description: Utility functions for setting up the tables for the project.
-Author: Andrés C. Zúñiga-González
-Date: 2025-07-16
-"""
 
 from utils.constants import PROJECT_CRS, INPUT_DIR, OUTPUT_DIR
 from utils.paths import imd_england_2019_path, lsoa_2011_2021_lookup_path, oa_2021_lookup_path, oa_2021_boundaries_path, oa_rgn_lookup_path 
@@ -22,10 +16,6 @@ from pyspark.sql.session import SparkSession
 def setup_parquet_files() -> None:
     """
     Sets up the parquet files for the project using the paths defined in utils.paths.
-    Args:
-        None
-    Returns:
-        None
     """
 
     logging.debug("Setting up parquet files")
@@ -87,10 +77,6 @@ def setup_parquet_files() -> None:
 def create_in_out_folders() -> None:
     """
     Creates the input and output folders for the project using the paths defined in utils.paths.
-    Args:
-        None
-    Returns:
-        None
     """
     
     logging.debug("Creating input and output folders")
@@ -110,8 +96,10 @@ def create_in_out_folders() -> None:
 def load_tables(sedona: SparkSession) -> dict:
     """
     Loads the tables from the parquet files into a dictionary.
+
     Args:
         sedona (SparkSession): The Spark session.
+
     Returns:
         dict: A dictionary containing the loaded tables.
     """
@@ -151,8 +139,10 @@ def load_tables(sedona: SparkSession) -> dict:
 def process_population_data(population_estimates_df: pd.DataFrame) -> pd.DataFrame:
     """
     Processes the population data to calculate the ratio of each column compared to Total.
+
     Args:
         population_estimates_df (pd.DataFrame): The population estimates dataframe.
+
     Returns:
         pd.DataFrame: The processed population estimates dataframe.
     """
@@ -188,8 +178,10 @@ def process_population_data(population_estimates_df: pd.DataFrame) -> pd.DataFra
 def expand_national_grid(os_5km_boundaries_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     """
     Expands the national grid to include the 10km, 50km, and 100km tiles.
+
     Args:
         os_5km_boundaries_gdf (gpd.GeoDataFrame): The OS 5km boundaries dataframe.
+
     Returns:
         gpd.GeoDataFrame: The expanded national grid dataframe.
     """
@@ -215,9 +207,11 @@ def expand_national_grid(os_5km_boundaries_gdf: gpd.GeoDataFrame) -> gpd.GeoData
 def overlay_output_areas_with_os_tiles(output_areas_boundaries_gdf: gpd.GeoDataFrame, os_tile_boundaries_gdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     """
     Overlays output areas with OS tiles and returns the resulting GeoDataFrame.
+
     Parameters:
         output_areas_boundaries_gdf (gpd.GeoDataFrame): GeoDataFrame containing output area boundaries.
         os_tile_boundaries_gdf (gpd.GeoDataFrame): GeoDataFrame containing OS tile boundaries.
+
     Returns:
         gpd.GeoDataFrame: GeoDataFrame containing the overlayed data.
     """
@@ -237,16 +231,12 @@ def overlay_output_areas_with_os_tiles(output_areas_boundaries_gdf: gpd.GeoDataF
 def overlay_output_areas_with_buildings(sedona: SparkSession, output_areas_boundaries_sdf: gpd.GeoDataFrame, buildings_sdf: gpd.GeoDataFrame) -> gpd.GeoDataFrame:
     """
     Overlay output areas with buildings to get the matching geography for each building.
+
     Args:
         sedona (SparkSession): The Spark session.
         output_areas_boundaries_sdf (gpd.GeoDataFrame): The output areas boundaries dataframe.
         buildings_sdf (gpd.GeoDataFrame): The buildings dataframe.
-    Returns:
-        gpd.GeoDataFrame: The buildings boundaries dataframe.
-    Args:
-        sedona (SparkSession): The Spark session.
-        output_areas_boundaries_sdf (gpd.GeoDataFrame): The output areas boundaries dataframe.
-        buildings_sdf (gpd.GeoDataFrame): The buildings dataframe.
+
     Returns:
         gpd.GeoDataFrame: The buildings boundaries dataframe.
     """

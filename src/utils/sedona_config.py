@@ -1,9 +1,3 @@
-"""
-Module: src/utils/sedona_config.py
-Description: Utility functions for Apache Sedona and Spark configuration.
-Author: Andrés C. Zúñiga-González
-Date: 2025-07-16
-"""
 
 from utils.constants import JAVA_HOME
 
@@ -15,6 +9,7 @@ from pyspark.sql.session import SparkSession
 def get_spark() -> SparkSession:
     """
     Sets up the Apache Sedona Spark session.
+    
     Returns:
         SedonaContext (SparkSession): The Apache Sedona Spark session.
     """

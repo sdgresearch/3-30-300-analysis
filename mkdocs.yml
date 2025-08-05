@@ -1,0 +1,48 @@
+site_name: 3-30-300 Analysis of England using Big Spatial Data
+nav:
+  - Home: index.md
+  - Reference:
+    - Tables Setup: 3-30-300-analysis/tables_setup.md
+    - T3 Module: 3-30-300-analysis/t3.md
+    - T30 Module: 3-30-300-analysis/t30.md
+    - T300 Module: 3-30-300-analysis/t300.md
+    - Tree Count: 3-30-300-analysis/tree_count.md
+    - Spectral Module: 3-30-300-analysis/spectral.md
+  - Utils:
+    - Constants: 3-30-300-analysis/utils/constants.md
+    - Data Processing: 3-30-300-analysis/utils/data_processing.md
+    - Install JDK: 3-30-300-analysis/utils/install_jdk.md
+    - Logging Config: 3-30-300-analysis/utils/logging_config.md
+    - Paths: 3-30-300-analysis/utils/paths.md
+    - Sedona Config: 3-30-300-analysis/utils/sedona_config.md
+    - Sedona RDD: 3-30-300-analysis/utils/sedona_rdd.md
+    - VOM Processing: 3-30-300-analysis/utils/vom_processing.md
+theme: 
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+plugins:
+  - mkdocs-jupyter:
+      allow_errors: true
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            show_docstring_attributes: true
+            show_docstring_parameters: true
+            show_docstring_returns: true
+            show_docstring_description: true
+            docstring_style: google
+watch:
+  - .
