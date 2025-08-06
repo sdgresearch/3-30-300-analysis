@@ -73,8 +73,11 @@ for (var in vars_lst) {
     slm_models[[var]] <- slm_model
     print(paste("--------------------------------"))
 }
-saveRDS(sem_models, "sem_models.rds")
-saveRDS(slm_models, "slm_models.rds")
+saveRDS(sem_models, here(T3_30_300_DIR, "models", "sem_models.rds"))
+saveRDS(slm_models, here(T3_30_300_DIR, "models", "slm_models.rds"))
+
+sem_models <- readRDS(here(T3_30_300_DIR, "models", "sem_models.rds"))
+slm_models <- readRDS(here(T3_30_300_DIR, "models", "slm_models.rds"))
 
 # PCA ---------------------------------------------------------------------
 

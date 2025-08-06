@@ -14,7 +14,7 @@ library(DescTools)
 
 # Data --------------------------------------------------------------------
 
-t3_30_300_spectral_df <- read_parquet(t3_30_300_spectral_parquet)
+# t3_30_300_spectral_df <- read_parquet(t3_30_300_spectral_parquet)
 output_areas_boundaries_gdf <- open_dataset(output_areas_boundaries_parquet) |>
     st_as_sf()
 os_tile_boundaries_gdf <- open_dataset(os_tile_boundaries_parquet) |> 
@@ -24,6 +24,8 @@ lsoa_urban_df <- read_csv(lsoa_urban_path)
 lad_london_df <- read_csv(lad_london_path)
 tree_vector_paths_df <- read_parquet(tree_vector_paths_parquet)
 imd_lsoa_df <- read_parquet(imd_lsoa_parquet)
+spectral_df <- read_parquet(spectral_parquet) |> 
+    mutate(across(starts_with("ND"), as.numeric))
 std_population_estimates_df <- read_parquet(std_population_estimates_parquet)
 tree_count_df <- read_parquet(tree_count_parquet) |> 
     mutate(tree_count = as.integer(tree_count))
@@ -68,7 +70,9 @@ group_by_geo_level <- function(geo_level = "LSOA21CD", dTolerance = 500) {
         filter(map_use == "Residential") |>
         group_by(!!sym(geo_level)) |>
         summarise(across(starts_with("tree_count"), ~Gini(.x, na.rm = TRUE, unbiased = TRUE), .names = "{.col}_gini"),
+                  across(starts_with("tree_count"), ~round(mean(.x, na.rm = TRUE), 2), .names = "{.col}"),
                   across(starts_with("distance"), ~1 - Gini(.x, na.rm = TRUE, unbiased = TRUE), .names = "{.col}_gini"),
+                  across(starts_with("distance"), ~round(mean(.x, na.rm = TRUE), 2), .names = "{.col}"),
                   building_count = n(), .groups = "drop")
 
     t30_geo_level_df <- t30_df |> 
@@ -97,7 +101,8 @@ t3_30_300_lsoa_gdf <- group_by_geo_level("LSOA21CD", 10) |>
         st_drop_geometry() |> 
         select(LSOA21CD, LSOA21NM, MSOA21CD, MSOA21NM, LAD22CD, LAD22NM, RGN22CD, RGN22NM) |> 
         distinct(), by = "LSOA21CD") |> 
-    full_join(t3_30_300_spectral_df |> select(-canopy_cover, -total_trees), by = "LSOA21CD") |> 
+    # full_join(t3_30_300_spectral_df |> select(-canopy_cover, -total_trees, -NDVI, -NDWI, -NDBI), by = "LSOA21CD") |> 
+    full_join(spectral_df, by = "LSOA21CD") |> 
     full_join(imd_lsoa_df, by = "LSOA21CD") |> 
     mutate(IMD_Decile = as_factor(IMD_Decile),
            across(ends_with("Dec"), as_factor, .names = "{.col}")) |> 
@@ -109,7 +114,120 @@ t3_30_300_lsoa_gdf <- group_by_geo_level("LSOA21CD", 10) |>
                                             "West Midlands", "East Midlands",
                                             "East of England", "South West",
                                             "South East", "London"))) |>
-    arrange(RGN22CD, LAD22CD, MSOA21CD, LSOA21CD)
+    arrange(RGN22CD, LAD22CD, MSOA21CD, LSOA21CD) |> 
+    distinct(LSOA21CD, .keep_all = TRUE)
+
+write_parquet(t3_30_300_lsoa_gdf |> st_transform(crs = WGS84_CRS) |> mutate(RGN22NM = as.character(RGN22NM)), here(app_files_dir, "Aggregated", "t3_30_300_lsoa_4326.parquet"))
+write_csv(t3_30_300_lsoa_gdf |> st_drop_geometry() |> mutate(RGN22NM = as.character(RGN22NM)), here(app_files_dir, "Aggregated", "t3_30_300_lsoa_4326.csv"))
+# Clean field names for shapefile compatibility (max 10 chars, alphanumeric + underscore only)
+clean_shapefile_names <- function(names) {
+    # First make valid names
+    valid_names <- make.names(names, unique = TRUE)
+    
+    # Create a mapping to preserve meaning while ensuring uniqueness
+    name_mapping <- c(
+        # Tree count fields
+        "tree_count_10m" = "tree_10m",
+        "tree_count_25m" = "tree_25m", 
+        "tree_count_50m" = "tree_50m",
+        "tree_count_75m" = "tree_75m",
+        "tree_count_100m" = "tree_100m",
+        "tree_count_slope" = "tree_slope",
+        "tree_count_10m_gini" = "tree10_gini",
+        "tree_count_25m_gini" = "tree25_gini",
+        "tree_count_50m_gini" = "tree50_gini",
+        "tree_count_75m_gini" = "tree75_gini",
+        "tree_count_100m_gini" = "tree100_gini",
+        "tree_count_slope_gini" = "treesl_gini",
+        
+        # Distance fields
+        "distance_manhattan" = "dist_manh",
+        "distance_euclidean" = "dist_eucl",
+        "distance_water" = "dist_water",
+        "distance_manhattan_gini" = "distm_gini",
+        "distance_euclidean_gini" = "diste_gini",
+        "distance_water_gini" = "distw_gini",
+        
+        # Basic fields
+        "total_trees" = "tot_trees",
+        "total_pop" = "tot_pop",
+        "canopy_cover" = "canopy_cov",
+        "pop_density" = "pop_dens",
+        "tree_person_ratio" = "tree_per",
+        "tree_area_ratio" = "tree_area",
+        "building_count" = "bldg_count",
+        
+        # IMD and related fields
+        "IMD_Decile" = "IMD_Dec",
+        "IMD_Rank" = "IMD_Rank",
+        "IMDScore" = "IMDScore",
+        "IncScore" = "IncScore",
+        "IncRank" = "IncRank",
+        "IncDec" = "IncDec",
+        "EmpScore" = "EmpScore",
+        "EmpRank" = "EmpRank",
+        "EmpDec" = "EmpDec",
+        "EduScore" = "EduScore",
+        "EduRank" = "EduRank",
+        "EduDec" = "EduDec",
+        "HDDScore" = "HDDScore",
+        "HDDRank" = "HDDRank",
+        "HDDDec" = "HDDDec",
+        "CriScore" = "CriScore",
+        "CriRank" = "CriRank",
+        "CriDec" = "CriDec",
+        "BHSScore" = "BHSScore",
+        "BHSRank" = "BHSRank",
+        "BHSDec" = "BHSDec",
+        "EnvScore" = "EnvScore",
+        "EnvRank" = "EnvRank",
+        "EnvDec" = "EnvDec",
+        
+        # Geographic identifiers
+        "LSOA21CD" = "LSOA21CD",
+        "LSOA21NM" = "LSOA21NM",
+        "MSOA21CD" = "MSOA21CD",
+        "MSOA21NM" = "MSOA21NM",
+        "LAD22CD" = "LAD22CD",
+        "LAD22NM" = "LAD22NM",
+        "RGN22CD" = "RGN22CD",
+        "RGN22NM" = "RGN22NM",
+        "IOL22CD" = "IOL22CD",
+        "IOL22NM" = "IOL22NM",
+        "LSOA11CD" = "LSOA11CD",
+        
+        # Other fields
+        "area" = "area",
+        "geometry" = "geometry",
+        "NDBI" = "NDBI",
+        "NDVI" = "NDVI",
+        "NDWI" = "NDWI",
+        "Urban_rural_flag" = "Urban_flag"
+    )
+    
+    # Apply the mapping
+    cleaned_names <- valid_names
+    for (i in seq_along(valid_names)) {
+        if (valid_names[i] %in% names(name_mapping)) {
+            cleaned_names[i] <- name_mapping[valid_names[i]]
+        } else {
+            # For any remaining names, truncate to 10 chars
+            cleaned_names[i] <- substr(valid_names[i], 1, 10)
+        }
+    }
+    
+    # Ensure uniqueness by adding numbers if needed
+    final_names <- make.unique(cleaned_names, sep = "_")
+    
+    return(final_names)
+}
+
+t3_30_300_lsoa_gdf_clean <- t3_30_300_lsoa_gdf |> 
+    st_transform(crs = WGS84_CRS) |>
+    rename_with(~clean_shapefile_names(.), .cols = everything())
+
+t3_30_300_lsoa_gdf_clean |> 
+    st_write(here(app_files_dir, "Aggregated", "t3_30_300_lsoa_4326.shp"))
 
 t3_30_300_msoa_gdf <- group_by_geo_level("MSOA21CD", 100) |> 
     left_join(output_areas_boundaries_gdf |> 
