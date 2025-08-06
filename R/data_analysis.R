@@ -601,6 +601,44 @@ gini_scatter_plot <- plot_grid(gini_scatter_plot, get_legend(park_gini_scatter),
 ggsave("images/gini_scatter_plot.png", gini_scatter_plot, 
        width = 180, height = 270, units = "mm", dpi = 300)
 
+gini_scatter_plot_1 <- t3_30_300_lsoa_gdf |> 
+    filter(!is.na(IMD_Decile)) |> 
+    ggplot() + 
+    geom_point(aes(distance_manhattan_gini, tree_count_slope_gini, 
+        colour = IMD_Decile), alpha = 0.5, size = 0.5) + 
+    scale_x_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.25)) +
+    scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.25)) +
+    scale_colour_brewer(palette = "RdYlBu", direction = 1) + 
+    coord_equal() +
+    facet_wrap(~RGN22NM, labeller = label_wrap_gen(8)) + 
+    labs(x = "Park Distance Gini", y = "Tree Count Slope Gini", colour = "IMD Decile") +
+    guides(colour = guide_legend(nrow = 1)) +
+    plot_theme +
+    theme(legend.position = "none", axis.text.x = element_text(angle = 45, hjust = 1))
+
+gini_scatter_plot_2 <- t3_30_300_lsoa_gdf |> 
+    filter(!is.na(IMD_Decile)) |> 
+    ggplot() + 
+    geom_point(aes(distance_water_gini, tree_count_slope_gini, 
+        colour = IMD_Decile), alpha = 0.5, size = 0.5) + 
+    scale_x_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.25)) +
+    scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.25)) +
+    scale_colour_brewer(palette = "RdYlBu", direction = 1) + 
+    coord_equal() +
+    facet_wrap(~RGN22NM, labeller = label_wrap_gen(8)) + 
+    labs(x = "Water Distance Gini", y = "Tree Count Slope Gini", colour = "IMD Decile") +
+    guides(colour = guide_legend(nrow = 1)) +
+    plot_theme +
+    theme(axis.title.y = element_blank(),
+        axis.text.y = element_blank(), axis.ticks.y = element_blank(), 
+        axis.text.x = element_text(angle = 45, hjust = 1))
+
+gini_scatter_plots <- (gini_scatter_plot_1 | gini_scatter_plot_2 + theme(legend.position = "none")) + plot_annotation(tag_levels = 'A')
+gini_scatter_plots <- plot_grid(gini_scatter_plots, get_legend(gini_scatter_plot_2), nrow = 2, rel_heights = c(1, 0.1))
+
+ggsave("images/gini_comparison_scatter_plots.png", gini_scatter_plots, 
+       width = 180, height = 180, units = "mm", dpi = 300)
+
 # 3-30-300 rules ----------------------------------------------------------
 
 t3_30_300_pop_summary <- t3_30_300_lsoa_gdf |> 
@@ -615,7 +653,7 @@ t3_30_300_pop_summary <- t3_30_300_lsoa_gdf |>
     st_drop_geometry() |> 
     mutate(meets_3_trees = tree_count_25m >= 3,
            meets_30_canopy = canopy_cover >= 30,
-           meets_300_distance = park_distance_manhattan <= 300,
+           meets_300_distance = distance_manhattan <= 300,
            meets_3_30 = meets_3_trees & meets_30_canopy,
            meets_30_300 = meets_30_canopy & meets_300_distance,
            meets_3_300 = meets_3_trees & meets_300_distance,
@@ -800,8 +838,7 @@ ggsave("images/coverage_map_plot.png", coverage_map_plot,
 
 # Tables ------------------------------------------------------------------
 
-t3_30_300_lad_summary <- lad_gdf |> 
-    left_join(t3_30_300_lsoa_gdf |>
+t3_30_300_lad_summary <- t3_30_300_lsoa_gdf |>
     st_drop_geometry() |>
     filter(Urban_rural_flag == "Urban") |>
     group_by(RGN22CD, RGN22NM, LAD22CD, LAD22NM) |>
@@ -809,11 +846,11 @@ t3_30_300_lad_summary <- lad_gdf |>
         total_areas = n(),
         meets_3_trees = sum(tree_count_25m >= 3, na.rm = TRUE),
         meets_30_canopy = sum(canopy_cover >= 30, na.rm = TRUE), 
-        meets_300_distance = sum(park_distance_manhattan <= 300, na.rm = TRUE),
+        meets_300_distance = sum(distance_manhattan <= 300, na.rm = TRUE),
         meets_3_30 = sum(tree_count_25m >= 3 & canopy_cover >= 30, na.rm = TRUE),
-        meets_30_300 = sum(canopy_cover >= 30 & park_distance_manhattan <= 300, na.rm = TRUE),
-        meets_3_300 = sum(tree_count_25m >= 3 & park_distance_manhattan <= 300, na.rm = TRUE),
-        meets_3_30_300 = sum(tree_count_25m >= 3 & canopy_cover >= 30 & park_distance_manhattan <= 300, na.rm = TRUE),
+        meets_30_300 = sum(canopy_cover >= 30 & distance_manhattan <= 300, na.rm = TRUE),
+        meets_3_300 = sum(tree_count_25m >= 3 & distance_manhattan <= 300, na.rm = TRUE),
+        meets_3_30_300 = sum(tree_count_25m >= 3 & canopy_cover >= 30 & distance_manhattan <= 300, na.rm = TRUE),
         pct_3_trees = round(meets_3_trees / total_areas * 100, 1),
         pct_30_canopy = round(meets_30_canopy / total_areas * 100, 1),
         pct_300_distance = round(meets_300_distance / total_areas * 100, 1),
@@ -821,8 +858,7 @@ t3_30_300_lad_summary <- lad_gdf |>
         pct_30_300 = round(meets_30_300 / total_areas * 100, 1),
         pct_3_300 = round(meets_3_300 / total_areas * 100, 1),
         pct_3_30_300 = round(meets_3_30_300 / total_areas * 100, 1),
-        .groups = "drop"
-    ), by = c("LAD22CD", "LAD22NM", "RGN22CD", "RGN22NM")) |>
+        .groups = "drop") |>
     mutate(RGN22NM = fct_relevel(RGN22NM, c("North West", "North East",
                                             "Yorkshire and The Humber",
                                             "West Midlands", "East Midlands",
@@ -1190,12 +1226,6 @@ print("Feature counts in each GDB layer:")
 print(fr_feature_counts)
 
 # Other plots -------------------------------------------------------------
-
-t3_30_300_lsoa_gdf |> 
-    ggplot(aes(x = distance_manhattan_gini, y = tree_count_25m_gini, colour = EnvDec)) + 
-    geom_point(alpha = .5) + 
-    scale_colour_brewer(palette = "RdYlBu", direction = 1) + 
-    facet_wrap(~RGN22NM) + plot_theme
 
 manhattan_distance_gini_map <- t3_30_300_lad_gdf |> 
     ggplot() +
