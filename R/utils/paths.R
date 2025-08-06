@@ -6,6 +6,7 @@ source(here(HOME_DIR, "R/utils/constants.R"))
 T3_30_300_DIR <- here(OUTPUT_DIR, "3-30-300")
 trees_dir <- here(T3_30_300_DIR, "VOM_Trees")
 database_dir <- here(T3_30_300_DIR, "database")
+app_files_dir <- here(T3_30_300_DIR, "App_files")
 
 ## Parquet files
 vom_raster_paths_parquet <- here(database_dir, "vom_raster_paths.parquet")
