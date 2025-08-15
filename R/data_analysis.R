@@ -62,6 +62,7 @@ plot_boxplots_3_30_300 <- function(t3_30_300_lsoa_gdf, green_metric, plot_legend
                                                "breaks" = c(20, 100, 500, 2000, 5000)))
 
     res_plot <- t3_30_300_lsoa_gdf  |> 
+        st_drop_geometry() |> 
         filter(!is.na(IMD_Decile))|> 
         filter(Urban_rural_flag == "Urban") |>
         mutate(RGN22NM = if_else(!is.na(IOL22NM), IOL22NM, RGN22NM)) |> 
@@ -679,7 +680,98 @@ population_summary_plot <- t3_30_300_pop_summary |>
           axis.ticks.x = element_blank(),
           panel.grid.major.x = element_blank())
 
-ggsave("images/population_summary_urban_prc_plot.png", population_summary_plot, 
+# Create a new summary table with categorical bins
+population_summary_binned <- t3_30_300_lsoa_gdf |> 
+    st_drop_geometry() |> 
+    # Filter for Urban areas and handle London regions as before
+    filter(Urban_rural_flag == "Urban") |>
+    mutate(RGN22NM = if_else(!is.na(IOL22NM), IOL22NM, RGN22NM)) |> 
+    mutate(RGN22NM = fct_relevel(RGN22NM, c("North West", "North East",
+                                            "Yorkshire and The Humber",
+                                            "West Midlands", "East Midlands",
+                                            "East of England", "South West",
+                                            "South East", "Outer London",
+                                            "Inner London"))) |> 
+    # **KEY CHANGE**: Use case_when() to create categorical bins for each variable
+    mutate(
+        tree_bins = case_when(
+            tree_count_25m >= 3 ~ ">= 3",
+            tree_count_25m >= 2 ~ "2-3",
+            tree_count_25m >= 1 ~ "1-2",
+            TRUE ~ "< 1"
+        ),
+        canopy_bins = case_when(
+            canopy_cover >= 30 ~ ">= 30%",
+            canopy_cover >= 20 ~ "20-30%",
+            canopy_cover >= 10 ~ "10-20%",
+            TRUE ~ "< 10%"
+        ),
+        distance_bins = case_when(
+            distance_manhattan <= 300 ~ "<= 300m",
+            distance_manhattan <= 600 ~ "300-600m",
+            distance_manhattan <= 900 ~ "600-900m",
+            TRUE ~ "> 900m"
+        )
+    ) |> 
+    
+    # Pivot the new categorical bin columns into a long format
+    pivot_longer(
+        cols = c(tree_bins, canopy_bins, distance_bins),
+        names_to = "variable",
+        values_to = "category"
+    ) |>
+
+    # Group by region, variable type, and the new category to sum the population
+    group_by(RGN22NM, variable, category) |> 
+    summarise(total_pop = sum(total_pop, na.rm = TRUE), .groups = "drop")
+
+# --- Data Preparation and Plotting ---
+
+# Make sure your main data frame is created as in the previous step
+# For brevity, I'll skip the initial 'population_summary_binned' code block
+
+# Combine all ordered levels for the factor conversion
+all_ordered_levels <- c(tree_levels, canopy_levels, distance_levels)
+
+# Clean up variable names and apply the new factor order
+plot_data <- population_summary_binned |> 
+    mutate(
+        # Convert category to an ordered factor using the new lists
+        category = factor(category, levels = all_ordered_levels),
+        # Make variable names more readable for the x-axis
+        variable = recode(variable,
+            "tree_bins" = "3",
+            "canopy_bins" = "30",
+            "distance_bins" = "300"
+        )
+    )
+
+# Create the plot
+population_summary_plot_multi_color <- plot_data |> 
+    # The 'na.omit()' is a safeguard in case some categories are empty after filtering
+    na.omit() |>
+    ggplot() +
+    aes(x = variable, y = total_pop, fill = category) +
+    geom_bar(stat = "identity", position = "fill") +
+    
+    # **KEY CHANGE**: Use scale_fill_manual with our custom color vector
+    scale_fill_manual(values = manual_colors, name = "Tree Proximity (3)\n\nCanopy Cover (30)\n\nDistance to Park (300)") +
+    
+    labs(y = "Proportion of Population", x = NULL) +
+    facet_wrap(~RGN22NM, nrow = 1, strip.position = "top", labeller = label_wrap_gen(width=10)) +
+    theme_minimal() + 
+    theme(
+        legend.position = "bottom", 
+        legend.title = element_text(hjust = 1, face = "bold"),
+        axis.text.x = element_text(size = 7),
+        axis.ticks.x = element_blank(),
+        panel.grid.major.x = element_blank()
+    ) +
+    # This helps organize the legend, which will now have 12 items
+    guides(fill = guide_legend(nrow = 3, byrow = TRUE))
+
+ggsave("images/population_summary_urban_bin_prc_plot.png
+", population_summary_plot_multi_color, 
        width = 180, height = 90, units = "mm", dpi = 300)
 
 # Tree Counts --------------------------------------------------------
@@ -1082,6 +1174,24 @@ ndbi_map_plot <- t3_30_300_lsoa_gdf |>
 ggsave('images/ndbi_lsoa_map.png', ndbi_map_plot,  device = "png", width = 180, height = 210, units = "mm", dpi = 300)
 
 # TES Comparison ----------------------------------------------------------
+
+# Read multiple CSV files from a folder and combine into one dataframe
+tree_areas_folder <- here(T3_30_300_DIR, "Tree_area")  # Adjust path as needed
+csv_files <- list.files(tree_areas_folder, pattern = "*.csv", full.names = TRUE)
+
+tree_areas_df <- csv_files |>
+    purrr::map_dfr(read_csv, col_types = 'cnn')
+
+    output_areas_boundaries_gdf |> st_drop_geometry() |> 
+    left_join(tree_areas_df, by = "OA21CD") |> 
+    group_by(LSOA21CD, RGN22NM) |> 
+    summarise(tree_area_sum = sum(total_tree_area, na.rm = TRUE),
+              .groups = "drop") |> 
+    left_join(lsoa_urban_df, by = "LSOA21CD") |> 
+    # filter(Urban_rural_flag == "Urban") |> 
+    group_by(RGN22NM) |> 
+    summarise(tree_area_sum = sum(tree_area_sum, na.rm = TRUE),
+              .groups = "drop")
 
 tes_gdf <- read_sf(here(INPUT_DIR, "TES", "england_tes.shp"))
 
