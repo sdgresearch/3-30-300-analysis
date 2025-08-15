@@ -75,7 +75,7 @@ def read_vom_trees_unique(sedona: SparkSession, overlapping_tiles_lst: list, tre
     if 'geom' in geo_trees_sdf.columns:
         geo_trees_sdf = geo_trees_sdf.withColumnRenamed('geom', 'geometry')
     geo_trees_sdf.createOrReplaceTempView("geo_trees")   
-    geo_trees_sdf = sedona.sql(f"""SELECT treeID, ST_Centroid(geometry) AS geometry FROM geo_trees 
+    geo_trees_sdf = sedona.sql(f"""SELECT treeID, area, height, ST_Centroid(geometry) AS geometry FROM geo_trees 
                                WHERE area > {tree_area} AND height > {tree_height}""")
     geo_trees_sdf = geo_trees_sdf.withColumn("treeID", monotonically_increasing_id())
     geo_trees_sdf.createOrReplaceTempView("geo_trees")
