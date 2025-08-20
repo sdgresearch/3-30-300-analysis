@@ -18,6 +18,9 @@ nav:
     - Sedona Config: 3-30-300-analysis/utils/sedona_config.md
     - Sedona RDD: 3-30-300-analysis/utils/sedona_rdd.md
     - VOM Processing: 3-30-300-analysis/utils/vom_processing.md
+  - Demos:
+    - Tree Segmentation: 3-30-300-analysis/tree_demo.md
+    - Aggregated Data: 3-30-300-analysis/aggregated_demo.md
 theme: 
   name: material
   palette:
