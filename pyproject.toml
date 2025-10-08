@@ -7,6 +7,7 @@ requires-python = ">=3.10"
 dependencies = [
     "apache-sedona[kepler-map,pydeck-map]>=1.7.1",
     "cartopy>=0.24.1",
+    "contextily>=1.6.2",
     "earthengine-api>=1.5.9",
     "eemont>=0.3.6",
     "gdal==3.10.0",
@@ -15,7 +16,9 @@ dependencies = [
     "install-jdk>=1.1.0",
     "ipykernel>=6.29.5",
     "osmnx>=2.0.2",
+    "owslib>=0.34.1",
     "pyarrow>=19.0.1",
+    "pyfonts>=1.1.1",
     "pyspark>=3.5.5",
     "python-dotenv>=1.1.0",
     "rasterstats>=0.20.0",
@@ -23,6 +26,7 @@ dependencies = [
     "scipy>=1.15.2",
     "setuptools>=78.1.0",
     "tqdm>=4.67.1",
+    "xee>=0.0.22",
 ]
 
 [dependency-groups]
