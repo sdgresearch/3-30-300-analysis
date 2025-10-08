@@ -117,8 +117,13 @@ t3_30_300_lsoa_gdf <- group_by_geo_level("LSOA21CD", 10) |>
     arrange(RGN22CD, LAD22CD, MSOA21CD, LSOA21CD) |> 
     distinct(LSOA21CD, .keep_all = TRUE)
 
-write_parquet(t3_30_300_lsoa_gdf |> st_transform(crs = WGS84_CRS) |> mutate(RGN22NM = as.character(RGN22NM)), here(app_files_dir, "Aggregated", "t3_30_300_lsoa_4326.parquet"))
+write_parquet(t3_30_300_lsoa_gdf |> 
+    st_transform(crs = WGS84_CRS) |> 
+    mutate(RGN22NM = as.character(RGN22NM)), 
+    here(app_files_dir, "Aggregated", "t3_30_300_lsoa_4326.parquet"))
+
 write_csv(t3_30_300_lsoa_gdf |> st_drop_geometry() |> mutate(RGN22NM = as.character(RGN22NM)), here(app_files_dir, "Aggregated", "t3_30_300_lsoa_4326.csv"))
+
 # Clean field names for shapefile compatibility (max 10 chars, alphanumeric + underscore only)
 clean_shapefile_names <- function(names) {
     # First make valid names
