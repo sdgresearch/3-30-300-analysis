@@ -1,0 +1,3099 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://ancazugo.github.io/3-30-300-analysis/3-30-300-analysis/utils/vom_processing/">
+      
+      
+        <link rel="prev" href="../sedona_rdd/">
+      
+      
+        <link rel="next" href="../../tree_demo/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.0">
+    
+    
+      
+        <title>VOM Processing - 3-30-300 Analysis of England using Big Spatial Data</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.618322db.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#vom-processing-module-documentation" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="3-30-300 Analysis of England using Big Spatial Data" class="md-header__button md-logo" aria-label="3-30-300 Analysis of England using Big Spatial Data" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            3-30-300 Analysis of England using Big Spatial Data
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              VOM Processing
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="3-30-300 Analysis of England using Big Spatial Data" class="md-nav__button md-logo" aria-label="3-30-300 Analysis of England using Big Spatial Data" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    3-30-300 Analysis of England using Big Spatial Data
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tables_setup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tables Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../t3/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    T3 Module
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../t30/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    T30 Module
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../t300/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    T300 Module
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tree_count/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tree Count
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../spectral/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spectral Module
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Utils
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Utils
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../constants/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Constants
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data_processing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Processing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../install_jdk/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Install JDK
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../logging_config/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Logging Config
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../paths/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Paths
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sedona_config/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sedona Config
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sedona_rdd/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sedona RDD
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VOM Processing
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    VOM Processing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#module-information" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Module Information
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#src.utils.vom_processing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        vom_processing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#src.utils.vom_processing.extract_grid_reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        extract_grid_reference
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#src.utils.vom_processing.extract_grid_reference_udf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        extract_grid_reference_udf
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#src.utils.vom_processing.extract_vom_type" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        extract_vom_type
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#src.utils.vom_processing.extract_vom_type_udf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        extract_vom_type_udf
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#src.utils.vom_processing.extract_year" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        extract_year
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#src.utils.vom_processing.extract_year_udf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        extract_year_udf
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#src.utils.vom_processing.generate_tree_paths_df" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        generate_tree_paths_df
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#src.utils.vom_processing.generate_vom_paths_df" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        generate_vom_paths_df
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#usage-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Usage Examples
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Usage Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#basic-workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Basic Workflow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-generating-vom-paths-dataframe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example: Generating VOM Paths DataFrame
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-generating-tree-paths-dataframe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example: Generating Tree Paths DataFrame
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-extracting-vom-type" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example: Extracting VOM Type
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-extracting-grid-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example: Extracting Grid Reference
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-extracting-year" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example: Extracting Year
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#vom-data-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        VOM Data Types
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="VOM Data Types">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#chm-canopy-height-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CHM (Canopy Height Model)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hs-height-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HS (Height Structure)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#key-parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Parameters
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Key Parameters">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#file-classification-parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        File Classification Parameters
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#processing-parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Processing Parameters
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#output-data-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Output Data Structure
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Output Data Structure">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#vom-paths-dataframe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        VOM Paths DataFrame
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tree-paths-dataframe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tree Paths DataFrame
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-processing-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Processing Steps
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Data Processing Steps">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-file-discovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. File Discovery
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-metadata-extraction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Metadata Extraction
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-data-organization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Data Organization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-output-generation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Output Generation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spark-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Spark Integration
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Spark Integration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#udf-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        UDF Functions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#distributed-processing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Distributed Processing
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#file-naming-conventions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        File Naming Conventions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="File Naming Conventions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#vom-raster-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        VOM Raster Files
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tree-vector-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tree Vector Files
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dependencies
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#performance-considerations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Performance Considerations
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#error-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Error Handling
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Notes
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Demos
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Demos
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tree_demo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tree Segmentation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../aggregated_demo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Aggregated Data
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#module-information" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Module Information
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#src.utils.vom_processing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        vom_processing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#src.utils.vom_processing.extract_grid_reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        extract_grid_reference
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#src.utils.vom_processing.extract_grid_reference_udf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        extract_grid_reference_udf
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#src.utils.vom_processing.extract_vom_type" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        extract_vom_type
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#src.utils.vom_processing.extract_vom_type_udf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        extract_vom_type_udf
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#src.utils.vom_processing.extract_year" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        extract_year
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#src.utils.vom_processing.extract_year_udf" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        extract_year_udf
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#src.utils.vom_processing.generate_tree_paths_df" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        generate_tree_paths_df
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#src.utils.vom_processing.generate_vom_paths_df" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        generate_vom_paths_df
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#usage-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Usage Examples
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Usage Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#basic-workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Basic Workflow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-generating-vom-paths-dataframe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example: Generating VOM Paths DataFrame
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-generating-tree-paths-dataframe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example: Generating Tree Paths DataFrame
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-extracting-vom-type" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example: Extracting VOM Type
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-extracting-grid-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example: Extracting Grid Reference
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-extracting-year" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example: Extracting Year
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#vom-data-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        VOM Data Types
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="VOM Data Types">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#chm-canopy-height-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CHM (Canopy Height Model)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#hs-height-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HS (Height Structure)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#key-parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Parameters
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Key Parameters">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#file-classification-parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        File Classification Parameters
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#processing-parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Processing Parameters
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#output-data-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Output Data Structure
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Output Data Structure">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#vom-paths-dataframe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        VOM Paths DataFrame
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tree-paths-dataframe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tree Paths DataFrame
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-processing-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Processing Steps
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Data Processing Steps">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-file-discovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. File Discovery
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-metadata-extraction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Metadata Extraction
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-data-organization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Data Organization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-output-generation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Output Generation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#spark-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Spark Integration
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Spark Integration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#udf-functions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        UDF Functions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#distributed-processing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Distributed Processing
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#file-naming-conventions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        File Naming Conventions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="File Naming Conventions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#vom-raster-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        VOM Raster Files
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tree-vector-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tree Vector Files
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Dependencies
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#performance-considerations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Performance Considerations
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#error-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Error Handling
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Notes
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="vom-processing-module-documentation">VOM Processing Module Documentation</h1>
+<h2 id="overview">Overview</h2>
+<p>The VOM Processing module provides functions for processing Vegetation Object Model (VOM) data files. This module handles file classification, metadata extraction, and path generation for both raster (CHM) and vector (tree) VOM data, supporting the 3-30-300 analysis framework.</p>
+<h2 id="module-information">Module Information</h2>
+
+
+<div class="doc doc-object doc-module">
+
+
+
+<a id="src.utils.vom_processing"></a>
+    <div class="doc doc-contents first">
+
+
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="src.utils.vom_processing.extract_grid_reference" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">extract_grid_reference</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span></code>
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Extracts a grid reference from a given filename.
+The function searches for a pattern in the filename that matches 'VOM' or 'VOM_HS'
+followed by an underscore, a two-letter code, a four-digit number, and another underscore.
+If such a pattern is found, it returns the grid reference (the two-letter code and the four-digit number).
+If no match is found, it returns None.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>filename</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | <span title="pathlib.Path">Path</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The name of the file from which to extract the grid reference.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>str | None: The extracted grid reference if a match is found, otherwise None.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/utils/vom_processing.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">42</span>
+<span class="normal">43</span>
+<span class="normal">44</span>
+<span class="normal">45</span>
+<span class="normal">46</span>
+<span class="normal">47</span>
+<span class="normal">48</span>
+<span class="normal">49</span>
+<span class="normal">50</span>
+<span class="normal">51</span>
+<span class="normal">52</span>
+<span class="normal">53</span>
+<span class="normal">54</span>
+<span class="normal">55</span>
+<span class="normal">56</span>
+<span class="normal">57</span>
+<span class="normal">58</span>
+<span class="normal">59</span>
+<span class="normal">60</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">extract_grid_reference</span><span class="p">(</span><span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="o">|</span><span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="o">|</span><span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extracts a grid reference from a given filename.</span>
+<span class="sd">    The function searches for a pattern in the filename that matches &#39;VOM&#39; or &#39;VOM_HS&#39;</span>
+<span class="sd">    followed by an underscore, a two-letter code, a four-digit number, and another underscore.</span>
+<span class="sd">    If such a pattern is found, it returns the grid reference (the two-letter code and the four-digit number).</span>
+<span class="sd">    If no match is found, it returns None.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        filename (str | Path): The name of the file from which to extract the grid reference.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        str | None: The extracted grid reference if a match is found, otherwise None.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;VOM_([A-Z]</span><span class="si">{2}</span><span class="s1">\d</span><span class="si">{4}</span><span class="s1">)_&#39;</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">match</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="kc">None</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="src.utils.vom_processing.extract_grid_reference_udf" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">extract_grid_reference_udf</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span></code>
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Spark DataFrame function wrapper to extract the grid reference from a given filename.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>filename</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | <span title="pathlib.Path">Path</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The name of the file from which to extract the grid reference.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="str">str</span> | None</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>str | None: The extracted grid reference if a match is found, otherwise None.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/utils/vom_processing.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">62</span>
+<span class="normal">63</span>
+<span class="normal">64</span>
+<span class="normal">65</span>
+<span class="normal">66</span>
+<span class="normal">67</span>
+<span class="normal">68</span>
+<span class="normal">69</span>
+<span class="normal">70</span>
+<span class="normal">71</span>
+<span class="normal">72</span>
+<span class="normal">73</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@udf</span><span class="p">(</span><span class="n">StringType</span><span class="p">())</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">extract_grid_reference_udf</span><span class="p">(</span><span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="o">|</span><span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="o">|</span><span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Spark DataFrame function wrapper to extract the grid reference from a given filename.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        filename (str | Path): The name of the file from which to extract the grid reference.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        str | None: The extracted grid reference if a match is found, otherwise None.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">extract_grid_reference</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="src.utils.vom_processing.extract_vom_type" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">extract_vom_type</span><span class="p">(</span><span class="n">file_name</span><span class="p">)</span></code>
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Classifies the type of VOM (Vegetation Object Model) based on the file name.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>file_name</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | <span title="pathlib.Path">Path</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The name of the file to classify.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>str</code></td>            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>'HS' if the file name contains 'VOM_HS_', otherwise 'CHM'.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/utils/vom_processing.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">13</span>
+<span class="normal">14</span>
+<span class="normal">15</span>
+<span class="normal">16</span>
+<span class="normal">17</span>
+<span class="normal">18</span>
+<span class="normal">19</span>
+<span class="normal">20</span>
+<span class="normal">21</span>
+<span class="normal">22</span>
+<span class="normal">23</span>
+<span class="normal">24</span>
+<span class="normal">25</span>
+<span class="normal">26</span>
+<span class="normal">27</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">extract_vom_type</span><span class="p">(</span><span class="n">file_name</span><span class="p">:</span> <span class="nb">str</span><span class="o">|</span><span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Classifies the type of VOM (Vegetation Object Model) based on the file name.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        file_name (str | Path): The name of the file to classify.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        str: &#39;HS&#39; if the file name contains &#39;VOM_HS_&#39;, otherwise &#39;CHM&#39;.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="s1">&#39;VOM_HS_&#39;</span> <span class="ow">in</span> <span class="n">file_name</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s1">&#39;HS&#39;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="s1">&#39;CHM&#39;</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="src.utils.vom_processing.extract_vom_type_udf" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">extract_vom_type_udf</span><span class="p">(</span><span class="n">file_name</span><span class="p">)</span></code>
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Spark DataFrame function wrapper to extract the type of VOM (Vegetation Object Model) based on the file name.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>file_name</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | <span title="pathlib.Path">Path</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The name of the file to classify.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>str</code></td>            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>'HS' if the file name contains 'VOM_HS_', otherwise 'CHM'.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/utils/vom_processing.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">29</span>
+<span class="normal">30</span>
+<span class="normal">31</span>
+<span class="normal">32</span>
+<span class="normal">33</span>
+<span class="normal">34</span>
+<span class="normal">35</span>
+<span class="normal">36</span>
+<span class="normal">37</span>
+<span class="normal">38</span>
+<span class="normal">39</span>
+<span class="normal">40</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@udf</span><span class="p">(</span><span class="n">StringType</span><span class="p">())</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">extract_vom_type_udf</span><span class="p">(</span><span class="n">file_name</span><span class="p">:</span> <span class="nb">str</span><span class="o">|</span><span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Spark DataFrame function wrapper to extract the type of VOM (Vegetation Object Model) based on the file name.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        file_name (str | Path): The name of the file to classify.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        str: &#39;HS&#39; if the file name contains &#39;VOM_HS_&#39;, otherwise &#39;CHM&#39;.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">extract_vom_type</span><span class="p">(</span><span class="n">file_name</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="src.utils.vom_processing.extract_year" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">extract_year</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span></code>
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Extracts the year from the given file path.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>file_path</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The file path containing the year.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>int</code></td>            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The extracted year, or None if not found.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/utils/vom_processing.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">75</span>
+<span class="normal">76</span>
+<span class="normal">77</span>
+<span class="normal">78</span>
+<span class="normal">79</span>
+<span class="normal">80</span>
+<span class="normal">81</span>
+<span class="normal">82</span>
+<span class="normal">83</span>
+<span class="normal">84</span>
+<span class="normal">85</span>
+<span class="normal">86</span>
+<span class="normal">87</span>
+<span class="normal">88</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">extract_year</span><span class="p">(</span><span class="n">file_path</span><span class="p">:</span> <span class="nb">str</span><span class="o">|</span><span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extracts the year from the given file path.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        file_path (str): The file path containing the year.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        int: The extracted year, or None if not found.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;/(\d</span><span class="si">{4}</span><span class="s1">)/&#39;</span><span class="p">,</span> <span class="n">file_path</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">match</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+    <span class="k">return</span> <span class="kc">None</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="src.utils.vom_processing.extract_year_udf" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">extract_year_udf</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span></code>
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Spark DataFrame function wrapper to extract the year from the given file path.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>file_path</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span> | <span title="pathlib.Path">Path</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The file path containing the year.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>int</code></td>            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The extracted year, or None if not found.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/utils/vom_processing.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="nd">@udf</span><span class="p">(</span><span class="n">IntegerType</span><span class="p">())</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">extract_year_udf</span><span class="p">(</span><span class="n">file_path</span><span class="p">:</span> <span class="nb">str</span><span class="o">|</span><span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Spark DataFrame function wrapper to extract the year from the given file path.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        file_path (str | Path): The file path containing the year.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        int: The extracted year, or None if not found.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">extract_year</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="src.utils.vom_processing.generate_tree_paths_df" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">generate_tree_paths_df</span><span class="p">(</span><span class="n">trees_dir</span><span class="p">)</span></code>
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Generates the tree paths DataFrame.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>trees_dir</code>
+            </td>
+            <td>
+                  <code><span title="pathlib.Path">Path</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The directory containing the tree files.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="pandas.DataFrame">DataFrame</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>pd.DataFrame: The tree paths DataFrame.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/utils/vom_processing.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">133</span>
+<span class="normal">134</span>
+<span class="normal">135</span>
+<span class="normal">136</span>
+<span class="normal">137</span>
+<span class="normal">138</span>
+<span class="normal">139</span>
+<span class="normal">140</span>
+<span class="normal">141</span>
+<span class="normal">142</span>
+<span class="normal">143</span>
+<span class="normal">144</span>
+<span class="normal">145</span>
+<span class="normal">146</span>
+<span class="normal">147</span>
+<span class="normal">148</span>
+<span class="normal">149</span>
+<span class="normal">150</span>
+<span class="normal">151</span>
+<span class="normal">152</span>
+<span class="normal">153</span>
+<span class="normal">154</span>
+<span class="normal">155</span>
+<span class="normal">156</span>
+<span class="normal">157</span>
+<span class="normal">158</span>
+<span class="normal">159</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">generate_tree_paths_df</span><span class="p">(</span><span class="n">trees_dir</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generates the tree paths DataFrame.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        trees_dir (Path): The directory containing the tree files.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        pd.DataFrame: The tree paths DataFrame.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Generating tree paths DataFrame&quot;</span><span class="p">)</span>
+
+    <span class="n">tree_paths</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">trees_dir</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="s2">&quot;*.gpkg&quot;</span><span class="p">)]</span>
+    <span class="n">tree_metadata</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">tree_paths</span><span class="p">:</span>
+        <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;VOM_trees_([A-Z]</span><span class="si">{2}</span><span class="s1">\d</span><span class="si">{4}</span><span class="s1">)_(\d</span><span class="si">{4}</span><span class="s1">)\.gpkg&#39;</span><span class="p">,</span> <span class="n">path</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">match</span><span class="p">:</span>
+            <span class="n">tile_name</span><span class="p">,</span> <span class="n">year</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">groups</span><span class="p">()</span>
+            <span class="n">tree_metadata</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s1">&#39;TILE_NAME&#39;</span><span class="p">:</span> <span class="n">tile_name</span><span class="p">,</span> <span class="s1">&#39;year&#39;</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">year</span><span class="p">),</span> <span class="s1">&#39;path&#39;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">)})</span>
+
+    <span class="n">tree_vector_paths_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">tree_metadata</span><span class="p">)</span>
+    <span class="n">tree_vector_paths_df</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">by</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;TILE_NAME&#39;</span><span class="p">,</span> <span class="s1">&#39;year&#39;</span><span class="p">],</span> <span class="n">ascending</span><span class="o">=</span><span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">],</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">tree_vector_paths_df</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">tree_vector_paths_df</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="n">tree_vector_paths_parquet</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">tree_vector_paths_df</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="src.utils.vom_processing.generate_vom_paths_df" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">generate_vom_paths_df</span><span class="p">(</span><span class="n">sedona</span><span class="p">)</span></code>
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Generates the VOM paths DataFrame.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>sedona</code>
+            </td>
+            <td>
+                  <code><span title="pyspark.sql.session.SparkSession">SparkSession</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>The Spark session.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="pandas.DataFrame">DataFrame</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>pd.DataFrame: The VOM paths DataFrame.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/utils/vom_processing.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">103</span>
+<span class="normal">104</span>
+<span class="normal">105</span>
+<span class="normal">106</span>
+<span class="normal">107</span>
+<span class="normal">108</span>
+<span class="normal">109</span>
+<span class="normal">110</span>
+<span class="normal">111</span>
+<span class="normal">112</span>
+<span class="normal">113</span>
+<span class="normal">114</span>
+<span class="normal">115</span>
+<span class="normal">116</span>
+<span class="normal">117</span>
+<span class="normal">118</span>
+<span class="normal">119</span>
+<span class="normal">120</span>
+<span class="normal">121</span>
+<span class="normal">122</span>
+<span class="normal">123</span>
+<span class="normal">124</span>
+<span class="normal">125</span>
+<span class="normal">126</span>
+<span class="normal">127</span>
+<span class="normal">128</span>
+<span class="normal">129</span>
+<span class="normal">130</span>
+<span class="normal">131</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">generate_vom_paths_df</span><span class="p">(</span><span class="n">sedona</span><span class="p">:</span> <span class="n">SparkSession</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generates the VOM paths DataFrame.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        sedona (SparkSession): The Spark session.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        pd.DataFrame: The VOM paths DataFrame.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Generating VOM paths DataFrame&quot;</span><span class="p">)</span>
+
+    <span class="n">vom_sdf</span> <span class="o">=</span> <span class="n">sedona</span><span class="o">.</span><span class="n">read</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s2">&quot;binaryFile&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">str</span><span class="p">(</span><span class="n">vom_unzipped_dir</span><span class="p">)</span><span class="si">}</span><span class="s2">/*/*.tif&quot;</span><span class="p">)</span>
+    <span class="n">vom_sdf</span><span class="o">.</span><span class="n">createOrReplaceTempView</span><span class="p">(</span><span class="s2">&quot;vom&quot;</span><span class="p">)</span>
+
+    <span class="n">vom_raster_paths_sdf</span> <span class="o">=</span> <span class="n">sedona</span><span class="o">.</span><span class="n">sql</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;SELECT path FROM vom&quot;&quot;&quot;</span><span class="p">)</span>
+    <span class="n">vom_raster_paths_sdf</span> <span class="o">=</span> <span class="n">vom_raster_paths_sdf</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;file_type&quot;</span><span class="p">,</span> <span class="n">extract_vom_type_udf</span><span class="p">(</span><span class="n">vom_sdf</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">]))</span>
+    <span class="n">vom_raster_paths_sdf</span> <span class="o">=</span> <span class="n">vom_raster_paths_sdf</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;TILE_NAME&quot;</span><span class="p">,</span> <span class="n">extract_grid_reference_udf</span><span class="p">(</span><span class="n">vom_sdf</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">]))</span>
+    <span class="n">vom_raster_paths_sdf</span> <span class="o">=</span> <span class="n">vom_raster_paths_sdf</span><span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">&quot;year&quot;</span><span class="p">,</span> <span class="n">extract_year_udf</span><span class="p">(</span><span class="n">vom_sdf</span><span class="p">[</span><span class="s2">&quot;path&quot;</span><span class="p">]))</span>
+    <span class="n">vom_raster_paths_sdf</span> <span class="o">=</span> <span class="n">vom_raster_paths_sdf</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">vom_raster_paths_sdf</span><span class="p">[</span><span class="s2">&quot;file_type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;CHM&quot;</span><span class="p">)</span>
+    <span class="n">vom_raster_paths_df</span> <span class="o">=</span> <span class="n">vom_raster_paths_sdf</span><span class="o">.</span><span class="n">toPandas</span><span class="p">()</span>
+    <span class="n">vom_raster_paths_df</span><span class="p">[</span><span class="s1">&#39;path&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">vom_raster_paths_df</span><span class="p">[</span><span class="s1">&#39;path&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">str</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;file:&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">regex</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">vom_raster_paths_df</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="n">by</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;TILE_NAME&#39;</span><span class="p">,</span> <span class="s1">&#39;year&#39;</span><span class="p">],</span> <span class="n">ascending</span><span class="o">=</span><span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">],</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">vom_raster_paths_df</span><span class="o">.</span><span class="n">reset_index</span><span class="p">(</span><span class="n">drop</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">vom_raster_paths_df</span><span class="o">.</span><span class="n">to_parquet</span><span class="p">(</span><span class="n">vom_raster_paths_parquet</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">vom_raster_paths_df</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div><h2 id="usage-examples">Usage Examples</h2>
+<h3 id="basic-workflow">Basic Workflow</h3>
+<p>The typical workflow for VOM processing involves:</p>
+<ol>
+<li><strong>File classification</strong> - Identifying VOM file types (CHM vs HS)</li>
+<li><strong>Metadata extraction</strong> - Extracting grid references and years from filenames</li>
+<li><strong>Path generation</strong> - Creating organized DataFrames of file paths</li>
+<li><strong>Data organization</strong> - Sorting and filtering VOM data by tile and year</li>
+</ol>
+<h3 id="example-generating-vom-paths-dataframe">Example: Generating VOM Paths DataFrame</h3>
+<pre><code class="language-python">from src.utils.vom_processing import generate_vom_paths_df
+from pyspark.sql.session import SparkSession
+
+# Initialize Spark session
+sedona = SparkSession.builder.appName(&quot;VOM_Processing&quot;).getOrCreate()
+
+# Generate VOM paths DataFrame
+vom_paths_df = generate_vom_paths_df(sedona)
+</code></pre>
+<h3 id="example-generating-tree-paths-dataframe">Example: Generating Tree Paths DataFrame</h3>
+<pre><code class="language-python">from src.utils.vom_processing import generate_tree_paths_df
+from pathlib import Path
+
+# Generate tree paths DataFrame
+trees_dir = Path(&quot;path/to/trees/directory&quot;)
+tree_paths_df = generate_tree_paths_df(trees_dir)
+</code></pre>
+<h3 id="example-extracting-vom-type">Example: Extracting VOM Type</h3>
+<pre><code class="language-python">from src.utils.vom_processing import extract_vom_type
+
+# Classify VOM file type
+file_name = &quot;VOM_HS_AB1234_2023.tif&quot;
+vom_type = extract_vom_type(file_name)  # Returns 'HS'
+
+file_name = &quot;VOM_CHM_CD5678_2022.tif&quot;
+vom_type = extract_vom_type(file_name)  # Returns 'CHM'
+</code></pre>
+<h3 id="example-extracting-grid-reference">Example: Extracting Grid Reference</h3>
+<pre><code class="language-python">from src.utils.vom_processing import extract_grid_reference
+
+# Extract grid reference from filename
+filename = &quot;VOM_HS_AB1234_2023.tif&quot;
+grid_ref = extract_grid_reference(filename)  # Returns 'AB1234'
+</code></pre>
+<h3 id="example-extracting-year">Example: Extracting Year</h3>
+<pre><code class="language-python">from src.utils.vom_processing import extract_year
+
+# Extract year from file path
+file_path = &quot;/data/2023/VOM_HS_AB1234_2023.tif&quot;
+year = extract_year(file_path)  # Returns 2023
+</code></pre>
+<h2 id="vom-data-types">VOM Data Types</h2>
+<h3 id="chm-canopy-height-model">CHM (Canopy Height Model)</h3>
+<ul>
+<li><strong>Purpose</strong>: Represents tree canopy height information</li>
+<li><strong>File Pattern</strong>: <code>VOM_CHM_[GRIDREF]_[YEAR].tif</code></li>
+<li><strong>Use Case</strong>: Primary data source for T30 canopy cover analysis</li>
+<li><strong>Processing</strong>: Raster-based height model analysis</li>
+</ul>
+<h3 id="hs-height-structure">HS (Height Structure)</h3>
+<ul>
+<li><strong>Purpose</strong>: Represents detailed height structure information</li>
+<li><strong>File Pattern</strong>: <code>VOM_HS_[GRIDREF]_[YEAR].tif</code></li>
+<li><strong>Use Case</strong>: Supplementary height structure analysis</li>
+<li><strong>Processing</strong>: Detailed structural information</li>
+</ul>
+<h2 id="key-parameters">Key Parameters</h2>
+<h3 id="file-classification-parameters">File Classification Parameters</h3>
+<ul>
+<li><strong>file_name</strong>: Filename or path to classify</li>
+<li><strong>filename</strong>: Filename to extract grid reference from</li>
+<li><strong>file_path</strong>: File path to extract year from</li>
+</ul>
+<h3 id="processing-parameters">Processing Parameters</h3>
+<ul>
+<li><strong>sedona</strong>: Spark session for distributed processing</li>
+<li><strong>trees_dir</strong>: Directory containing tree vector files</li>
+<li><strong>vom_unzipped_dir</strong>: Directory containing unzipped VOM raster files</li>
+</ul>
+<h2 id="output-data-structure">Output Data Structure</h2>
+<h3 id="vom-paths-dataframe">VOM Paths DataFrame</h3>
+<p>The <code>generate_vom_paths_df()</code> function creates a DataFrame with:</p>
+<ul>
+<li><strong>path</strong>: Full file path to VOM raster file</li>
+<li><strong>file_type</strong>: VOM type classification ('CHM' or 'HS')</li>
+<li><strong>TILE_NAME</strong>: Grid reference extracted from filename</li>
+<li><strong>year</strong>: Year extracted from file path</li>
+</ul>
+<h3 id="tree-paths-dataframe">Tree Paths DataFrame</h3>
+<p>The <code>generate_tree_paths_df()</code> function creates a DataFrame with:</p>
+<ul>
+<li><strong>TILE_NAME</strong>: Grid reference extracted from filename</li>
+<li><strong>year</strong>: Year extracted from filename</li>
+<li><strong>path</strong>: Full file path to tree vector file</li>
+</ul>
+<h2 id="data-processing-steps">Data Processing Steps</h2>
+<h3 id="1-file-discovery">1. File Discovery</h3>
+<ul>
+<li><strong>Binary file loading</strong>: Uses Spark's binaryFile format to discover VOM files</li>
+<li><strong>Pattern matching</strong>: Identifies VOM files using regex patterns</li>
+<li><strong>Path resolution</strong>: Converts file URIs to local file paths</li>
+</ul>
+<h3 id="2-metadata-extraction">2. Metadata Extraction</h3>
+<ul>
+<li><strong>Type classification</strong>: Distinguishes between CHM and HS file types</li>
+<li><strong>Grid reference extraction</strong>: Extracts OS grid references from filenames</li>
+<li><strong>Year extraction</strong>: Extracts year information from file paths</li>
+</ul>
+<h3 id="3-data-organization">3. Data Organization</h3>
+<ul>
+<li><strong>Filtering</strong>: Focuses on CHM files for canopy analysis</li>
+<li><strong>Sorting</strong>: Orders files by tile name and year (newest first)</li>
+<li><strong>Index management</strong>: Resets DataFrame indices for clean output</li>
+</ul>
+<h3 id="4-output-generation">4. Output Generation</h3>
+<ul>
+<li><strong>Parquet storage</strong>: Saves organized DataFrames to parquet format</li>
+<li><strong>Path standardization</strong>: Ensures consistent file path formatting</li>
+<li><strong>Metadata preservation</strong>: Maintains all extracted metadata</li>
+</ul>
+<h2 id="spark-integration">Spark Integration</h2>
+<h3 id="udf-functions">UDF Functions</h3>
+<p>The module provides Spark UDF wrappers for:</p>
+<ul>
+<li><strong>extract_vom_type_udf</strong>: Classifies VOM file types in Spark DataFrames</li>
+<li><strong>extract_grid_reference_udf</strong>: Extracts grid references in Spark DataFrames</li>
+<li><strong>extract_year_udf</strong>: Extracts years in Spark DataFrames</li>
+</ul>
+<h3 id="distributed-processing">Distributed Processing</h3>
+<ul>
+<li><strong>Binary file loading</strong>: Uses Spark's distributed file reading capabilities</li>
+<li><strong>Column operations</strong>: Applies UDFs across distributed DataFrames</li>
+<li><strong>Filtering</strong>: Performs distributed filtering operations</li>
+<li><strong>Sorting</strong>: Handles large-scale sorting operations</li>
+</ul>
+<h2 id="file-naming-conventions">File Naming Conventions</h2>
+<h3 id="vom-raster-files">VOM Raster Files</h3>
+<ul>
+<li><strong>Pattern</strong>: <code>VOM_[TYPE]_[GRIDREF]_[YEAR].tif</code></li>
+<li><strong>Example</strong>: <code>VOM_CHM_AB1234_2023.tif</code></li>
+<li><strong>Components</strong>:</li>
+<li><code>VOM</code>: Vegetation Object Model identifier</li>
+<li><code>[TYPE]</code>: CHM (Canopy Height Model) or HS (Height Structure)</li>
+<li><code>[GRIDREF]</code>: OS grid reference (2 letters + 4 digits)</li>
+<li><code>[YEAR]</code>: Year of data collection</li>
+<li><code>.tif</code>: GeoTIFF format</li>
+</ul>
+<h3 id="tree-vector-files">Tree Vector Files</h3>
+<ul>
+<li><strong>Pattern</strong>: <code>VOM_trees_[GRIDREF]_[YEAR].gpkg</code></li>
+<li><strong>Example</strong>: <code>VOM_trees_AB1234_2023.gpkg</code></li>
+<li><strong>Components</strong>:</li>
+<li><code>VOM_trees</code>: Tree vector identifier</li>
+<li><code>[GRIDREF]</code>: OS grid reference (2 letters + 4 digits)</li>
+<li><code>[YEAR]</code>: Year of data collection</li>
+<li><code>.gpkg</code>: GeoPackage format</li>
+</ul>
+<h2 id="dependencies">Dependencies</h2>
+<p>This module requires:</p>
+<ul>
+<li><code>pyspark</code> for distributed computing</li>
+<li><code>pandas</code> for data manipulation</li>
+<li><code>pathlib</code> for file path handling</li>
+<li><code>re</code> for regular expression operations</li>
+<li>Apache Spark for distributed file processing</li>
+</ul>
+<h2 id="performance-considerations">Performance Considerations</h2>
+<ul>
+<li><strong>Distributed processing</strong>: Uses Spark for large-scale file discovery</li>
+<li><strong>Memory efficiency</strong>: Processes files in distributed manner</li>
+<li><strong>Pattern matching</strong>: Optimized regex operations for metadata extraction</li>
+<li><strong>Sorting optimization</strong>: Efficient sorting of large datasets</li>
+</ul>
+<h2 id="error-handling">Error Handling</h2>
+<p>The module includes comprehensive error handling for:</p>
+<ul>
+<li><strong>Missing files</strong>: Graceful handling of missing VOM data</li>
+<li><strong>Invalid patterns</strong>: Robust regex pattern matching</li>
+<li><strong>Path issues</strong>: File path validation and correction</li>
+<li><strong>Data type issues</strong>: Type conversion error handling</li>
+</ul>
+<h2 id="notes">Notes</h2>
+<ul>
+<li>The module supports both raster (CHM/HS) and vector (tree) VOM data</li>
+<li>All file operations use distributed processing for scalability</li>
+<li>Grid references follow OS (Ordnance Survey) naming conventions</li>
+<li>Files are automatically sorted by tile and year for efficient processing</li>
+<li>The module creates standardized DataFrames for downstream analysis</li>
+<li>Comprehensive logging tracks processing progress and identifies issues</li>
+<li>UDF functions enable efficient Spark DataFrame operations</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": [], "search": "../../../assets/javascripts/workers/search.7a47a382.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.e71a0d61.min.js"></script>
+      
+    
+  </body>
+</html>
