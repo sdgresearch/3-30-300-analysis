@@ -52,7 +52,7 @@ plot_boxplots_3_30_300 <- function(t3_30_300_lsoa_gdf, green_metric, plot_legend
                                    "breaks" = c(1, 5, 10, 30, 60)),
                        "300" = list("plot_label" = "300\nDistance to Park (m)",
                                     "number" = 300,
-                                    "variable" = "park_distance_manhattan",
+                                    "variable" = "distance_manhattan",
                                     "breaks" = c(50, 150, 300,
                                                  500, 1000, 2000,
                                                  5000, 10000, 25000)),
@@ -593,7 +593,7 @@ water_gini_scatter <- t3_30_300_lsoa_gdf |>
         size = guide_legend(nrow = 1, byrow = TRUE, keywidth = unit(0.5, "cm"))) +
     plot_theme +
     theme(legend.position = "none", legend.box = "vertical", axis.text.y = element_blank(), axis.ticks.y = element_blank(),
-        axis.title.y = element_blank(), strip.text.y = element_text(angle = 0), plot.title = element_text(size = 12))
+          axis.title.y = element_blank(), strip.text.y = element_text(angle = 0), plot.title = element_text(size = 12))
 
 gini_scatter_plot  <- (tree_gini_scatter | park_gini_scatter + theme(legend.position = "none") | water_gini_scatter) + plot_annotation(tag_levels = 'A')
 
@@ -1173,6 +1173,77 @@ ndbi_map_plot <- t3_30_300_lsoa_gdf |>
 
 ggsave('images/ndbi_lsoa_map.png', ndbi_map_plot,  device = "png", width = 180, height = 210, units = "mm", dpi = 300)
 
+# IMD Tree Comparison -----------------------------------------------------
+
+tree_pop_imd_scatter_plot <- t3_30_300_lsoa_long_imd_df |>
+    ggplot() +
+    aes(y = pop_density, x = tree_count_25m, colour = deprivation_val) +
+    geom_point(alpha = 0.5, size = 0.5) +
+    scale_x_continuous(trans = "log", labels = function(x) round(x, 1)) +
+    scale_y_continuous(trans = "log", labels = function(x) round(x, 0)) +
+    scale_colour_brewer(palette = "RdYlBu") +
+    facet_wrap(~deprivation_var, ncol = 1) +
+    labs(y = bquote(Population ~ Density ~ (per ~ km^2)), x = "Tree Count", colour = "Deprivation Decile") +
+    guides(colour = guide_legend(nrow = 1, byrow = TRUE, keywidth = unit(0.5, "cm"))) +
+    plot_theme +
+    theme(legend.position = "bottom", strip.background = element_blank(), strip.text = element_blank())
+
+ggsave("images/tree_pop_imd_scatter_plot.png", tree_pop_imd_scatter_plot, 
+       width = 180, height = 180, units = "mm", dpi = 300)
+
+canopy_pop_imd_scatter_plot <- t3_30_300_lsoa_long_imd_df |>
+    ggplot() +
+    aes(y = pop_density, x = canopy_cover, colour = deprivation_val) +
+    geom_point(alpha = 0.5, size = 0.5) +
+    scale_x_continuous(trans = "log", labels = function(x) round(x, 1)) +
+    scale_y_continuous(trans = "log", labels = function(x) round(x, 0)) +
+    scale_colour_brewer(palette = "RdYlBu") +
+    facet_wrap(~deprivation_var, ncol = 1) +
+    labs(y = NULL, x = "Canopy Cover (%)", colour = "Deprivation Decile") +
+    guides(colour = guide_legend(nrow = 1, byrow = TRUE, keywidth = unit(0.5, "cm"))) +
+    plot_theme +
+    theme(legend.position = "bottom", strip.background = element_blank(), strip.text = element_blank(), axis.text.y = element_blank(), axis.ticks.y = element_blank())
+
+ggsave("images/canopy_pop_imd_scatter_plot.png", canopy_pop_imd_scatter_plot, 
+       width = 180, height = 180, units = "mm", dpi = 300)
+
+park_pop_imd_scatter_plot <- t3_30_300_lsoa_long_imd_df |>
+    ggplot() +
+    aes(y = pop_density, x = distance_manhattan, colour = deprivation_val) +
+    geom_point(alpha = 0.5, size = 0.5) +
+    scale_x_continuous(trans = "log", labels = function(x) round(x, 0)) +
+    scale_y_continuous(trans = "log", labels = function(x) round(x, 0)) +
+    scale_colour_brewer(palette = "RdYlBu") +
+    facet_wrap(~deprivation_var, ncol = 1, strip.position="right") +
+    labs(y = NULL, x = "Distance to Park (m)", colour = "Deprivation Decile") +
+    guides(colour = guide_legend(nrow = 1, byrow = TRUE, keywidth = unit(0.5, "cm"))) +
+    plot_theme +
+    theme(legend.position = "bottom", strip.background = element_blank(), strip.text = element_blank(), axis.text.y = element_blank(), axis.ticks.y = element_blank())
+
+ggsave("images/park_pop_imd_scatter_plot.png", park_pop_imd_scatter_plot, 
+       width = 180, height = 180, units = "mm", dpi = 300)
+
+water_pop_imd_scatter_plot <- t3_30_300_lsoa_long_imd_df |>
+    ggplot() +
+    aes(y = pop_density, x = distance_water, colour = deprivation_val) +
+    geom_point(alpha = 0.5, size = 0.5) +
+    scale_x_continuous(trans = "log", labels = function(x) round(x, 0)) +
+    scale_y_continuous(trans = "log", labels = function(x) round(x, 0)) +
+    scale_colour_brewer(palette = "RdYlBu") +
+    facet_wrap(~deprivation_var, ncol = 1, strip.position="right") +
+    labs(y = NULL, x = "Water Distance (m)", colour = "Deprivation Decile") +
+    guides(colour = guide_legend(nrow = 1, byrow = TRUE, keywidth = unit(0.5, "cm"))) +
+    plot_theme +
+    theme(legend.position = "bottom", strip.background = element_blank(), axis.text.y = element_blank(), axis.ticks.y = element_blank())
+
+ggsave("images/water_pop_imd_scatter_plot.png", water_pop_imd_scatter_plot, 
+       width = 180, height = 180, units = "mm", dpi = 300)
+
+t3_30_300_pop_imd_scatter_plot <- (tree_pop_imd_scatter_plot + theme(legend.position = "none") | canopy_pop_imd_scatter_plot | park_pop_imd_scatter_plot + theme(legend.position = "none") | water_pop_imd_scatter_plot + theme(legend.position = "none"))
+
+ggsave("images/t3_30_300_pop_imd_scatter_plot.png", t3_30_300_pop_imd_scatter_plot, 
+       width = 180, height = 180, units = "mm", dpi = 300)
+
 # TES Comparison ----------------------------------------------------------
 
 # Read multiple CSV files from a folder and combine into one dataframe
@@ -1407,7 +1478,7 @@ t3_300_buildings_df |>
         y = "Tree Count at 25 m"
     ) +
     theme_minimal()
-
+ 
 t3_300_buildings_df |>
     filter(!is.na(tree_count_50m)) |>
     filter(map_use == "Residential") |> 

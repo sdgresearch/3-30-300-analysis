@@ -29,7 +29,7 @@ library(spatialreg)
 
 t3_30_300_lsoa_srm_gdf <- t3_30_300_lsoa_gdf |> 
     select(LSOA11CD, Region = RGN22NM, Urban = Urban_rural_flag, tree_count_slope_gini, 
-           canopy_cover, park_distance_manhattan, distance_manhattan_gini, water_distance, 
+           canopy_cover, distance_manhattan, distance_manhattan_gini, distance_water, 
            distance_water_gini, tree_person_ratio, tree_area_ratio, NDVI, NDWI, NDBI, IMDScore, pop_density) |> 
     drop_na()
 
