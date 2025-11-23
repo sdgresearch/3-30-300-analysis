@@ -276,14 +276,28 @@ t3_30_300_lsoa_standard_df <- t3_30_300_lsoa_gdf |>
     st_drop_geometry() |> 
     mutate(`3` = log(tree_count_25m + 1),
            `30 (%)` = log(canopy_cover + 1),
-           `300 (m)` = -log(park_distance_manhattan + 1),
-           `Water Distance (m)` = -log(water_distance + 1),
+           `300 (m)` = -log(distance_manhattan + 1),
+           `Water Distance (m)` = -log(distance_water + 1),
            tree_person_ratio = log(tree_person_ratio + 1),
            across(ends_with('Score'), scale, .names = "{.col}")) |> 
     select(`3`, `30 (%)`, `300 (m)`, `Water Distance (m)`,
            tree_person_ratio, NDVI, NDWI, NDBI, IMDScore,
            LSOA21CD, LAD22CD, RGN22CD, pop_density, Urban_rural_flag, EnvDec) |> 
     drop_na()
+
+t3_30_300_lsoa_long_imd_df <- t3_30_300_lsoa_gdf |>
+    st_drop_geometry() |>
+    filter(!is.na(IMD_Decile)) |>
+    filter(Urban_rural_flag == "Urban") |>
+    pivot_longer(cols = c(EduDec, EmpDec, IncDec, HDDDec, CriDec, BHSDec, EnvDec),
+                 names_to = "deprivation_var", values_to = "deprivation_val") |> 
+    mutate(deprivation_var = case_when(deprivation_var == "EduDec" ~ "Education",
+                                       deprivation_var == "EmpDec" ~ "Employment",
+                                       deprivation_var == "IncDec" ~ "Income",
+                                       deprivation_var == "HDDDec" ~ "Health",
+                                       deprivation_var == "CriDec" ~ "Crime",
+                                       deprivation_var == "BHSDec" ~ "Housing",
+                                       deprivation_var == "EnvDec" ~ "Environment"))
 
 save.image(here(T3_30_300_DIR, ".RData"))
 
