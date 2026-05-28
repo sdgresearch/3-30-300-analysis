@@ -5,7 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "apache-sedona[kepler-map,pydeck-map]>=1.7.1",
+    "apache-sedona[kepler-map,pydeck-map]==1.9.0",
     "cartopy>=0.24.1",
     "contextily>=1.6.2",
     "earthengine-api>=1.5.9",

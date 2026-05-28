@@ -30,6 +30,7 @@ output_areas_boundaries_ee_path = "projects/ee-phd-thesis/assets/output_areas_bo
 T3_30_300_DIR = OUTPUT_DIR / "3-30-300"
 T3_dir = T3_30_300_DIR / "T3"
 T30_dir = T3_30_300_DIR / "T30"
+T30_buildings_dir = T3_30_300_DIR / "T30_buildings"
 T300_dir = T3_30_300_DIR / "T300"
 Spectral_dir = T3_30_300_DIR / "Spectral"
 trees_dir = T3_30_300_DIR / "VOM_Trees"

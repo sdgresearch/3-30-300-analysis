@@ -123,22 +123,22 @@ def filter_buffer_geometries(sedona: SparkSession, geo_level: str, geo_code: str
 
     geo_buildings_sdf = sedona.sql(
         f"""
-            SELECT b.* FROM {table_name} b, geo_boundary g 
+            SELECT b.* FROM {table_name} b, geo_boundary_{geo_code} g
             WHERE ST_Intersects(b.geometry, g.geometry)
         """)
-    geo_buildings_sdf.createOrReplaceTempView(f"geo_{table_name}")
+    geo_buildings_sdf.createOrReplaceTempView(f"geo_{table_name}_{geo_code}")
 
     if buffer:
 
         geo_buildings_buffer_sdf = sedona.sql(
         f"""
             SELECT ST_Buffer(b.geometry, {buffer}) AS geometry, b.verisk_premise_id
-            FROM geo_{table_name} b
+            FROM geo_{table_name}_{geo_code} b
         """)
-        geo_buildings_buffer_sdf.createOrReplaceTempView(f"{table_name}_buffers")
+        geo_buildings_buffer_sdf.createOrReplaceTempView(f"{table_name}_buffers_{geo_code}")
 
         return geo_buildings_buffer_sdf
-    
+
     return geo_buildings_sdf
 
 def get_geometries(sedona: SparkSession, geo_level: str, geo_code: str, dissolve: bool=True) -> DataFrame:
@@ -165,7 +165,7 @@ def get_geometries(sedona: SparkSession, geo_level: str, geo_code: str, dissolve
             FROM boundaries
             WHERE {geo_level} = '{geo_code}'
         """)
-    geo_boundary_sdf.createOrReplaceTempView("geo_boundary")
+    geo_boundary_sdf.createOrReplaceTempView(f"geo_boundary_{geo_code}")
 
     return geo_boundary_sdf
 
