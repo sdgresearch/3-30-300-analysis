@@ -66,6 +66,7 @@ if __name__ == "__main__":
     parser.add_argument('--imagery_ee_path', type=str, required=False, default='COPERNICUS/S2_HARMONIZED', help='Imagery name from GEE')
     parser.add_argument('--cloud_coverage', type=float, required=False, default=10.0, help='Cloud Pixel Percentage')
     parser.add_argument('--spectral_indexes', type=str, nargs='+', required=False, default=['NDVI', 'NDWI', 'NDBI'], help='List of indexes to calculate')
+    parser.add_argument('--per_building', action='store_true', help='Calculate canopy cover per building instead of per geography (T30 only)')
     parser.add_argument('--parallel', action='store_true', help='Run job in parallel')
     parser.add_argument('--n_workers', type=int, required=False, default=2, help='Number of workers')
     parser.add_argument('--log_level', type=str, required=False, default='INFO', help='Logging level')
@@ -85,7 +86,12 @@ if __name__ == "__main__":
     args_dict['sedona'] = sedona
     args_dict.update(tables)
 
-    output_path = database_dir / f"{process}.parquet" if process in ['T30', 'T300', 'Spectral', 'Tree_count'] else database_dir / f"{process}_{args_dict['buffer']}m.parquet"
+    if process == 'T30' and args_dict.get('per_building'):
+        output_path = database_dir / f"T30_buildings_{args_dict['buffer']}m.parquet"
+    elif process in ['T30', 'T300', 'Spectral', 'Tree_count']:
+        output_path = database_dir / f"{process}.parquet"
+    else:
+        output_path = database_dir / f"{process}_{args_dict['buffer']}m.parquet"
 
     if process == 'Spectral':
         from spectral import setup_gee

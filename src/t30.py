@@ -13,8 +13,8 @@ import rioxarray as rxr
 from rioxarray.merge import merge_arrays
 from rasterstats import zonal_stats
 from pyspark.sql.session import SparkSession
-from sedona.utils.adapter import Adapter
-from sedona.core.enums import GridType, IndexType
+from sedona.spark.utils.adapter import Adapter
+from sedona.spark.core.enums import GridType, IndexType
 
 def binarise_tiles(vom_paths_lst: list, low_threshold: float, high_threshold: float) -> xr.DataArray:
     """

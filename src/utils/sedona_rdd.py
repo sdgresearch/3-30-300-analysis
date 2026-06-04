@@ -1,12 +1,12 @@
 
 import logging
 
-from sedona.utils.adapter import Adapter
-from sedona.core.enums import GridType, IndexType
-from sedona.core.spatialOperator import JoinQueryRaw
+from sedona.spark.utils.adapter import Adapter
+from sedona.spark.core.enums import GridType, IndexType
+from sedona.spark.core.spatialOperator import JoinQueryRaw
 from pyspark.sql.session import SparkSession
 from pyspark.sql.dataframe import DataFrame
-from sedona.core.SpatialRDD import SpatialRDD
+from sedona.spark.core.SpatialRDD import SpatialRDD
 
 def create_spatial_rdds(query_sdf: DataFrame, object_sdf: DataFrame, build_on_spatial_partitioned_rdd: bool = True) -> tuple:
     """
