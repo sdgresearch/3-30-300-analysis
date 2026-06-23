@@ -1,6 +1,6 @@
 
 from utils.constants import PROJECT_CRS, INPUT_DIR, OUTPUT_DIR
-from utils.paths import imd_england_2019_path, lsoa_2011_2021_lookup_path, oa_2021_lookup_path, oa_2021_boundaries_path, oa_rgn_lookup_path 
+from utils.paths import imd_england_2019_path, imd_england_2025_path, lsoa_2011_2021_lookup_path, oa_2021_lookup_path, oa_2021_boundaries_path, oa_rgn_lookup_path 
 from utils.paths import population_estimates_path, os_5km_boundaries_path, green_space_path, roads_path, buildings_path
 from utils.paths import output_areas_boundaries_parquet, output_areas_buildings_parquet, std_population_estimates_parquet, imd_lsoa_parquet 
 from utils.paths import os_tile_boundaries_parquet, green_space_access_parquet, green_space_site_parquet, road_edges_parquet, road_nodes_parquet
@@ -25,10 +25,24 @@ def setup_parquet_files() -> None:
                            'EduRank', 'EduDec', 'HDDScore', 'HDDRank', 'HDDDec', 'CriScore', 
                            'CriRank', 'CriDec', 'BHSScore', 'BHSRank', 'BHSDec', 'EnvScore', 
                            'EnvRank', 'EnvDec']
+    imd_england_2025_columns = {"LSOA code (2021)": "LSOA21CD", "Index of Multiple Deprivation (IMD) Score": "IMDScore",	
+                                "Index of Multiple Deprivation (IMD) Rank (where 1 is most deprived)": "IMD_Rank",	
+                                "Index of Multiple Deprivation (IMD) Decile (where 1 is most deprived 10% of LSOAs)": "IMD_Decile",
+                                "Income Score (rate)": "IncScore", "Income Rank (where 1 is most deprived)": "IncRank", "Income Decile (where 1 is most deprived 10% of LSOAs)": "IncDec",
+                                "Employment Score (rate)": "EmpScore", "Employment Rank (where 1 is most deprived)": "EmpRank", "Employment Decile (where 1 is most deprived 10% of LSOAs)": "EmpDec",	
+                                "Education, Skills and Training Score": "EduScore", "Education, Skills and Training Rank (where 1 is most deprived)": "EduRank",	
+                                "Education, Skills and Training Decile (where 1 is most deprived 10% of LSOAs)": "EduDec",
+                                "Health Deprivation and Disability Score": "HDDScore", "Health Deprivation and Disability Rank (where 1 is most deprived)": "HDDRank",	
+                                "Health Deprivation and Disability Decile (where 1 is most deprived 10% of LSOAs)": "HDDDec",	
+                                "Crime Score": "CriScore", "Crime Rank (where 1 is most deprived)": "CriRank", "Crime Decile (where 1 is most deprived 10% of LSOAs)": "CriDec",	
+                                "Barriers to Housing and Services Score": "BHSScore", "Barriers to Housing and Services Rank (where 1 is most deprived)": "BHSRank",
+                                "Barriers to Housing and Services Decile (where 1 is most deprived 10% of LSOAs)": "BHSDec",	
+                                "Living Environment Score": "EnvScore", "Living Environment Rank (where 1 is most deprived)": "EnvRank", "Living Environment Decile (where 1 is most deprived 10% of LSOAs)": "EnvDec"}
     
     logging.debug("Loading data from shapefiles and CSVs")
 
-    imd_england_2019_gdf = gpd.read_file(imd_england_2019_path)[imd_england_columns].rename(columns={'lsoa11cd': 'LSOA11CD'})
+    # imd_england_2019_gdf = gpd.read_file(imd_england_2019_path)[imd_england_columns].rename(columns={'lsoa11cd': 'LSOA11CD'})
+    imd_england_2025_df = pd.read_csv(imd_england_2025_path)[list(imd_england_2025_columns.keys())].rename(columns=imd_england_2025_columns)
     lsoa_2011_2021_lookup_df = pd.read_csv(lsoa_2011_2021_lookup_path)
     oa_2021_lookup_df = pd.read_csv(oa_2021_lookup_path)
     oa_2021_boundaries_gdf = gpd.read_file(oa_2021_boundaries_path).to_crs(PROJECT_CRS)
@@ -56,8 +70,9 @@ def setup_parquet_files() -> None:
     output_areas_boundaries_gdf = output_areas_boundaries_gdf[output_areas_boundaries_columns]
     output_areas_boundaries_gdf
     std_population_estimates_df = process_population_data(population_estimates_df)
-    imd_lsoa_gdf = imd_england_2019_gdf.merge(lsoa_2011_2021_lookup_df[["LSOA11CD", "LSOA21CD"]], on="LSOA11CD")
-    imd_lsoa_df = imd_lsoa_gdf[["LSOA11CD", "LSOA21CD"] + imd_lsoa_gdf.columns[1:-1].tolist()]
+    # imd_lsoa_gdf = imd_england_2019_gdf.merge(lsoa_2011_2021_lookup_df[["LSOA11CD", "LSOA21CD"]], on="LSOA11CD")
+    # imd_lsoa_df = imd_lsoa_gdf[["LSOA11CD", "LSOA21CD"] + imd_lsoa_gdf.columns[1:-1].tolist()]
+    imd_lsoa_df = imd_england_2025_df
     os_tile_boundaries_gdf = expand_national_grid(os_5km_boundaries_gdf)
 
     logging.debug("Saving data to parquet files")
@@ -171,7 +186,7 @@ def process_population_data(population_estimates_df: pd.DataFrame) -> pd.DataFra
     # Keep only the required columns
     columns_to_keep = ['LSOA_2021_Code', 'Total'] + [col for col in population_estimates_df.columns if col.endswith('_ratio')]
     std_population_estimates_df = population_estimates_df.copy()[columns_to_keep]
-    std_population_estimates_df.rename(columns={'LSOA_2021_Code': 'LSOA11CD', 'Total': 'total_pop'}, inplace=True)
+    std_population_estimates_df.rename(columns={'LSOA_2021_Code': 'LSOA21CD', 'Total': 'total_pop'}, inplace=True)
 
     return std_population_estimates_df
 
@@ -254,3 +269,7 @@ def overlay_output_areas_with_buildings(sedona: SparkSession, output_areas_bound
     buildings_boundaries_df.drop_duplicates(subset=['verisk_premise_id', 'OA21CD'], keep='first', inplace=True)
     
     return buildings_boundaries_df
+
+
+if __name__ == "__main__":
+    setup_parquet_files()
