@@ -53,10 +53,10 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='This script executes the module to calculate the 3-30-300 metric and spectral indexes for all of England.')
     parser.add_argument('--process', type=str, required=True, choices=['T3', 'T30', 'T300', 'Spectral', 'Tree_count'], help='Name of the component of the module to run')
-    parser.add_argument('--tile_level', type=str, required=False, default='TILE_NAME_50KM', help='Name/Code of the desired geography')
+    parser.add_argument('--tile_level', type=str, required=False, default='TILE_NAME_5KM_int', help='Name/Code of the desired geography')
     parser.add_argument('--geo_level', type=str, required=False, default='LAD22CD', choices=['RGN22CD', 'MSOA21CD', 'LAD22CD', 'LSOA21CD'], help='Name/Code of the desired geography')
     parser.add_argument('--sub_geo_level', type=str, required=False, default='LSOA21CD', choices=['MSOA21CD', 'LAD22CD', 'LSOA21CD', 'OA21CD'], help='Name/Code of the desired geography')
-    parser.add_argument('--geo_code', type=str, required=False, help='Geographical variable name')
+    parser.add_argument('--geo_code', type=str, nargs='+', required=False, help='Geographical variable name(s)')
     parser.add_argument('--query_method', type=str, required=False, default='rdd', choices=['sql', 'rdd'], help='Type of data to use with Apache Sedona')
     parser.add_argument('--buffer', type=int, required=False, default=100, help='Buffer size in meters')
     parser.add_argument('--tree_area', type=int, required=False, default=10, help='Tree area in square meters')
@@ -98,7 +98,7 @@ if __name__ == "__main__":
         setup_gee()
 
     if args_dict['geo_code']:
-        geo_level_codes = [args_dict['geo_code']]
+        geo_level_codes = args_dict['geo_code']
 
     else:
         geo_level_codes = tables['output_areas_boundaries_gdf'][args_dict['geo_level']].unique()

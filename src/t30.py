@@ -7,6 +7,7 @@ import time
 import logging
 import numpy as np
 import pandas as pd
+from pathlib import Path
 import geopandas as gpd
 import xarray as xr
 import rioxarray as rxr
@@ -47,8 +48,10 @@ def binarise_tiles(vom_paths_lst: list, low_threshold: float, high_threshold: fl
             logging.error(f"Error reading file: {file} - {e}")
     merged_chm_xr = merge_arrays(chm_xr_lst)
 
+    nan_mask = merged_chm_xr.isnull()
     binary_merged_chm_xr = (merged_chm_xr >= low_threshold) & (merged_chm_xr <= high_threshold)
-    binary_merged_chm_xr = binary_merged_chm_xr.astype(int).fillna(0)
+    binary_merged_chm_xr = binary_merged_chm_xr.astype(float)
+    binary_merged_chm_xr = binary_merged_chm_xr.where(~nan_mask)
 
     return binary_merged_chm_xr
 
@@ -66,12 +69,20 @@ def get_canopy_cover(subgeo_filt_gdf: gpd.GeoDataFrame, binary_merged_chm_xr: xr
 
     logging.debug("Calculating canopy cover")
 
-    zs_categorical = zonal_stats(subgeo_filt_gdf, binary_merged_chm_xr[0].values, 
-                                affine=binary_merged_chm_xr.rio.transform(), categorical=True)
+    raster_vals = binary_merged_chm_xr[0].values
+    affine = binary_merged_chm_xr.rio.transform()
 
-    # subgeo_filt_gdf['canopy_cover'] = [round(100 * z.get(1, 0) / (z.get(0, 0) + z.get(1, 0)), 3) for z in zs_categorical]
-    subgeo_filt_gdf['canopy_cover'] = [round(100 * z.get(1, 0) / sum(z.values()), 3) if z else np.nan for z in zs_categorical]
-    subgeo_filt_gdf['total_pixels'] = [z.get(0, 0) + z.get(1, 0) for z in zs_categorical]
+    NODATA = -1.0
+    raster_masked = np.where(np.isnan(raster_vals), NODATA, raster_vals)
+
+    zs = zonal_stats(subgeo_filt_gdf, raster_masked, affine=affine,
+                     stats=['sum', 'count'], nodata=NODATA)
+
+    subgeo_filt_gdf['canopy_cover'] = [
+        round(100 * (z.get('sum') or 0) / z['count'], 3) if z.get('count') else np.nan
+        for z in zs
+    ]
+    subgeo_filt_gdf['total_pixels'] = [z.get('count') or 0 for z in zs]
 
     geo_canopy_cover_df = subgeo_filt_gdf.copy()
     
@@ -98,11 +109,28 @@ def get_canopy_cover_buildings(sedona: SparkSession, vom_paths_lst: list, geo_co
         pd.DataFrame: verisk_premise_id, tree_pixels, total_pixels, canopy_cover.
     """
 
-    logging.debug(f"Loading {len(vom_paths_lst)} raw VOM tiles into Sedona")
+    # Pre-filter: skip tiles that can't be decoded (corrupt LZW data or invalid format).
+    # Sample rows at 25/50/75% of tile height to catch mid-file corruption cheaply.
+    valid_paths = []
+    for path in vom_paths_lst:
+        try:
+            r = rxr.open_rasterio(path)
+            n_rows = r.shape[1]
+            for frac in [0.25, 0.50, 0.75]:
+                r.isel(y=slice(int(n_rows * frac), int(n_rows * frac) + 1)).values
+            valid_paths.append(path)
+        except Exception as e:
+            logging.warning(f"Skipping unreadable tile {Path(path).name}: {e}")
+
+    if not valid_paths:
+        logging.warning(f"No valid VOM tiles found for {geo_code}, returning empty result")
+        return pd.DataFrame(columns=['verisk_premise_id', 'tree_pixels', 'total_pixels', 'canopy_cover'])
+
+    logging.debug(f"Loading {len(valid_paths)}/{len(vom_paths_lst)} valid VOM tiles into Sedona")
 
     raster_sdf = (
         sedona.read.format("binaryFile")
-        .load(vom_paths_lst)
+        .load(valid_paths)
         .selectExpr("RS_FromGeoTiff(content) AS raster")
     )
     raster_sdf.createOrReplaceTempView(f"raw_tiles_{geo_code}")

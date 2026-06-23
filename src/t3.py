@@ -69,17 +69,20 @@ def read_vom_trees_unique(sedona: SparkSession, overlapping_tiles_lst: list, tre
 
     logging.debug(f"Found {len(vom_trees_paths)} VOM trees vector files")
 
-    # geo_trees_sdf = sedona.read.format("geopackage").option("tableName", "trees").load(str(temp_dir.name))
     geo_trees_gdf = pd.concat([gpd.read_file(file) for file in vom_trees_paths], ignore_index=True)
-    geo_trees_sdf = sedona.createDataFrame(geo_trees_gdf)
-    if 'geom' in geo_trees_sdf.columns:
-        geo_trees_sdf = geo_trees_sdf.withColumnRenamed('geom', 'geometry')
-    geo_trees_sdf.createOrReplaceTempView("geo_trees")   
-    geo_trees_sdf = sedona.sql(f"""SELECT treeID, area, height, ST_Centroid(geometry) AS geometry FROM geo_trees 
-                               WHERE area > {tree_area} AND height > {tree_height}""")
-    geo_trees_sdf = geo_trees_sdf.withColumn("treeID", monotonically_increasing_id())
-    geo_trees_sdf.createOrReplaceTempView("geo_trees")
+    if 'geom' in geo_trees_gdf.columns:
+        geo_trees_gdf = geo_trees_gdf.rename(columns={'geom': 'geometry'})
 
+    # Filter and centroid in pandas — avoids a shared "geo_trees" temp view that causes
+    # a race condition when multiple geo_codes run in parallel within the same SparkSession.
+    geo_trees_gdf = geo_trees_gdf[
+        (geo_trees_gdf['area'] > tree_area) & (geo_trees_gdf['height'] > tree_height)
+    ].copy()
+    geo_trees_gdf['geometry'] = geo_trees_gdf['geometry'].centroid
+    geo_trees_gdf = geo_trees_gdf[['area', 'height', 'geometry']].reset_index(drop=True)
+    geo_trees_gdf['treeID'] = range(len(geo_trees_gdf))
+
+    geo_trees_sdf = sedona.createDataFrame(geo_trees_gdf)
     return geo_trees_sdf
 
 def count_trees(sedona: SparkSession, geo_code: str) -> pd.DataFrame:
