@@ -14,13 +14,13 @@ library(terra)
 library(sf)
 library(lidR)
 
-source("scripts/constants.R")
+source("R/utils/constants.R")
 
 # Paths -------------------------------------------------------------------
 
-vom_dir <- here(RASTER_IN_DIR, "Defra", "VOM")
+vom_dir <- here(INPUT_DIR, "Defra", "VOM")
 vom_lad_dir <- here(vom_dir, "LADs")
-trees_dir <- here(VECTOR_OUT_DIR, "3-30-300", "VOM_Trees")
+trees_dir <- here(OUTPUT_DIR, "3-30-300", "VOM_Trees")
 chm_lad_tiles_path <- here(vom_lad_dir, "LAD_CHM_tiles_paths.json")
 chm_lad_tiles_lst <- jsonlite::read_json(chm_lad_tiles_path, simplifyVector = T)
 chm_tif_paths <- sort(unique(unlist(chm_lad_tiles_lst)))
@@ -81,13 +81,16 @@ process_vom_tile <- function(chm_path) {
     log_formatter(formatter_glue)
     log_layout(layout_glue_generator("{time} - {level} - {msg}"))
     log_threshold(log_level)
-    tryCatch({   
-        # Extract the parent folder (2023)
-        year <- str_match(chm_path, ".*/(\\d{4})/.*")[,2]
 
-        # Extract the specific part of the filename (two uppercase letters followed by four numbers)
-        tile_name <- str_match(chm_path, "VOM_([A-Z]{2}\\d{4})_")[,2]
-        
+    year <- str_match(chm_path, ".*/(\\d{4})/.*")[,2]
+    tile_name <- str_match(chm_path, "VOM_([A-Z]{2}\\d{4})_")[,2]
+
+    if (!file.exists(chm_path)) {
+        log_warn(paste("Source file missing, skipping:", tile_name, year))
+        return(invisible(NULL))
+    }
+
+    tryCatch({
         log_warn(paste("Processing tile", tile_name, "from", year))
 
         crowns_path <- here(trees_dir, paste0("VOM_trees_", tile_name, "_", year, ".gpkg"))
@@ -95,21 +98,15 @@ process_vom_tile <- function(chm_path) {
         if (!file.exists(crowns_path)) {
             chm_spat_rast <- rast(chm_path)
             crowns_vect <- extract_trees(chm_spat_rast)
-
             writeVector(crowns_vect, crowns_path, overwrite = T)
         }
+
+        return(invisible(NULL))
     },
     error = function(e) {
-        log_error("Error processing: ", e$message)
-
-        return(NULL)
-    }
-    # warning = function(w) {
-    #     message("Warning when reading file: ", chm_path)
-    #     message("Warning message: ", w$message)
-    #     return(NULL)
-    # }
-    )
+        log_error(paste("Error processing tile", tile_name, year, ":", e$message))
+        return(chm_path)
+    })
 }
 
 # Create a parser object
@@ -134,28 +131,31 @@ log_formatter(formatter_glue)
 log_layout(layout_glue_generator("{time} - {level} - {msg}"))
 log_threshold(log_level)
 
-if (parallel) {
-    
-    log_warn("Running in parallel")
+run_tiles <- function(paths, use_parallel, n_workers) {
+    if (use_parallel) {
+        plan(multisession, workers = n_workers)
+        results <- future.apply::future_lapply(paths, process_vom_tile)
+    } else {
+        pb <- progress::progress_bar$new(format = "[:bar] :current/:total (:percent)", total = length(paths))
+        results <- lapply(paths, function(p) {
+            res <- process_vom_tile(p)
+            pb$tick()
+            res
+        })
+    }
+    Filter(Negate(is.null), results)
+}
 
-    # cl <- makeCluster(n_workers)
-    # clusterExport(cl, varlist = c("process_vom_tile", "extract_trees", "rast", "here", "str_match",
-    #                               "log_warn", "log_warn", "writeVector", "trees_dir", "chm_lad_tiles_lst",
-    #                               "chm_tif_paths"))
-    # pboptions(type = "timer")
-    # pblapply(chm_tif_paths, process_vom_tile, cl = cl)
-    # stopCluster(cl)
-    plan(multisession, workers = n_workers)
-    future.apply::future_lapply(chm_tif_paths, process_vom_tile)
+log_warn("Running first pass")
+failed <- run_tiles(chm_tif_paths, parallel, n_workers)
 
-} else {
+if (length(failed) > 0) {
+    log_warn(paste("Retrying", length(failed), "failed tiles"))
+    still_failed <- run_tiles(unlist(failed), parallel, n_workers)
 
-    pb <- progress::progress_bar$new(format = "[:bar] :current/:total (:percent)", total = length(chm_tif_paths))
-    log_warn("Running sequentially")
-
-    for (chm_path in chm_tif_paths) {
-        
-        process_vom_tile(chm_path)
-        pb$tick()
+    if (length(still_failed) > 0) {
+        log_error(paste("Failed after retry:", paste(unlist(still_failed), collapse = ", ")))
+    } else {
+        log_warn("All retried tiles succeeded")
     }
 }

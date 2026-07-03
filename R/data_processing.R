@@ -33,20 +33,26 @@ t3_300_df <- read_parquet(t3_300_parquet) |>
     mutate(verisk_premise_id = as.integer(verisk_premise_id),
            across(starts_with("tree_count"), as.numeric),
            across(contains("distance"), as.numeric))
+t3_30_300_buildings_df <- read_parquet(t3_30_300_buildings_parquet) |> 
+    mutate(verisk_premise_id = as.integer(verisk_premise_id),
+           across(starts_with("tree_count"), as.numeric),
+           across(contains("distance"), as.numeric),
+           across(starts_with("canopy_cover"), as.numeric))
 t30_df <- read_parquet(t30_parquet) |> 
     mutate(across(canopy_cover:total_pixels, as.numeric))
 
 # Processing --------------------------------------------------------------
 
 population_df <- std_population_estimates_df |>  
-    left_join(imd_lsoa_df |> select(LSOA11CD, LSOA21CD), by = "LSOA11CD") |> 
+    # left_join(imd_lsoa_df |> select(LSOA11CD, LSOA21CD), by = "LSOA11CD") |> 
     left_join(output_areas_boundaries_gdf |> 
                 st_drop_geometry() |> 
                 select(LSOA21CD, MSOA21CD, LAD22CD, RGN22CD) |> 
                 distinct(), by = "LSOA21CD") |> 
     distinct(LSOA21CD, .keep_all = TRUE)
 
-t3_300_buildings_df <- t3_300_df |>
+t3_30_300_buildings_df <- t3_30_300_buildings_df |>
+# t3_300_buildings_df <- t3_300_df |>
     left_join(output_areas_buildings_df, by = "verisk_premise_id") |>
     select(-closest_park_access_id, -closest_park_site_id) |> 
     distinct(verisk_premise_id, .keep_all = TRUE)
@@ -66,18 +72,21 @@ group_by_geo_level <- function(geo_level = "LSOA21CD", dTolerance = 500) {
                   .groups = "drop") |> 
         drop_na(!!sym(geo_level))
 
-    t3_300_buildings_gini_geo_level_df <- t3_300_buildings_df |> 
+  t3_30_300_buildings_gini_geo_level_df <- t3_30_300_buildings_df |>   
+  # t3_300_buildings_gini_geo_level_df <- t3_300_buildings_df |> 
         filter(map_use == "Residential") |>
         group_by(!!sym(geo_level)) |>
         summarise(across(starts_with("tree_count"), ~Gini(.x, na.rm = TRUE, unbiased = TRUE), .names = "{.col}_gini"),
                   across(starts_with("tree_count"), ~round(mean(.x, na.rm = TRUE), 2), .names = "{.col}"),
-                  across(starts_with("distance"), ~1 - Gini(.x, na.rm = TRUE, unbiased = TRUE), .names = "{.col}_gini"),
+                  across(starts_with("canopy_cover"), ~Gini(.x, na.rm = TRUE, unbiased = TRUE), .names = "{.col}_gini"),
+                  across(starts_with("canopy_cover"), ~round(mean(.x, na.rm = TRUE), 2), .names = "{.col}"),
+                  across(starts_with("distance"), ~Gini(.x, na.rm = TRUE, unbiased = TRUE), .names = "{.col}_gini"),
                   across(starts_with("distance"), ~round(mean(.x, na.rm = TRUE), 2), .names = "{.col}"),
                   building_count = n(), .groups = "drop")
 
     t30_geo_level_df <- t30_df |> 
         group_by(!!sym(geo_level)) |> 
-        summarise(canopy_cover = round(sum(canopy_cover * total_pixels) / sum(total_pixels), 2), .groups = "drop")
+        summarise(canopy_cover = round(sum(canopy_cover * total_pixels, na.rm = TRUE) / sum(total_pixels, na.rm = TRUE), 2), .groups = "drop")
     
     tree_count_geo_level_df <- tree_count_df |> 
         left_join(output_areas_boundaries_gdf |> st_drop_geometry(), by = "OA21CD") |> 
@@ -87,7 +96,8 @@ group_by_geo_level <- function(geo_level = "LSOA21CD", dTolerance = 500) {
     t3_30_300_geo_level_gdf <- geo_level_gdf |> 
         left_join(population_geo_level_df, by = geo_level) |> 
         left_join(tree_count_geo_level_df, by = geo_level) |> 
-        left_join(t3_300_buildings_gini_geo_level_df, by = geo_level) |> 
+        # left_join(t3_300_buildings_gini_geo_level_df, by = geo_level) |> 
+        left_join(t3_30_300_buildings_gini_geo_level_df, by = geo_level) |> 
         left_join(t30_geo_level_df, by = geo_level) |> 
         mutate(pop_density = total_pop / area,
                tree_person_ratio = total_trees / total_pop,
@@ -117,9 +127,10 @@ t3_30_300_lsoa_gdf <- group_by_geo_level("LSOA21CD", 10) |>
     arrange(RGN22CD, LAD22CD, MSOA21CD, LSOA21CD) |> 
     distinct(LSOA21CD, .keep_all = TRUE)
 
-write_parquet(t3_30_300_lsoa_gdf |> 
-    st_transform(crs = WGS84_CRS) |> 
-    mutate(RGN22NM = as.character(RGN22NM)), 
+write_parquet(t3_30_300_lsoa_gdf |>
+    st_transform(crs = WGS84_CRS) |>
+    mutate(RGN22NM = as.character(RGN22NM),
+           across(ends_with("_gini"), as.numeric)),
     here(app_files_dir, "Aggregated", "t3_30_300_lsoa_4326.parquet"))
 
 write_csv(t3_30_300_lsoa_gdf |> st_drop_geometry() |> mutate(RGN22NM = as.character(RGN22NM)), here(app_files_dir, "Aggregated", "t3_30_300_lsoa_4326.csv"))
@@ -144,7 +155,14 @@ clean_shapefile_names <- function(names) {
         "tree_count_75m_gini" = "tree75_gini",
         "tree_count_100m_gini" = "tree100_gini",
         "tree_count_slope_gini" = "treesl_gini",
-        
+
+        "canopy_cover_100m" = "canopy100m",
+        "canopy_cover_100m_gini" = "canopy100g",
+        "canopy_cover_200m" = "canopy200m",
+        "canopy_cover_200m_gini" = "canopy200g",
+        "canopy_cover_300m" = "canopy300m",
+        "canopy_cover_300m_gini" = "canopy300g",
+
         # Distance fields
         "distance_manhattan" = "dist_manh",
         "distance_euclidean" = "dist_eucl",
@@ -232,7 +250,7 @@ t3_30_300_lsoa_gdf_clean <- t3_30_300_lsoa_gdf |>
     rename_with(~clean_shapefile_names(.), .cols = everything())
 
 t3_30_300_lsoa_gdf_clean |> 
-    st_write(here(app_files_dir, "Aggregated", "t3_30_300_lsoa_4326.shp"))
+    st_write(here(app_files_dir, "Aggregated", "t3_30_300_lsoa_4326.shp"), delete_layer = TRUE)
 
 t3_30_300_msoa_gdf <- group_by_geo_level("MSOA21CD", 100) |> 
     left_join(output_areas_boundaries_gdf |> 
