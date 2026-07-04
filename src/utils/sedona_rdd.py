@@ -57,10 +57,6 @@ def count_trees_rdd(sedona: SparkSession, query_rdd: SpatialRDD, object_rdd: Spa
 
     query_result_sdf = Adapter.toDf(query_result, [query_column], ["treeID"], sedona)
 
-    # query_result_df = query_result_sdf.toPandas().sort_values(by=query_column)
-
-    # geo_tree_count_df = query_result_df.groupby(query_column).size().reset_index(name='tree_count')
-
     geo_tree_count_df = (
         query_result_sdf
         .groupBy(query_column)

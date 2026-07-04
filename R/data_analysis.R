@@ -21,7 +21,6 @@ library(ggpubr)
 library(ggmagnify)
 library(biscale)
 library(BBmisc)
-library(esquisse)
 library(DescTools)
 library(ggbump)
 library(ggalluvial)
@@ -140,7 +139,6 @@ corr_plot <- ggcorrplot(corr_matrix, type = "lower", lab = TRUE, legend.title = 
      outline.col = "black", col = c("#bf812d", "#f5f5f5", "#35978f")) + 
      scale_y_discrete(limits=rev, position = "right") + 
      scale_x_discrete(position = "top") +
-    #  coord_flip() +
      theme(panel.grid.major = element_blank(), 
      legend.position = "none",
      legend.title = element_text(size = 10, face = "bold"),
@@ -372,7 +370,6 @@ ggsave("images_new/t3_30_300_scatter_urban_plots.png", t3_30_300_scatter_plots_l
 
 t3_lsoa_map <- t3_30_300_lsoa_gdf |> 
         st_transform(crs = WGS84_CRS) |> 
-        # filter(RGN22NM == "London") |> 
         ggplot() + 
         geom_sf(aes(fill = tree_count_25m, colour = tree_count_25m)) +
         scale_fill_distiller(palette = "Greens", direction = 1) +
@@ -388,7 +385,6 @@ t3_lsoa_map <- t3_30_300_lsoa_gdf |>
 
 t30_lsoa_map <- t3_30_300_lsoa_gdf |> 
         st_transform(crs = WGS84_CRS) |> 
-        # filter(RGN22NM == "London") |> 
         ggplot() + 
         geom_sf(aes(fill = canopy_cover, colour = canopy_cover)) +
         scale_fill_distiller(palette = "Greens", direction = 1) +
@@ -404,7 +400,6 @@ t30_lsoa_map <- t3_30_300_lsoa_gdf |>
 
 t300_lsoa_map <- t3_30_300_lsoa_gdf |> 
         st_transform(crs = WGS84_CRS) |> 
-        # filter(RGN22NM == "London") |> 
         ggplot() + 
         geom_sf(aes(fill = distance_manhattan, colour = distance_manhattan)) +
         scale_fill_distiller(palette = "Greens", direction = -1) +
@@ -461,8 +456,6 @@ canopy_cover_hist <- t3_30_300_lsoa_gdf |>
     filter(!is.na(canopy_cover_jenks)) |> 
     ggplot() +
     geom_bar(aes(x = canopy_cover_jenks, fill = canopy_cover_jenks)) +
-    # scale_x_discrete(limits = rev(levels(t3_30_300_lsoa_gdf$tree_person_ratio_jenks))) +
-    # scale_y_sqrt(breaks = c(1, 10, 25, 50, 100)) +
     scale_y_sqrt(breaks = c(100, 1000, 2000, 5000, 8000), labels = function(x) paste0(x / 1000, "k")) +
     scale_fill_manual(values = colorRampPalette(brewer.pal(9, "YlGn"))(9), 
         guide = "none") + 
@@ -535,20 +528,15 @@ ggsave("images_new/t3_30_300_gini_lsoa_map.png", t3_30_300_gini_map,
        width = 360, height = 210, units = "mm", dpi = 300)
 
 
-canopy_cover_gini_map <- t3_30_300_lsoa_gdf |> 
-    # filter(!is.na(IOL22CD)) |>
+canopy_cover_gini_map <- t3_30_300_lsoa_gdf |>
     filter(Urban_rural_flag == "Urban") |>
-    st_transform(crs = WGS84_CRS) |> 
-    ggplot() + #geom_histogram(aes(x = canopy_cover_100m_gini, bins = 30)) +
-    aes(fill = canopy_cover_100m_gini) + 
+    st_transform(crs = WGS84_CRS) |>
+    ggplot() +
+    aes(fill = canopy_cover_100m_gini) +
     geom_sf(colour = NA) +
     scale_fill_distiller(palette = "PRGn", direction = 1) +
-    # scale_x_continuous(limits = c(-6.5, 4), expand = c(0, 0)) +
-    # scale_y_continuous(limits = c(49.5, 56.5), expand = c(0, 0)) +
-    guides(fill = guide_legend(nrow = 2, byrow = TRUE, keywidth = unit(0.5, "cm"), 
+    guides(fill = guide_legend(nrow = 2, byrow = TRUE, keywidth = unit(0.5, "cm"),
         color = "none")) +
-    # geom_magnify(aes(from = RGN22NM == "London"), to = c(-.2, 3, 54.5, 56), 
-    #     expand = .35, shadow = TRUE, shape = 'outline', linewidth = .001, alpha = 0.99) +
     theme_void()
 
 # Gini vs Aggregated Values ------------------------------------------------
@@ -562,7 +550,6 @@ tree_gini_scatter <- t3_30_300_lsoa_gdf |>
     scale_y_continuous(limits = c(0, 1), breaks = seq(0.25, 1, 0.25)) +
     scale_colour_brewer(palette = "RdYlBu") +
     scale_radius() +
-    # facet_wrap(~RGN22NM) +
     facet_grid(RGN22NM ~ Urban_rural_flag, labeller = label_wrap_gen(8)) +
     labs(x = bquote(Trees ~ per ~ km^2), y = "Gini", 
         colour = "IMD Decile", size = bquote("Population Density (per km"^2 * ")"),
@@ -582,7 +569,6 @@ canopy_gini_scatter <- t3_30_300_lsoa_gdf |>
     scale_y_continuous(limits = c(0, 1), breaks = seq(0.25, 1, 0.25)) +
     scale_colour_brewer(palette = "RdYlBu") +
     scale_radius() +
-    # facet_wrap(~RGN22NM) +
     facet_grid(RGN22NM ~ Urban_rural_flag, labeller = label_wrap_gen(8)) +
     labs(x = "Canopy Cover (%)", y = "Canopy Cover Gini", 
         colour = "IMD Decile", size = bquote("Population Density (per km"^2 * ")"),
@@ -602,7 +588,6 @@ park_gini_scatter <- t3_30_300_lsoa_gdf |>
     scale_y_continuous(limits = c(0, 1), breaks = seq(0.25, 1, 0.25)) +
     scale_colour_brewer(palette = "RdYlBu") +
     scale_radius() +
-    # facet_wrap(~RGN22NM) +
     facet_grid(RGN22NM ~ Urban_rural_flag, labeller = label_wrap_gen(8)) +
     labs(x = "Park Distance (m)", y = "Park Distance Gini", 
         colour = "IMD Decile", size = bquote("Population Density (per km"^2 * ")"),
@@ -622,7 +607,6 @@ water_gini_scatter <- t3_30_300_lsoa_gdf |>
     scale_y_continuous(limits = c(0, 1), breaks = seq(0.25, 1, 0.25)) +
     scale_colour_brewer(palette = "RdYlBu") +
     scale_radius() +
-    # facet_wrap(~RGN22NM) +
     facet_grid(RGN22NM ~ Urban_rural_flag, labeller = label_wrap_gen(8), drop = TRUE) +
     labs(x = "Water Distance (km)", y = "Water Distance Gini", 
         colour = "IMD Decile", size = bquote("Population Density (per km"^2 * ")"),
@@ -710,7 +694,6 @@ population_summary_plot <- t3_30_300_pop_summary |>
     ggplot() +
     aes(x = rule, y = total_pop, fill = meets) +
     geom_bar(stat = "identity", position = "fill") +
-    # scale_y_continuous(labels = function(x) paste0(x / 1e6, " M"), breaks = seq(1e6, 8e6, 1e6)) +
     scale_fill_brewer(palette = "Set2", direction = -1) +
     labs(y = "Population (%)", x = NULL, fill = "Meets Rule") +
     facet_wrap(~RGN22NM, nrow = 1, strip.position = "top", labeller = label_wrap_gen(width=10)) +
@@ -840,7 +823,6 @@ trees_pop_hist <- t3_30_300_lad_gdf |>
     filter(!is.na(tree_person_ratio_jenks)) |> 
     ggplot() +
     geom_bar(aes(x = tree_person_ratio_jenks, fill = tree_person_ratio_jenks)) +
-    # scale_x_discrete(limits = rev(levels(t3_30_300_lad_gdf$tree_person_ratio_jenks))) +
     scale_y_sqrt(breaks = c(1, 10, 25, 50, 100)) +
     scale_fill_manual(values = colorRampPalette(brewer.pal(9, "YlGn"))(9), 
         guide = "none") + 
@@ -893,7 +875,6 @@ trees_area_hist <- t3_30_300_lad_gdf |>
     filter(!is.na(tree_area_ratio_jenks)) |> 
     ggplot() +
     geom_bar(aes(x = tree_area_ratio_jenks, fill = tree_area_ratio_jenks)) +
-    # scale_x_discrete(limits = rev(levels(t3_30_300_lad_gdf$tree_person_ratio_jenks))) +
     scale_y_sqrt(breaks = c(10, 25, 50, 75)) +
     scale_fill_manual(values = colorRampPalette(brewer.pal(9, "OrRd"))(9),
         guide = "none") + 
@@ -1149,23 +1130,6 @@ t3_30_300_spectral_rank_map
 ggsave("images_new/t3_30_300_spectral_rank_map.png", t3_30_300_spectral_rank_map, 
        width = 180, height = 90, units = "mm", dpi = 300)
 
-# t3_30_300_rank_long_gdf |> 
-#     filter(Metric %in% c("tree_count_rank", "canopy_cover_rank",
-#                          "park_distance_rank", "water_distance_rank", 
-#                          "NDVI_rank", "NDBI_rank", "NDWI_rank", "IMDScore_rank")) |> 
-#     left_join(t3_30_300_lsoa_gdf |> 
-#                   st_drop_geometry() |> 
-#                   select(RGN22CD, RGN22NM), by = "RGN22CD") |> 
-#     ggplot(aes(x = Metric, y = Rank, group = RGN22CD, colour = IMD)) + 
-#     geom_point(size = 3) +
-#     geom_bump(size = 2, smooth = 8) +
-#     # geom_text(aes(label = RGN22NM)) +
-#     # scale_y_reverse() +
-#     scale_y_continuous(breaks = 1:10) +
-#     scale_color_brewer(palette = "RdYlBu") +
-#     labs(x = "Metric", y = "Rank") +
-#     plot_theme
-
 # Low Score -> High Ranking -> Low Deprivation
 # High Score -> Low Ranking -> High Deprivation
 
@@ -1173,7 +1137,6 @@ ggsave("images_new/t3_30_300_spectral_rank_map.png", t3_30_300_spectral_rank_map
 
 ndvi_map_plot <- t3_30_300_lsoa_gdf |> 
         st_transform(crs = WGS84_CRS) |> 
-        # filter(RGN22NM == "London") |> 
         ggplot() + 
         geom_sf(aes(fill = NDVI), colour = NA) +
         scale_fill_distiller(palette = "RdYlGn", direction = 1) +
@@ -1189,7 +1152,6 @@ ggsave('images_new/ndvi_lsoa_map.png', ndvi_map_plot,  device = "png", width = 1
 
 ndwi_map_plot <- t3_30_300_lsoa_gdf |> 
         st_transform(crs = WGS84_CRS) |> 
-        # filter(RGN22NM == "London") |> 
         ggplot() + 
         geom_sf(aes(fill = NDWI), colour = NA) +
         scale_fill_distiller(palette = "RdBu", direction = 1) +
@@ -1205,7 +1167,6 @@ ggsave('images_new/ndwi_lsoa_map.png', ndwi_map_plot,  device = "png", width = 1
 
 ndbi_map_plot <- t3_30_300_lsoa_gdf |> 
         st_transform(crs = WGS84_CRS) |> 
-        # filter(RGN22NM == "London") |> 
         ggplot() + 
         geom_sf(aes(fill = NDBI), colour = NA) +
         scale_fill_distiller(palette = "BrBG", direction = -1) +
@@ -1227,7 +1188,6 @@ tree_pop_imd_scatter_plot <- t3_30_300_lsoa_long_imd_df |>
     geom_point(alpha = 0.5, size = 0.5) +
     scale_x_continuous(trans = "log", labels = function(x) round(x, 1), breaks = c(1, 3, 10, 50, 100, 200)) +
   scale_y_log10(breaks = c(100, 5000, 50000), labels = format_number) +
-    # scale_y_continuous(trans = "log", labels = function(x) round(x, 0)) +
     scale_colour_brewer(palette = "RdYlBu") +
     facet_wrap(~deprivation_var, ncol = 1) +
     labs(y = bquote(Population ~ Density ~ (per ~ km^2)), x = "Tree Count at 25 m", colour = "Deprivation Decile") +
@@ -1244,7 +1204,6 @@ canopy_pop_imd_scatter_plot <- t3_30_300_lsoa_long_imd_df |>
     geom_point(alpha = 0.5, size = 0.5) +
     scale_x_continuous(trans = "log", labels = function(x) round(x, 1), breaks = c(1, 5, 10, 30, 60)) +
   scale_y_log10(breaks = c(100, 5000, 50000), labels = format_number) +
-    # scale_y_continuous(trans = "log", labels = function(x) round(x, 0)) +
     scale_colour_brewer(palette = "RdYlBu") +
     facet_wrap(~deprivation_var, ncol = 1) +
     labs(y = NULL, x = "Canopy Cover (%)", colour = "Deprivation Decile") +
@@ -1259,10 +1218,8 @@ park_pop_imd_scatter_plot <- t3_30_300_lsoa_long_imd_df |>
     ggplot() +
     aes(y = pop_density, x = distance_manhattan, colour = deprivation_val) +
     geom_point(alpha = 0.5, size = 0.5) +
-    # scale_x_continuous(trans = "log", breaks = c(100, 300, 1000, 5000, 10000)) +
     scale_x_log10(breaks = c(100, 300, 1000, 5000, 10000), labels = format_number) +
         scale_y_log10(breaks = c(100, 5000, 50000), labels = format_number) +
-    # scale_y_continuous(trans = "log", labels = function(x) round(x, 0)) +
     scale_colour_brewer(palette = "RdYlBu") +
     facet_wrap(~deprivation_var, ncol = 1, strip.position="right") +
     labs(y = NULL, x = "Distance to Park (m)", colour = "Deprivation Decile") +
@@ -1310,7 +1267,6 @@ tree_areas_df <- csv_files |>
     summarise(tree_area_sum = sum(total_tree_area, na.rm = TRUE),
               .groups = "drop") |> 
     left_join(lsoa_urban_df, by = "LSOA21CD") |> 
-    # filter(Urban_rural_flag == "Urban") |> 
     group_by(RGN22NM) |> 
     summarise(tree_area_sum = sum(tree_area_sum, na.rm = TRUE),
               .groups = "drop")
@@ -1350,10 +1306,7 @@ t3_30_300_tes_bump_plot <- t3_30_300_tes_normal_df |>
 ggsave("images_new/t3_30_300_tes_bump_plot.png", t3_30_300_tes_bump_plot,
        width = 180, height = 90, units = "mm", dpi = 300)
 
-t3_30_300_tes_sankey_df <- t3_30_300_tes_df |> 
-# mutate(across(c(canopy_cover, tree_count_slope_gini, distance_manhattan_gini, tes),
-    #     ~ cut(.x, breaks = quantile(.x, probs = seq(0, 1, 0.2), na.rm = TRUE),
-    #     include.lowest = TRUE, labels = c("Q1", "Q2", "Q3", "Q4", "Q5")), .names = "{.col}_cat")) |> 
+t3_30_300_tes_sankey_df <- t3_30_300_tes_df |>
     mutate(
     tes_cat = factor(cut(tes, 
                          breaks = quantile(tes, probs = seq(0, 1, 0.2), na.rm = TRUE),
@@ -1391,28 +1344,14 @@ tes_sankey_plot <- t3_30_300_tes_sankey_df |>
     labs(fill = "Environment IMD", y = NULL) +
     guides(fill = guide_legend(nrow = 1)) +
     theme_minimal() +
-        theme_minimal() +
-        theme(legend.position = "bottom",
-            axis.text.y = element_blank(),
-            axis.ticks = element_blank(),
-            panel.grid.major = element_blank(),
-            panel.grid.minor = element_blank())
-
-t3_30_300_tes_df |> 
-    ggplot() +
-    aes(x = tree_count_slope_gini, y = tes, colour = EnvDec) +
-    geom_point(alpha = 0.5)
+    theme(legend.position = "bottom",
+          axis.text.y = element_blank(),
+          axis.ticks = element_blank(),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank())
 
 ggsave("images_new/tes_sankey_plot.png", tes_sankey_plot,
        width = 250, height = 150, units = "mm", dpi = 300)
-
-temp_plot <- t3_30_300_tes_df |> 
-    ggplot() +
-    aes(x = canopy_cover, y = treecanopy, colour = RGN22NM) +
-    geom_point(alpha = 0.5)
-
-ggsave("images_new/temp_plot.png", temp_plot, 
-       width = 180, height = 90, units = "mm", dpi = 300)
 
 # Forest Research Comparison -----------------------------------------------
 
@@ -1423,10 +1362,10 @@ tree_count_region_df <- tree_count_df |>
     summarise(total_trees = sum(tree_count, na.rm = TRUE),
               .groups = "drop")
 
-nfi_gsf <- read_sf(here("/maps/acz25/phd-thesis-data/input/Forest_Research/NFI/National_Forest_Inventory_England_2023.shp"))
+nfi_gsf <- read_sf(nfi_path)
 
-fr_gdb_files <- list.files(here("/maps/acz25/phd-thesis-data/input/Forest_Research/TOW"), 
-                          pattern = "\\.gdb$", 
+fr_gdb_files <- list.files(tow_dir,
+                          pattern = "\\.gdb$",
                           full.names = TRUE)
 
 fr_data_list <- list()
@@ -1457,101 +1396,3 @@ for (gdb_file in fr_gdb_files) {
 print("Feature counts in each GDB layer:")
 print(fr_feature_counts)
 
-# Other plots -------------------------------------------------------------
-
-manhattan_distance_gini_map <- t3_30_300_lad_gdf |> 
-    ggplot() +
-    aes(fill = distance_manhattan_gini) +
-    geom_sf(color = alpha("grey", 0.2)) +
-    scale_fill_distiller(palette = "PiYG", direction = -1) +
-    labs(fill = "Manhattan Distance Gini") +
-    plot_theme
-
-ggsave("images_new/manhattan_distance_gini_map.png", manhattan_distance_gini_map, 
-       width = 180, height = 90, units = "mm", dpi = 300)
-
-(euclidean_distance_gini_map <- t3_30_300_lad_gdf |> 
-    ggplot() +
-    aes(fill = distance_euclidean_gini) +
-    geom_sf(color = alpha("grey", 0.2)) +
-    scale_fill_distiller(palette = "PiYG", direction = -1) +
-    labs(fill = "Euclidean Distance Gini") +
-    plot_theme)
-
-ggsave("images_new/euclidean_distance_gini_map.png", euclidean_distance_gini_map, 
-       width = 180, height = 90, units = "mm", dpi = 300)
-
-total_trees_gini_map <- t3_30_300_lad_gdf |> 
-    ggplot() +
-    aes(fill = total_trees_gini) +
-    geom_sf(color = alpha("grey", 0.2)) +
-    scale_fill_distiller(palette = "PiYG", direction = -1) +
-    labs(fill = "Total Trees Gini") +
-    plot_theme
-
-ggsave("images_new/total_trees_gini_map.png", total_trees_gini_map, 
-       width = 180, height = 90, units = "mm", dpi = 300)
-
-tree_slope_gini_map <- t3_30_300_lad_gdf |> 
-    ggplot() +
-    aes(fill = tree_count_slope_gini) +
-    geom_sf(color = alpha("grey", 0.2)) +
-    scale_fill_distiller(palette = "PiYG", direction = -1) +
-    labs(fill = "Slope Gini") +
-    plot_theme
-
-ggsave("images_new/tree_slope_gini_map.png", tree_slope_gini_map, 
-       width = 180, height = 90, units = "mm", dpi = 300)
- 
-(env_imd_map <- t3_30_300_lsoa_gdf |> 
-    filter(RGN22NM == "London") |> 
-    ggplot() +
-    aes(fill = EnvDec) +
-    geom_sf(color = alpha("grey", 0.2)) +
-    scale_fill_brewer(palette = "RdYlBu") +
-    # scale_fill_distiller(palette = "RdYlBu") +
-    labs(fill = "Env IMD") +
-    plot_theme)
-
-ggsave("images_new/env_imd_map.png", env_imd_map, 
-       width = 180, height = 90, units = "mm", dpi = 300)
-
-# Scatter Plot: water_distance vs distance_manhattan
-t3_300_buildings_df |> 
-    filter(!is.na(distance_water), !is.na(distance_manhattan)) |> 
-    filter(map_use == "Residential") |> 
-    ggplot(aes(x = distance_water, y = tree_count_25m, colour = RGN22CD)) +
-    geom_point(alpha = 0.5, size = 0.5) +
-    scale_x_continuous(trans = "log") +
-    # scale_y_continuous(trans = "log") +
-    labs(
-        x = "Water Distance (m)",
-        y = "Tree Count at 25 m"
-    ) +
-    theme_minimal()
- 
-t3_300_buildings_df |>
-    filter(!is.na(tree_count_50m)) |>
-    filter(map_use == "Residential") |> 
-    ggplot() + 
-    geom_histogram(aes(tree_count_50m)) +
-    scale_x_continuous(trans = "log")
-
-t3_30_300_lsoa_gdf |> 
-    filter(RGN22NM == "London") |> 
-    ggplot() +
-    aes(fill = park_distance_ratio) +
-    geom_sf() +
-    scale_fill_distiller(palette = "PRGn", direction = 1) +
-    theme_minimal()
-
-t3_30_300_lsoa_gdf |> 
-    filter(Urban_rural_flag == "Urban") |> 
-    ggplot() +
-    aes(x = distance_water_gini, y = NDVI, colour = EnvDec) +
-    geom_point(alpha = 0.5) +
-    # scale_x_continuous(trans = "log") +
-    # scale_y_continuous(trans = "log") +
-    scale_colour_brewer(palette = "RdYlBu", direction = 1) +
-    facet_wrap(~RGN22NM) +
-    theme_minimal()    

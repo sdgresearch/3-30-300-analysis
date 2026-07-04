@@ -1,0 +1,11 @@
+# Copy this file to .Renviron (in the repo root or your home directory) and
+# adjust the values for your machine. Used by R/utils/constants.R.
+
+# Absolute path to this repository.
+HOME_DIR=/path/to/3-30-300-analysis
+
+# Root directory holding all project data (same value as DATA_DIR in .env).
+DATA_DIR=/path/to/project-data
+
+# JDK directory name relative to $DATA_DIR/../.jdk (same value as in .env).
+JDK_HOME=jdk-17.0.2

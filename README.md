@@ -1,213 +1,121 @@
 # 3-30-300 Analysis in England using Big Spatial Data
 
-## Overview
+Code for the paper analysing the **3-30-300 urban forestry rule** in England from national-scale geospatial data. The 3-30-300 rule states that every citizen should be able to see at least **3 trees from their home**, have **30% canopy cover** in their neighbourhood, and live within **300 metres of a green space**.
 
-This project implements the **3-30-300 urban forestry rule** for England using big spatial data analysis. The 3-30-300 rule states that every citizen should be able to see at least **3 trees from their home**, have **30% canopy cover** in their neighborhood, and live within **300 meters of a park**.
+## Repository layout
 
-## What is the 3-30-300 Rule?
+```
+src/   Python pipeline (Apache Sedona / PySpark) that computes the raw metrics
+R/     R scripts for tree segmentation, aggregation, modelling and figures
+docs/  MkDocs documentation for the Python modules
+```
 
-The 3-30-300 rule is an urban forestry guideline that promotes healthy, accessible urban forests:
+### Python pipeline (`src/`)
 
-- **3 trees visible from home**: Ensures every household has immediate access to trees
-- **30% canopy cover**: Provides adequate tree coverage for environmental benefits
-- **300 meters to a park**: Guarantees easy access to green spaces
+`src/main.py` is the entry point. It runs one of the following processes for one or more areas (selected by geography code and level, e.g. a Local Authority District), sequentially or in parallel:
 
-## Project Components
+- **T3** (`src/t3.py`): counts trees around each building at several buffer radii
+- **T30** (`src/t30.py`): estimates canopy cover per statistical geography from the Vegetation Object Model (VOM) canopy height model
+- **T300** (`src/t300.py`): computes network distance from each building to the closest public green space using the road graph
+- **Spectral** (`src/spectral.py`): computes NDVI/NDWI/NDBI per geography with Google Earth Engine
+- **Tree_count** (`src/tree_count.py`): counts segmented trees per census geography
 
-### Core Analysis Modules
+`src/tables_setup.py` converts the raw inputs into the parquet database the pipeline reads (run once first).
 
-- **[T3 Module](3-30-300-analysis/t3.md)**: Tree counting within building buffers
-- **[T30 Module](3-30-300-analysis/t30.md)**: Canopy cover analysis using VOM data
-- **[T300 Module](3-30-300-analysis/t300.md)**: Park accessibility analysis
-- **[Tree Count](3-30-300-analysis/tree_count.md)**: Comprehensive tree inventory
-- **[Spectral Analysis](3-30-300-analysis/spectral.md)**: Remote sensing indices
+Standalone helper scripts:
 
-### Data Infrastructure
+- `src/t3_30_300_spectral.py`: joins the per-process outputs into the final combined tables
+- `src/spectral_download.py`: exports the GEE spectral imagery to Google Drive as GeoTIFFs
+- `src/clip_data.py`: clips trees, buildings, parks and roads to one geography's boundary
+- `src/vom_trees_helper.py`: consolidates per-tile tree geopackages into a single geoparquet
+- `src/utils/install_jdk.py`: installs the JDK required by Spark
 
-- **[Tables Setup](3-30-300-analysis/tables_setup.md)**: Data preprocessing and organization
-- **[Spectral Module](3-30-300-analysis/spectral.md)**: Google Earth Engine integration
+### R analysis (`R/`)
 
-### Utility Modules
+Run in this order:
 
-- **[Constants](3-30-300-analysis/utils/constants.md)**: Project configuration and constants
-- **[Data Processing](3-30-300-analysis/utils/data_processing.md)**: Spatial data utilities
-- **[Install JDK](3-30-300-analysis/utils/install_jdk.md)**: Java installation for Spark/Sedona
-- **[Logging Config](3-30-300-analysis/utils/logging_config.md)**: Logging setup and management
-- **[Paths](3-30-300-analysis/utils/paths.md)**: File path management
-- **[Sedona Config](3-30-300-analysis/utils/sedona_config.md)**: Apache Sedona configuration
-- **[Sedona RDD](3-30-300-analysis/utils/sedona_rdd.md)**: Distributed spatial processing
-- **[VOM Processing](3-30-300-analysis/utils/vom_processing.md)**: Vegetation Object Model handling
+1. `R/chm_processing.R` — segments individual trees from the VOM canopy height model tiles with `lidR`
+2. `R/data_processing.R` — aggregates building-level metrics to LSOA/MSOA/LAD/Region, computes Gini coefficients, writes the aggregated datasets and an `.RData` workspace
+3. `R/data_modelling.R` — spatial regression models (OLS, spatial error, spatial lag) of inequality vs deprivation
+4. `R/data_analysis.R` — produces the figures and tables in the paper
 
-## Data Sources
+## Installation
 
-### Spatial Data
-- **VOM (Vegetation Object Model)**: High-resolution tree and canopy data from Defra
-- **OS (Ordnance Survey)**: Road networks, buildings, and green spaces
-- **ONS (Office for National Statistics)**: Geographic boundaries and population data
-- **Verisk**: Building footprints and attributes
+### Python
 
-### Remote Sensing
-- **Sentinel-2**: Satellite imagery for spectral analysis
-- **Google Earth Engine**: Cloud-based remote sensing processing
+Requires Python ≥3.10 and [uv](https://docs.astral.sh/uv/):
 
-## Technology Stack
-
-### Distributed Computing
-- **Apache Spark**: Distributed data processing
-- **Apache Sedona**: Spatial extensions for Spark
-- **PySpark**: Python interface for Spark
-
-### Spatial Analysis
-- **GeoPandas**: Spatial data manipulation
-- **Rasterio**: Raster data processing
-- **Shapely**: Geometric operations
-
-### Remote Sensing
-- **Google Earth Engine**: Cloud-based geospatial analysis
-- **Earth Engine Python API**: Programmatic access to GEE
-
-## Quick Start
-
-### Prerequisites
-1. **Java 8+**: Required for Apache Spark
-2. **Python 3.8+**: Core programming language
-3. **Google Earth Engine Account**: For remote sensing analysis
-
-### Installation
 ```bash
-# Clone the repository
 git clone <repository-url>
 cd 3-30-300-analysis
+uv sync
 
-# Install dependencies
-pip install -r requirements.txt
-
-# Set up environment variables
+# Configure environment variables
 cp .env.example .env
-# Edit .env with your configuration
+# Edit .env with your paths and GEE project
 ```
 
-### Basic Usage
-```python
-from src.utils.sedona_config import get_spark
-from src.t3 import process_geo_code
+Dependencies are pinned in `uv.lock`. Spark/Sedona jars are resolved automatically from Maven on first run.
 
-# Initialize Spark session
-sedona = get_spark()
+### R
 
-# Process T3 analysis for a geographic area
-result = process_geo_code(
-    sedona=sedona,
-    geo_level="LAD22CD",
-    geo_code="E06000001",
-    # ... other parameters
-)
+The R environment is provided as a conda environment (Linux):
+
+```bash
+conda env create -f environment.yml
+conda activate r-env
+Rscript R/utils/project_setup.R   # installs the remaining CRAN/r-universe packages
+
+# Configure environment variables
+cp .Renviron.example .Renviron
+# Edit .Renviron with your paths
 ```
 
-## Analysis Workflow
+### Google Earth Engine
 
-### 1. Data Preparation
-- Load and preprocess spatial data
-- Convert to efficient parquet format
-- Set up geographic boundaries and overlays
+The Spectral process requires a [Google Earth Engine](https://earthengine.google.com/) account. Authentication is interactive (`ee.Authenticate()`); set your cloud project as `GEE_PROJECT_NAME` in `.env` and upload the Output Area boundaries to your GEE project as the `GEE_BOUNDARIES_ASSET` asset.
 
-### 2. T3 Analysis (Tree Counting)
-- Count trees within building buffers
-- Analyze tree visibility from homes
-- Generate tree density statistics
+## Usage
 
-### 3. T30 Analysis (Canopy Cover)
-- Process VOM canopy height data
-- Calculate canopy cover percentages
-- Analyze vegetation density
+Run from the repository root:
 
-### 4. T300 Analysis (Park Accessibility)
-- Calculate distances to parks
-- Analyze park accessibility by network
-- Generate accessibility statistics
+```bash
+# Build the parquet database from the raw inputs (once)
+python src/tables_setup.py
 
-### 5. Spectral Analysis
-- Calculate NDVI, NDBI, NDWI indices
-- Analyze environmental conditions
-- Integrate remote sensing data
+# Run one process for one Local Authority District
+python src/main.py --process T30 --geo_level LAD22CD --geo_code E06000031
 
-### 6. Integration
-- Combine all analysis components
-- Generate comprehensive reports
-- Create final datasets
+# Run a process for all of England in parallel
+python src/main.py --process T3 --parallel --n_workers 4
 
-## Output Data
+# See all options
+python src/main.py --help
+```
 
-### Analysis Results
-- **Tree counts**: Number of trees per geographic area
-- **Canopy cover**: Percentage of canopy coverage
-- **Park distances**: Network and Euclidean distances to parks
-- **Spectral indices**: Environmental indicators
-- **Integrated metrics**: Combined 3-30-300 analysis
+## Data
 
-### File Formats
-- **Parquet**: Efficient columnar storage
-- **CSV**: Standard tabular format
-- **GeoJSON**: Spatial data for web applications
-- **Shapefile**: Traditional GIS format
+The input data are not distributed with this repository. All datasets are read from `$DATA_DIR/input` (see `src/utils/paths.py` and `R/utils/paths.R` for the expected layout) and outputs are written to `$DATA_DIR/output`:
 
-## Performance Considerations
-
-### Scalability
-- **Distributed processing**: Handles large datasets across cluster
-- **Spatial partitioning**: Optimizes spatial operations
-- **Memory management**: Efficient memory usage for big data
-
-### Optimization
-- **Spatial indexing**: Accelerates spatial queries
-- **Data compression**: Reduces storage requirements
-- **Parallel processing**: Maximizes computational resources
-
-## Contributing
-
-### Development Setup
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests and documentation
-5. Submit a pull request
-
-### Code Standards
-- Follow PEP 8 style guidelines
-- Add comprehensive docstrings
-- Include unit tests for new functions
-- Update documentation for changes
+- **Defra Vegetation Object Model (VOM)**: 1 m canopy height model for England
+- **Ordnance Survey**: Open Roads, Open Greenspace and the 5 km national grid
+- **Office for National Statistics**: Output Area boundaries, lookups, rural–urban classification, population estimates and the English Index of Multiple Deprivation
+- **Verisk UKBuildings**: building footprints and attributes (licensed; obtain via Digimap)
+- **Sentinel-2 (Copernicus)**: surface reflectance imagery via Google Earth Engine
+- **Forest Research**: National Forest Inventory and Trees Outside Woodland (comparison analyses)
 
 ## Documentation
 
-This documentation provides comprehensive coverage of:
-
-- **Module Documentation**: Detailed API reference for all modules
-- **Usage Examples**: Practical code examples
-- **Configuration Guide**: Setup and configuration instructions
-- **Performance Tips**: Optimization and best practices
-- **Troubleshooting**: Common issues and solutions
+API documentation for the Python modules is built with MkDocs (`mkdocs serve`) and published via GitHub Actions.
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License — see the LICENSE file for details.
 
-## Acknowledgments
+## Citation
 
-- **Defra**: For providing VOM data
-- **Ordnance Survey**: For spatial infrastructure data
-- **Office for National Statistics**: For demographic and boundary data
-- **Google Earth Engine**: For remote sensing capabilities
-- **Apache Sedona**: For distributed spatial processing
+If you use this code, please cite the accompanying paper:
 
-## Contact
+> Zúñiga-González, A.C., et al. (2026). *[Paper title]*. [Journal]. [DOI]
 
-For questions, issues, or contributions, please:
-
-- Open an issue on GitHub
-- Contact the development team
-- Check the documentation for solutions
-
----
-
-*This project represents a comprehensive analysis of urban forestry accessibility in England, providing valuable insights for urban planning and environmental policy.*
+(Full reference to be added on publication.)

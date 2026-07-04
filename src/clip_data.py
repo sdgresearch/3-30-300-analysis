@@ -69,7 +69,6 @@ if __name__ == '__main__':
     road_edges_sdf.createOrReplaceTempView('road_edges')
 
     geo_boundary_sdf = get_geometries(sedona, geo_level, geo_code, True)
-    geo_boundary_sdf.createOrReplaceTempView('geo_boundary')
     geo_boundary_gdf = gpd.GeoDataFrame(geo_boundary_sdf.toPandas(), geometry='geometry', crs=PROJECT_CRS)
 
     clipped_data_dir = T3_30_300_DIR / "clipped_data"
@@ -102,7 +101,7 @@ if __name__ == '__main__':
         overlapping_tiles_lst = [tile_name.upper() for tile_name in overlapping_tiles_lst]
         geo_trees_sdf = read_vom_trees_unique(sedona, overlapping_tiles_lst, 0, 0)
 
-        geo_trees_filtered_sdf = sedona.sql("""SELECT t.* FROM geo_boundary b
+        geo_trees_filtered_sdf = sedona.sql(f"""SELECT t.* FROM geo_boundary_{geo_code} b
                LEFT JOIN geo_trees t
                ON ST_Intersects(b.geometry, t.geometry)
                """)

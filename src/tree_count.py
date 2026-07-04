@@ -37,9 +37,9 @@ def concatenate_trees_for_boundary(sedona: SparkSession, geo_level: str, geo_cod
         trees_gdf_lst.append(temp_gdf)
     
     geo_trees_gdf = gpd.GeoDataFrame(pd.concat(trees_gdf_lst, ignore_index=True), crs=PROJECT_CRS)
+    # Sedona's geopackage reader cannot load multiple files at once, so the
+    # tiles are read with geopandas and converted to a Spark DataFrame
     geo_trees_sdf = sedona.createDataFrame(geo_trees_gdf)
-    # TODO: Figure out why sedona can't read multiple geopackages at once
-    # geo_trees_sdf = sedona.read.format("geopackage").option('tableName','trees').load(tree_paths_lst)
     geo_trees_sdf.createOrReplaceTempView("geo_trees")
     
     geo_trees_sdf.withColumn("treeID", monotonically_increasing_id()).createOrReplaceTempView("geo_trees")
@@ -79,24 +79,6 @@ def process_geo_code(sedona: SparkSession, geo_level: str, sub_geo_level: str, g
             sub_geo_code_rdd, geo_trees_rdd = create_spatial_rdds(sub_geo_code_sdf, geo_trees_sdf, build_on_spatial_partitioned_rdd = True)
             geo_tree_count_df = count_trees_rdd(sedona, sub_geo_code_rdd, geo_trees_rdd, sub_geo_level, using_index = True)
 
-            # geo_tree_count_df.to_csv(geo_tree_count_path, index=False)
-            # Create a temp output folder (Spark writes here)
-            # temp_dir = tree_count_dir / "_temp_tree_count"
-
-            # geo_tree_count_df.coalesce(1) \
-            #     .write \
-            #     .option("header", True) \
-            #     .mode("overwrite") \
-            #     .csv(str(temp_dir))
-            
-            # # Step 2: Find the part file Spark wrote
-            # part_file = glob.glob(str(temp_dir / "part-*.csv"))[0]
-            
-            # # Step 3: Move and rename it to your target file
-            # shutil.move(part_file, str(geo_tree_count_path))
-
-            # # Step 4: Clean up temp folder
-            # shutil.rmtree(temp_dir)
             geo_tree_count_df = save_temp_file(geo_tree_count_df, geo_tree_count_path)
             end_time = time.time()
             logging.info(f"Processing for {geo_code} with {sum(geo_tree_count_df['tree_count'])} records took {end_time - start_time:.2f} seconds")

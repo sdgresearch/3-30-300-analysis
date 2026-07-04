@@ -20,3 +20,17 @@ data/
 /logs
 .python-version
 *.parquet
+
+# Not part of the published code repository
+reports/
+notebooks/
+3-30-300-analysis-Revision-/
+CLAUDE.md
+.claude/
+images_new/
+
+# Tool and runtime artifacts
+spark-warehouse/
+.ruff_cache/
+.empty/
+.ipynb_checkpoints/

@@ -23,13 +23,10 @@ def get_spark() -> SparkSession:
         .config(
             "spark.jars.packages",
             "org.apache.sedona:sedona-spark-shaded-3.5_2.12:1.9.0,"
+            "org.datasyslab:geotools-wrapper:1.8.1-33.1,"
             "net.postgis:postgis-jdbc:2021.1.0,"
             "net.postgis:postgis-geometry:2021.1.0,"
-            "org.postgresql:postgresql:42.5.4,",
-        )
-        .config(
-            "spark.jars",
-            "/home/acz25/.ivy2/cache/org.datasyslab/geotools-wrapper/jars/geotools-wrapper-1.8.1-33.1.jar",
+            "org.postgresql:postgresql:42.5.4",
         )
         .config(
             "spark.jars.repositories",

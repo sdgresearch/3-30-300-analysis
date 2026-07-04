@@ -1,18 +1,14 @@
 
-from utils.constants import INPUT_DIR, OUTPUT_DIR
+from utils.constants import INPUT_DIR, OUTPUT_DIR, GEE_BOUNDARIES_ASSET
 
 # IN paths
 vom_dir = INPUT_DIR / "Defra" / "VOM"
 vom_unzipped_dir = vom_dir / "unzipped_tiles"
 
-# # CDRC
-imd_england_2019_path = INPUT_DIR / "CDRC" / "IMD" / "English IMD 2019" / "IMD_2019.shp"
-
 # # Office for National Statistics (ONS)
 oa_2021_lookup_path = INPUT_DIR / "ONS" / "Output_Area_to_Lower_layer_Super_Output_Area_to_Middle_layer_Super_Output_Area_to_Local_Authority_District_(December_2021)_Lookup_in_England_and_Wales_v3.csv"
 oa_2021_boundaries_path = INPUT_DIR / "ONS" / "Output_Areas_(December_2021)_Boundaries_EW_BFE_(V9).geojson"
 oa_rgn_lookup_path = INPUT_DIR / "ONS" / "OA21_RGN22_LU.csv"
-lsoa_2011_2021_lookup_path = INPUT_DIR / "ONS" / "LSOA_(2011)_to_LSOA_(2021)_to_Local_Authority_District_(2022)_Best_Fit_Lookup_for_EW_(V2).csv"
 population_estimates_path = INPUT_DIR / "ONS" / "sapelsoabroadage20112022.xlsx"
 imd_england_2025_path = INPUT_DIR / "ONS" / "IMD2025" / "File_7_IoD2025_All_Ranks_Scores_Deciles_Population_Denominators.csv"
 
@@ -24,8 +20,8 @@ roads_path = INPUT_DIR / "OS" / "Roads" / "oproad_gb.gpkg"
 # # Verisk
 buildings_path = INPUT_DIR / "Verisk" / "Buildings_6183" / "edition_17_0_new_format.gpkg"
 
-# Google Earth Engine
-output_areas_boundaries_ee_path = "projects/ee-phd-thesis/assets/output_areas_boundaries"
+# Google Earth Engine (asset id configured via GEE_BOUNDARIES_ASSET in .env)
+output_areas_boundaries_ee_path = GEE_BOUNDARIES_ASSET
 
 # OUT paths
 T3_30_300_DIR = OUTPUT_DIR / "3-30-300"
@@ -47,7 +43,6 @@ os_tile_boundaries_parquet = database_dir / "os_tile_boundaries.parquet"
 output_areas_boundaries_parquet = database_dir / "output_areas_boundaries.parquet"
 output_areas_os_tile_overlay_parquet = database_dir / "output_areas_os_tile_overlay.parquet"
 output_areas_buildings_parquet = database_dir / "output_areas_buildings.parquet"
-# imd_lsoa_parquet = database_dir / "imd_england_2019.parquet"
 imd_lsoa_parquet = database_dir / "imd_england_2025.parquet"
 std_population_estimates_parquet = database_dir / "population_estimates.parquet"
 green_space_access_parquet = database_dir / "green_space_access.parquet"

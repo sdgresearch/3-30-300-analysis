@@ -14,7 +14,6 @@ library(DescTools)
 
 # Data --------------------------------------------------------------------
 
-# t3_30_300_spectral_df <- read_parquet(t3_30_300_spectral_parquet)
 output_areas_boundaries_gdf <- open_dataset(output_areas_boundaries_parquet) |>
     st_as_sf()
 os_tile_boundaries_gdf <- open_dataset(os_tile_boundaries_parquet) |> 
@@ -43,16 +42,14 @@ t30_df <- read_parquet(t30_parquet) |>
 
 # Processing --------------------------------------------------------------
 
-population_df <- std_population_estimates_df |>  
-    # left_join(imd_lsoa_df |> select(LSOA11CD, LSOA21CD), by = "LSOA11CD") |> 
-    left_join(output_areas_boundaries_gdf |> 
+population_df <- std_population_estimates_df |>
+    left_join(output_areas_boundaries_gdf |>
                 st_drop_geometry() |> 
                 select(LSOA21CD, MSOA21CD, LAD22CD, RGN22CD) |> 
                 distinct(), by = "LSOA21CD") |> 
     distinct(LSOA21CD, .keep_all = TRUE)
 
 t3_30_300_buildings_df <- t3_30_300_buildings_df |>
-# t3_300_buildings_df <- t3_300_df |>
     left_join(output_areas_buildings_df, by = "verisk_premise_id") |>
     select(-closest_park_access_id, -closest_park_site_id) |> 
     distinct(verisk_premise_id, .keep_all = TRUE)
@@ -68,12 +65,10 @@ group_by_geo_level <- function(geo_level = "LSOA21CD", dTolerance = 500) {
     population_geo_level_df <- population_df |> 
         group_by(!!sym(geo_level)) |> 
         summarise(total_pop = sum(total_pop, na.rm = TRUE),
-                #   across(ends_with("ratio"), ~round(sum(.x * total_pop) / sum(total_pop), 2), .names = "{.col}_person_ratio"), # TODO: Calculate ratio per geo_level
-                  .groups = "drop") |> 
+                  .groups = "drop") |>
         drop_na(!!sym(geo_level))
 
-  t3_30_300_buildings_gini_geo_level_df <- t3_30_300_buildings_df |>   
-  # t3_300_buildings_gini_geo_level_df <- t3_300_buildings_df |> 
+    t3_30_300_buildings_gini_geo_level_df <- t3_30_300_buildings_df |>
         filter(map_use == "Residential") |>
         group_by(!!sym(geo_level)) |>
         summarise(across(starts_with("tree_count"), ~Gini(.x, na.rm = TRUE, unbiased = TRUE), .names = "{.col}_gini"),
@@ -95,9 +90,8 @@ group_by_geo_level <- function(geo_level = "LSOA21CD", dTolerance = 500) {
 
     t3_30_300_geo_level_gdf <- geo_level_gdf |> 
         left_join(population_geo_level_df, by = geo_level) |> 
-        left_join(tree_count_geo_level_df, by = geo_level) |> 
-        # left_join(t3_300_buildings_gini_geo_level_df, by = geo_level) |> 
-        left_join(t3_30_300_buildings_gini_geo_level_df, by = geo_level) |> 
+        left_join(tree_count_geo_level_df, by = geo_level) |>
+        left_join(t3_30_300_buildings_gini_geo_level_df, by = geo_level) |>
         left_join(t30_geo_level_df, by = geo_level) |> 
         mutate(pop_density = total_pop / area,
                tree_person_ratio = total_trees / total_pop,
@@ -110,9 +104,8 @@ t3_30_300_lsoa_gdf <- group_by_geo_level("LSOA21CD", 10) |>
     left_join(output_areas_boundaries_gdf |> 
         st_drop_geometry() |> 
         select(LSOA21CD, LSOA21NM, MSOA21CD, MSOA21NM, LAD22CD, LAD22NM, RGN22CD, RGN22NM) |> 
-        distinct(), by = "LSOA21CD") |> 
-    # full_join(t3_30_300_spectral_df |> select(-canopy_cover, -total_trees, -NDVI, -NDWI, -NDBI), by = "LSOA21CD") |> 
-    full_join(spectral_df, by = "LSOA21CD") |> 
+        distinct(), by = "LSOA21CD") |>
+    full_join(spectral_df, by = "LSOA21CD") |>
     full_join(imd_lsoa_df, by = "LSOA21CD") |> 
     mutate(IMD_Decile = as_factor(IMD_Decile),
            across(ends_with("Dec"), as_factor, .names = "{.col}")) |> 
@@ -318,7 +311,3 @@ t3_30_300_lsoa_long_imd_df <- t3_30_300_lsoa_gdf |>
                                        deprivation_var == "EnvDec" ~ "Environment"))
 
 save.image(here(T3_30_300_DIR, ".RData"))
-
-# library(sparklyr)
-# library(apache.sedona)
-# sc <- spark_connect(master = "local")

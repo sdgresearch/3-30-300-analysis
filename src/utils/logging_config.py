@@ -10,7 +10,8 @@ def setup_logger(log_path: str|Path, log_level: str = logging.WARNING) -> None:
         log_path (str | Path): The file path where the log file will be saved.
         log_level (str): The logging level to be used. Default is logging.WARNING.
     """
-    
+
+    Path(log_path).parent.mkdir(parents=True, exist_ok=True)
     logging.basicConfig(filename=log_path,
                         encoding="utf-8",
                         filemode="a",

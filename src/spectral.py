@@ -115,13 +115,8 @@ def process_geo_code(geo_code: str, geo_level: str, sub_geo_level: str, imagery_
             
             sub_geo_boundaries_union_fc = ee.FeatureCollection(sub_geo_code_values.map(dissolve_by_code))
 
-            # spectral_results_lst = calculate_zonal_statistics(imagery_ic, sub_geo_boundaries_union_fc)    
             spectral_results_lst = calculate_median_index(imagery_ic, sub_geo_boundaries_union_fc).getInfo()['features']
             properties_lst = [feature['properties'] for feature in spectral_results_lst]
-            # import geopandas as gpd
-            # from shapely.geometry import shape
-            # geometry_lst = [shape(feature['geometry']) for feature in spectral_results_lst]
-            # spectral_index_gdf = gpd.GeoDataFrame(properties_lst, geometry=geometry_lst, crs='EPSG:4326').to_crs(PROJECT_CRS)
             geo_spectral_index_df = pd.DataFrame(properties_lst)
 
             geo_spectral_index_df.to_csv(geo_spectral_index_path, index=False)

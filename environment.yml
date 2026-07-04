@@ -563,4 +563,3 @@ dependencies:
   - zipp=3.21.0=py313h06a4308_0
   - zlib=1.3.1=hb9d3cd8_2
   - zstd=1.5.7=hb8e6e7a_2
-prefix: /maps/acz25/miniconda3/envs/r-env

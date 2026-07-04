@@ -36,7 +36,6 @@ The 3-30-300 rule is an urban forestry guideline that promotes healthy, accessib
 - **[Paths](3-30-300-analysis/utils/paths.md)**: File path management
 - **[Sedona Config](3-30-300-analysis/utils/sedona_config.md)**: Apache Sedona configuration
 - **[Sedona RDD](3-30-300-analysis/utils/sedona_rdd.md)**: Distributed spatial processing
-- **[VOM Processing](3-30-300-analysis/utils/vom_processing.md)**: Vegetation Object Model handling
 
 ## Data Sources
 

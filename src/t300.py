@@ -154,16 +154,6 @@ def get_closest_park_euclidean(sedona: SparkSession, geo_buildings_gdf: gpd.GeoD
     euclidean_distances_df['distance_euclidean'] = euclidean_distances_df.distance_euclidean.apply(lambda x: round(x, 1))
     euclidean_distances_df = euclidean_distances_df[['verisk_premise_id', 'id', 'distance_euclidean']].rename(columns={'id': 'closest_park_site_id'})
 
-    # TODO: Figure out why the query doesn't work
-    # euclidean_distances_sdf = sedona.sql(
-    #     """
-    #     SELECT b.verisk_premise_id, p.id
-    #     FROM geo_buildings b
-    #     JOIN geo_public_park_sites p
-    #     ON ST_KNN(b.geometry, p.geometry, 1, TRUE) 
-    #     """)
-    # euclidean_distances_df = euclidean_distances_sdf.toPandas()
-    
     return euclidean_distances_df
 
 def get_closest_park(sedona: SparkSession, geo_graph: nx.MultiGraph, geo_buildings_gdf: gpd.GeoDataFrame, 

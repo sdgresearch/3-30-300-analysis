@@ -125,7 +125,6 @@ n_workers <- args$n_workers
 log_level <- args$log_level
 
 # Set the log format
-# log_appender(appender_console)
 log_appender(appender_file("logs/VOM_Trees_calculation.log"))
 log_formatter(formatter_glue)
 log_layout(layout_glue_generator("{time} - {level} - {msg}"))

@@ -11,7 +11,6 @@ from pyspark.sql.dataframe import DataFrame
 from pyspark.sql.session import SparkSession
 from pyspark.sql.functions import monotonically_increasing_id
 
-# TODO: Merge process_vom_tiles with read_vom_trees_geoparquet so that it reads geopackages based on tile_level using tree_vector_paths_df
 def process_vom_tiles(sedona: SparkSession, trees_path_lst: list, tree_area: int=10, tree_height: int=3) -> gpd.GeoDataFrame:
     """
     Processes the VOM tiles to create a GeoDataFrame of the trees.
@@ -48,7 +47,6 @@ def process_vom_tiles(sedona: SparkSession, trees_path_lst: list, tree_area: int
 
     return geo_trees_gdf
 
-# TODO: Figure out how to integrate the creation of the VOM_Trees geoparquet with the new version of the code
 def read_vom_trees_unique(sedona: SparkSession, overlapping_tiles_lst: list, tree_area: int=10, tree_height: int=3) -> DataFrame:
     """
     Reads the VOM trees unique files.

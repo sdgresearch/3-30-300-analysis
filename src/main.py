@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Script: train_model.py
-Description: Trains a machine learning model using scikit-learn.
+Script: main.py
+Description: Entry point for the 3-30-300 pipeline. Runs the selected process
+    (T3, T30, T300, Spectral or Tree_count) for one or more areas, selected by
+    their geography code and level, sequentially or in parallel.
 Author: Andrés C. Zúñiga-González
 Date: 2025-04-03
 """
