@@ -1,11 +1,23 @@
 #!/usr/bin/env python3
-import sys, requests, argparse
+"""
+Script: vom_scraping.py
+Description: Downloads the Defra Vegetation Object Model (VOM) tiles for each
+    geography from the National LiDAR Programme public API into $DATA_DIR/input.
+Author: Andrés C. Zúñiga-González
+"""
+import os
+import requests
+import argparse
 from pathlib import Path
 import pandas as pd
 import geopandas as gpd
-# sys.path.append('..')  # Adjust the path as per your directory structure
+from dotenv import load_dotenv
 
-from constants import *
+load_dotenv()
+
+DATA_DIR = Path(os.getenv("DATA_DIR"))
+INPUT_DIR = DATA_DIR / "input"
+OUTPUT_DIR = DATA_DIR / "output"
 
 def download_file(url: str, filename: str, folder_path: Path) -> int:
     
@@ -14,7 +26,6 @@ def download_file(url: str, filename: str, folder_path: Path) -> int:
     
     # Download the file
     response = requests.get(url)
-    # response.raise_for_status()  # Check if the request was successful
 
     if response.status_code == 200 and not os.path.exists(file_path):
          # Ensure the folder exists
@@ -66,12 +77,7 @@ def filter_geographies(roi_gdf: gpd.GeoDataFrame, grid_gdf: gpd.GeoDataFrame, ta
 def download_tiles_geography(tile_list: list[str], url: str, folder_path: Path) -> pd.DataFrame:
 
     years = ['2018', '2019', '2020', '2021', '2022', '2023']
-    # first_number = ['0','1','2','3','4','5']
-    # second_number = ['6', '7', '8', '9']
-    # directions = ['SW', 'SE', 'NE', 'NW']
-    # tile_names = ['TQ' + a + b + c for a in first_number for b in second_number for c in directions]
     tile_log_df = pd.DataFrame()
-    print(tile_list)
     for tile in tile_list:
         for year in years:
             try: 
@@ -94,21 +100,19 @@ def main():
     parser.add_argument('--geo_level', type=str, required=True, default='BUA22NM', help='Name/Code of the desired geography')
 
     args = parser.parse_args()
-    vom_dir = RASTER_IN_DIR / "Defra" / "VOM"
-    os_5km_boundaries_path = VECTOR_IN_DIR / "OS" / "National_Grid" / "5km_grid_region.shp"
-    england_lsoa_bua_boundaries_path = VECTOR_OUT_DIR / "IMD" / "English_IMD_2019_BUA_filtered_boundaries.geojson"
+    vom_dir = INPUT_DIR / "Defra" / "VOM"
+    os_5km_boundaries_path = INPUT_DIR / "OS" / "National_Grid" / "5km_grid_region.shp"
+    england_lsoa_bua_boundaries_path = OUTPUT_DIR / "IMD" / "English_IMD_2019_BUA_filtered_boundaries.geojson"
 
     base_url = "https://api.agrimetrics.co.uk/tiles/collections/survey/national_lidar_programme_vom/{}/1/{}?subscription-key=public"
 
     os_5km_boundaries_gdf = gpd.read_file(os_5km_boundaries_path)
     england_lsoa_bua_boundaries_gdf = gpd.read_file(england_lsoa_bua_boundaries_path)
 
-    geo_level = 'LAD22NM'#args.geo_level
-    geo_name = args.geo_name
+    geo_level = 'LAD22NM'
 
     for geo_name in england_lsoa_bua_boundaries_gdf[geo_level].unique():
         print(geo_name)
-        # roi_dir = vom_dir / geo_name
         vom_dir.mkdir(parents=True, exist_ok=True)
         roi_vom_tiles_path = vom_dir / f"{geo_name}_VOM_tiles.csv"
 

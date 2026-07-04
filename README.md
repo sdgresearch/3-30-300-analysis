@@ -5,9 +5,10 @@ Code for the paper analysing the **3-30-300 urban forestry rule** in England fro
 ## Repository layout
 
 ```
-src/   Python pipeline (Apache Sedona / PySpark) that computes the raw metrics
-R/     R scripts for tree segmentation, aggregation, modelling and figures
-docs/  MkDocs documentation for the Python modules
+src/      Python pipeline (Apache Sedona / PySpark) that computes the raw metrics
+R/        R scripts for tree segmentation, aggregation, modelling and figures
+scripts/  Data-acquisition helpers (e.g. downloading the Defra VOM tiles)
+docs/     MkDocs documentation for the Python modules
 ```
 
 ### Python pipeline (`src/`)
