@@ -6,11 +6,11 @@ This project implements the **3-30-300 urban forestry rule** for England using b
 
 ## What is the 3-30-300 Rule?
 
-The 3-30-300 rule is an urban forestry guideline that promotes healthy, accessible urban forests:
+The 3-30-300 rule is an urban forestry guideline that promotes healthy, accessible urban forests. This project measures each component with a proxy:
 
-- **3 trees visible from home**: Ensures every household has immediate access to trees
-- **30% canopy cover**: Provides adequate tree coverage for environmental benefits
-- **300 meters to a park**: Guarantees easy access to green spaces
+- **3 trees (tree proximity)**: number of trees within a buffer of each residential building (not the number of trees visible from it)
+- **30% canopy cover**: share of tree canopy in the neighbourhood, from the binarised Vegetation Object Model
+- **300 m to a park (park distance)**: shortest road-network distance from each building to the nearest public park access point (vehicle road network, not a walking route)
 
 ## Project Components
 
@@ -18,7 +18,7 @@ The 3-30-300 rule is an urban forestry guideline that promotes healthy, accessib
 
 - **[T3 Module](3-30-300-analysis/t3.md)**: Tree counting within building buffers
 - **[T30 Module](3-30-300-analysis/t30.md)**: Canopy cover analysis using VOM data
-- **[T300 Module](3-30-300-analysis/t300.md)**: Park accessibility analysis
+- **[T300 Module](3-30-300-analysis/t300.md)**: Road-network park distance analysis
 - **[Tree Count](3-30-300-analysis/tree_count.md)**: Comprehensive tree inventory
 - **[Spectral Analysis](3-30-300-analysis/spectral.md)**: Remote sensing indices
 
@@ -111,8 +111,7 @@ result = process_geo_code(
 - Set up geographic boundaries and overlays
 
 ### 2. T3 Analysis (Tree Counting)
-- Count trees within building buffers
-- Analyze tree visibility from homes
+- Count trees within building buffers (tree proximity)
 - Generate tree density statistics
 
 ### 3. T30 Analysis (Canopy Cover)
@@ -120,10 +119,9 @@ result = process_geo_code(
 - Calculate canopy cover percentages
 - Analyze vegetation density
 
-### 4. T300 Analysis (Park Accessibility)
-- Calculate distances to parks
-- Analyze park accessibility by network
-- Generate accessibility statistics
+### 4. T300 Analysis (Park Distance)
+- Calculate road-network distances to parks
+- Generate park-distance statistics
 
 ### 5. Spectral Analysis
 - Calculate NDVI, NDBI, NDWI indices

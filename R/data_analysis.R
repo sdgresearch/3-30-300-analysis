@@ -43,13 +43,13 @@ plot_theme <- theme_bw(base_size = 12, base_family = "Helvetica") +
 
 plot_boxplots_3_30_300 <- function(t3_30_300_lsoa_gdf, green_metric, plot_legend = TRUE, x_axis = TRUE, facet = TRUE) {
 
-    t3_30_300_vars <- list("3" = list("plot_label" = "3\nTree Count",
+    t3_30_300_vars <- list("3" = list("plot_label" = "3\nTree Proximity",
                                   "number" = 3, "variable" = "tree_count_25m",
                                   "breaks" = c(1, 3, 10, 50, 100, 200)),
                        "30" = list("plot_label" = "30\nCanopy Cover (%)",
                                    "number" = 30, "variable" = "canopy_cover",
                                    "breaks" = c(1, 5, 10, 30, 60)),
-                       "300" = list("plot_label" = "300\nDistance to Park (m)",
+                       "300" = list("plot_label" = "300\nPark Distance (m)",
                                     "number" = 300,
                                     "variable" = "distance_manhattan",
                                     "breaks" = c(50, 150, 300,
@@ -553,7 +553,7 @@ tree_gini_scatter <- t3_30_300_lsoa_gdf |>
     facet_grid(RGN22NM ~ Urban_rural_flag, labeller = label_wrap_gen(8)) +
     labs(x = bquote(Trees ~ per ~ km^2), y = "Gini", 
         colour = "IMD Decile", size = bquote("Population Density (per km"^2 * ")"),
-        title = "Tree Count Slope") +
+        title = "Tree-Proximity Slope") +
     guides(colour = guide_legend(nrow = 1, byrow = TRUE, keywidth = unit(0.5, "cm")),
         size = guide_legend(nrow = 1, byrow = TRUE, keywidth = unit(0.5, "cm"))) +
     plot_theme +
@@ -785,7 +785,7 @@ population_summary_plot_multi_color <- plot_data |>
     geom_hline(yintercept = c(.25, .5, .75), linetype = "dotted", 
              colour = "grey40", linewidth = .5, alpha = .5) +
     # **KEY CHANGE**: Use scale_fill_manual with our custom color vector
-    scale_fill_manual(values = manual_colors, name = "Tree Proximity (3)\n\nCanopy Cover (30)\n\nDistance to Park (300)") +
+    scale_fill_manual(values = manual_colors, name = "Tree Proximity (3)\n\nCanopy Cover (30)\n\nPark Distance (300)") +
     
     labs(y = "Proportion of Population", x = NULL) +
     facet_wrap(~RGN22NM, nrow = 1, strip.position = "top", labeller = label_wrap_gen(width=10)) +
@@ -1190,7 +1190,7 @@ tree_pop_imd_scatter_plot <- t3_30_300_lsoa_long_imd_df |>
   scale_y_log10(breaks = c(100, 5000, 50000), labels = format_number) +
     scale_colour_brewer(palette = "RdYlBu") +
     facet_wrap(~deprivation_var, ncol = 1) +
-    labs(y = bquote(Population ~ Density ~ (per ~ km^2)), x = "Tree Count at 25 m", colour = "Deprivation Decile") +
+    labs(y = bquote(Population ~ Density ~ (per ~ km^2)), x = "Tree Proximity (trees within 25 m)", colour = "Deprivation Decile") +
     guides(colour = guide_legend(nrow = 1, byrow = TRUE, keywidth = unit(0.5, "cm"))) +
     plot_theme +
     theme(legend.position = "bottom", strip.background = element_blank(), strip.text = element_blank())
@@ -1222,7 +1222,7 @@ park_pop_imd_scatter_plot <- t3_30_300_lsoa_long_imd_df |>
         scale_y_log10(breaks = c(100, 5000, 50000), labels = format_number) +
     scale_colour_brewer(palette = "RdYlBu") +
     facet_wrap(~deprivation_var, ncol = 1, strip.position="right") +
-    labs(y = NULL, x = "Distance to Park (m)", colour = "Deprivation Decile") +
+    labs(y = NULL, x = "Park Distance (m)", colour = "Deprivation Decile") +
     guides(colour = guide_legend(nrow = 1, byrow = TRUE, keywidth = unit(0.5, "cm"))) +
     plot_theme +
     theme(legend.position = "bottom", strip.background = element_blank(), axis.text.y = element_blank(), axis.ticks.y = element_blank())
